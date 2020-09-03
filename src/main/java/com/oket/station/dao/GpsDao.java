@@ -1,0 +1,21 @@
+package com.oket.station.dao;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.oket.station.GpsEntity;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+
+/**
+ * <p>
+ * 地理位置 Mapper 接口
+ * </p>
+ *
+ * @author lw
+ * @since 2019-11-26
+ */
+public interface GpsDao extends BaseMapper<GpsEntity> {
+   boolean saveOrUpdate(GpsEntity gpsEntity);
+}

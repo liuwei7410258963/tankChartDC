@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://www.mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.oket.device.dao.Nozzle4DeviceDAO">
+    <select id="getAllNozzle4Device" resultType="com.oket.device.Nozzle4Device">
+        select * from dev_nozzle2  dn join dev_version dv on(dv.device_id=dn.device_id);
+    </select>
+    <select id="getByStationBizId" resultType="com.oket.device.Devices">
+
+    </select>
+
+</mapper>

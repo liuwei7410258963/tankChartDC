@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.tankchartdc.dao.CorrectSamplesDao">
+    <resultMap id="correct" type="com.oket.tankchartdc.entity.CorrectingDTO">
+        <id property="cycleId" column="cycleid"/>
+        <id property="deliveryId" column="deliveryId"/>
+        <collection property="innerCorrectingDTOs" ofType="com.oket.tankchartdc.entity.InnerCorrectingDTO">
+            <association property="dbInventoryTrace" resultMap="trace"
+                         javaType="com.oket.tank4station.entity.DbInventoryTrace">
+            </association>
+            <association property="group" resultMap="group" javaType="com.oket.dispenser.BzNozzleOutGroup">
+            </association>
+        </collection>
+    </resultMap>
+    <resultMap id="group" type="com.oket.dispenser.BzNozzleOutGroup">
+        <result property="id" column="group_id"/>
+        <result property="tankNo" column="group_tankno"/>
+        <result property="startTime" column="group_startime"/>
+        <result property="endTime" column="group_endtime"/>
+        <result property="count" column="group_count"/>
+        <result property="volume" column="group_volume"/>
+        <result property="closed" column="group_closed"/>
+        <result property="needConfirm" column="group_needconfirm"/>
+        <result property="closed" column="group_closed"/>
+        <result property="confirmTime" column="group_confirmtime"/>
+        <result property="status" column="group_status"/>
+        <result property="outGroupId" column="group_id"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="outRelTraceId" column="relId"/>
+    </resultMap>
+    <resultMap id="trace" type="com.oket.tank4station.entity.DbInventoryTrace">
+        <result property="id" column="trace_id"/>
+        <result property="tankNo" column="trace_tankno"/>
+        <result property="startTime" column="trace_startime"/>
+        <result property="endTime" column="trace_endtime"/>
+        <result property="cycleId" column="trace_cycleid"/>
+        <result property="oilCode" column="trace_oilcode"/>
+        <result property="oilName" column="trace_oilname"/>
+        <result property="startId" column="trace_startid"/>
+        <result property="startLevel" column="trace_startlevel"/>
+        <result property="startVolume" column="trace_startvolume"/>
+        <result property="startWaterLevel" column="trace_startwaterlevel"/>
+        <result property="startTemperature" column="trace_starttem"/>
+        <result property="endId" column="trace_endid"/>
+        <result property="endLevel" column="trace_endlevel"/>
+        <result property="endWaterLevel" column="trace_endwater"/>
+        <result property="endVolume" column="trace_endvolume"/>
+        <result property="endTemperature" column="trace_endtem"/>
+        <result property="detailInfo" column="trace_detail"/>
+        <result property="volume" column="trace_volume"/>
+        <result property="levelState" column="trace_levelstate"/>
+        <result property="minutes" column="trace_minutes"/>
+        <result property="closed" column="trace_closed"/>
+        <result property="status" column="trace_status"/>
+        <result property="deltaVolume" column="deltaVolume"/>
+        <result property="deltaNozzleVolume" column="deltaNozzleVolume"/>
+    </resultMap>
+    <select id="select" resultMap="correct">
+        SELECT a.cycle_id as cycleid,a.delivery_id as deliveryId,a.tank_no as trace_tankno,DATE_FORMAT(b.time, '%Y-%m-%d %T')
+        trace_startime,DATE_FORMAT(c.time, '%Y-%m-%d %T') trace_endtime,
+        b.oil_code as trace_oilcode,b.oil_name as trace_oilname,
+        b.volume as trace_startvolume,b.water_level as trace_startwaterlevel,b.temperature as
+        trace_starttem,b.id as trace_startid,c.id as trace_endid,c.level as trace_endlevel,b.level as trace_startlevel,
+        c.water_level as trace_endwater,c.temperature as trace_endtem, c.volume as
+        trace_endvolume,a.out_num as group_volume,a.delta_volume as deltaVolume,a.delta_nozzle_volume as deltaNozzleVolume
+        FROM bz_correct_samples a
+        LEFT JOIN db_inventory b ON a.start_inventory_id = b.id
+        LEFT JOIN db_inventory c ON a.end_inventory_id = c.id
+        where  1=1
+        <if test="tankNo!=null">
+            AND a.tank_no = #{tankNo}
+        </if>
+        <if test="deliveryIds!=null">
+            and a.delivery_id in
+            <foreach collection="deliveryIds" item="item" index="index"
+                     open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        order by a.start_inventory_id desc
+    </select>
+
+    <select id="selectCorrectOut"  resultType="com.alibaba.fastjson.JSONObject">
+        SELECT a.id as id,SUM(c.tank_temp_vt) as outSum
+        FROM `bz_nozzle_out_group` a
+        RIGHT JOIN `bz_nozzle_out_rel_group` b ON a.id=b.group_id
+        RIGHT JOIN `bz_nozzle_out_enhance` c ON b.out_id = c.nozzle_out_id
+        where
+        a.status = 1
+        and b.status = 1
+        and a.id in
+        <foreach collection="groupIds" item="item" index="index"
+                 open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        GROUP BY a.id
+    </select>
+
+    <select id="getRels" resultMap="entity">
+        select
+        btrog.out_group_id as out_group_id,
+        btrog.trace_id as trace_id,
+        btrog.volume_diff as volume_diff,
+        btrog.start_diff as start_diff,
+        btrog.end_diff as end_diff,
+        btrog.tank_no as tank_no,
+        btrog.id as id,
+        btrog.need_confirm as need_confirm,
+        btrog.status as `status`,
+        trace.start_time as trace_start_time,
+        trace.end_Time as trace_end_Time,
+        trace.start_level as trace_start_level,
+        trace.start_volume as trace_start_volume,
+        trace.start_temperature as trace_start_temp,
+        trace.start_id as trace_start_id,
+        trace.end_level as trace_end_level,
+        trace.end_volume as trace_end_volume,
+        trace.end_temperature as trace_end_temp,
+        trace.end_id as trace_end_id,
+        trace.oil_code as trace_oil_id,
+        trace.level_state as trace_level_state,
+        - trace.volume as trace_volume,
+        out_group.id as out_group_id,
+        out_group.start_time as out_group_start_time,
+        out_group.end_Time as out_group_end_Time,
+        out_group.volume as out_group_volume,
+        back.true_volume as back_num,
+        back.status as back_status
+        from db_inventory_trace trace
+        left join bz_trace_rel_out_group btrog on btrog.trace_id =trace.id
+        left join bz_nozzle_out_group out_group on btrog.out_group_id =out_group.id
+        left join back_to_tank back on (back.trace_id = trace.id and  back.status =1)
+        where 1=1
+        and trace.status = 1
+        and ((btrog.status = 1 and out_group.status = 1 ) or  back.status =1)
+        <if test="tankNo!=null">
+            and trace.tank_no=#{tankNo}
+        </if>
+        <if test="startTime!=null">
+            and trace.start_time <![CDATA[>=]]> #{startTime}
+        </if>
+        <if test="endTime!=null">
+            and trace.end_time <![CDATA[<=]]> #{endTime}
+        </if>
+        <if test="needConfirm!=null and needConfirm!=''">
+            and btrog.need_confirm = #{needConfirm}
+        </if>
+        order by trace.start_time desc
+    </select>
+    <resultMap id="entity" type="com.oket.tankchartdc.BzTraceRelOutGroup">
+        <result property="id" column="id"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="outGroupId" column="out_group_id"/>
+        <result property="status" column="status"/>
+        <result property="startDiff" column="start_diff"/>
+        <result property="endDiff" column="end_diff"/>
+        <result property="tankNo" column="tank_no"/>
+        <result property="volumeDiff" column="volume_diff"/>
+        <result property="needConfirm" column="need_confirm"/>
+        <collection property="trace" ofType="com.oket.tank4station.entity.DbInventoryTrace">
+            <result property="startTime" column="trace_start_time"/>
+            <result property="endTime" column="trace_end_time"/>
+            <result property="startId" column="trace_start_id"/>
+            <result property="startLevel" column="trace_start_level"/>
+            <result property="startWaterLevel" column="trace_start_water_level"/>
+            <result property="startVolume" column="trace_start_volume"/>
+            <result property="startTemperature" column="trace_start_temp"/>
+            <result property="endId" column="trace_end_id"/>
+            <result property="endLevel" column="trace_end_level"/>
+            <result property="endWaterLevel" column="trace_end_water_level"/>
+            <result property="endVolume" column="trace_end_volume"/>
+            <result property="endTemperature" column="trace_end_temp"/>
+            <result property="volume" column="trace_volume"/>
+            <result property="levelState" column="trace_level_state"/>
+            <result property="oilCode" column="trace_oil_id"/>
+        </collection>
+        <collection property="outGroup" ofType="com.oket.dispenser.BzNozzleOutGroup">
+            <result property="id" column="out_group_id"/>
+            <result property="startTime" column="out_group_start_time"/>
+            <result property="endTime" column="out_group_end_Time"/>
+            <result property="volume" column="out_group_volume"/>
+        </collection>
+        <collection property="backToTank" ofType="com.oket.tankchartdc.BackToTank">
+            <result property="trueVolume" column="back_num"/>
+            <result property="status" column="back_status"/>
+        </collection>
+    </resultMap>
+</mapper>

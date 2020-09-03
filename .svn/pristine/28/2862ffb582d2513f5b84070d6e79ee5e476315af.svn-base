@@ -1,0 +1,942 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="GROUP_BY_SEVERITY" value="true" />
+    <option name="ANALYZE_TEST_SOURCES" value="false" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b88dcb1c-02a3-4a2a-a13c-38a9656da44f" name="Default Changelist" comment="卸油">
+      <change afterPath="$PROJECT_DIR$/src/main/resources/oil-expansion-rate.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/oket/tank4station/trace/AbstractTraceProcessor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/oket/tank4station/trace/AbstractTraceProcessor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/oket/tankchartdc/controller/DitController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/oket/tankchartdc/controller/DitController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/oket/tankchartdc/service/impl/CorrectSamplesServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/oket/tankchartdc/service/impl/CorrectSamplesServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application-dev.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application-dev.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/logback.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/logback.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/static/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/static/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/oket/tankchartdc/mina/dit/DITEmulator.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/oket/tankchartdc/mina/dit/DITEmulator.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/oket/tankchartdc/mina/ifsf/codec/IFSFCodecDecoder.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/oket/tankchartdc/mina/ifsf/codec/IFSFCodecDecoder.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/oket/tankchartdc/mina/ifsf/codec/IFSFCodecEncoder.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/oket/tankchartdc/mina/ifsf/codec/IFSFCodecEncoder.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/oket/tankchartdc/mina/json/JSONAcceptor.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/oket/tankchartdc/mina/json/JSONAcceptor.class" afterDir="false" />
+    </list>
+    <list id="276325b0-3e69-4d72-8d00-651070cfbc80" name="Default" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CompilerWorkspaceConfiguration">
+    <option name="MAKE_PROJECT_ON_SAVE" value="true" />
+  </component>
+  <component name="CoverageDataManager">
+    <SUITE FILE_PATH="coverage/TankChartDC$TankChartDCApplication.ic" NAME="TankChartDCApplication Coverage Results" MODIFIED="1580721408484" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/tankChartDC$TankChartDCApplication.ic" NAME="TankChartDCApplication Coverage Results" MODIFIED="1587361355695" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/tankChartDC$DitJsonProcessTest_abc.ic" NAME="DitJsonProcessTest.abc Coverage Results" MODIFIED="1585817164201" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false">
+      <FILTER>com.oket.tankchartdc.mina.process.*</FILTER>
+    </SUITE>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="JUnit5 Test Class" />
+        <option value="Interface" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHome" value="$APPLICATION_HOME_DIR$/plugins/maven/lib/maven3" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProjectId" id="1TKfTvGjCY25eapNVijTSrkR4jL" />
+  <component name="ProjectLevelVcsManager">
+    <OptionsSetting value="false" id="Update" />
+    <ConfirmationsSetting value="1" id="Add" />
+    <ConfirmationsSetting value="1" id="Remove" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="DatabaseDriversLRU" value="mysql" />
+    <property name="MyBatisLogPluginindexNum" value="174" />
+    <property name="MyBatisLogPluginparameters" value="Parameters:" />
+    <property name="MyBatisLogPluginpreparing" value="Preparing:" />
+    <property name="MyBatisLogPluginrunning" value="true" />
+    <property name="RequestMappingsPanelOrder0" value="0" />
+    <property name="RequestMappingsPanelOrder1" value="1" />
+    <property name="RequestMappingsPanelWidth0" value="75" />
+    <property name="RequestMappingsPanelWidth1" value="75" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="aspect.path.notification.shown" value="true" />
+    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1589275550187" />
+    <property name="com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrary" value="JUnit5" />
+    <property name="com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrarySuperClass.JUnit5" value="" />
+    <property name="extract.method.default.visibility" value="private" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../truckatgsub" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="project.structure.last.edited" value="Modules" />
+    <property name="project.structure.proportion" value="0.15" />
+    <property name="project.structure.side.proportion" value="0.2" />
+    <property name="restartRequiresConfirmation" value="false" />
+    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CreateTestDialog.RecentsKey">
+      <recent name="com.oket.delivery.service.impl" />
+      <recent name="com.oket.tankchartdc.mina.process" />
+      <recent name="com.oket.tankchartdc.mina.json.bean" />
+    </key>
+    <key name="CreateTestDialog.Recents.Supers">
+      <recent name="" />
+    </key>
+    <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
+      <recent name="com.oket.dispenser" />
+      <recent name="com.oket.delivery" />
+      <recent name="com.oket.device" />
+      <recent name="com.oket.tankchartdc.mina" />
+      <recent name="com.oket.tankchartdc" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\project\tankChartDC\src\main\java\com\oket\tankchartdc\entity" />
+      <recent name="E:\project\tankChartDC\doc" />
+      <recent name="E:\project\tankChartDC\src\main\resources\mapper" />
+      <recent name="E:\project\tankChartDC\src\main\resources\static\css\static" />
+      <recent name="E:\project\tankChartDC\src\main\resources\static\js" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="com.oket.tankchartdc.entity" />
+      <recent name="com.oket.tank4station.entity" />
+      <recent name="com.oket.tank4station.dao" />
+      <recent name="com.oket.tank4station.service.impl" />
+      <recent name="com.oket.tank4station.service" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="E:\project\tankChartDC\src\main\resources\mapper" />
+      <recent name="E:\project\tankChartDC\socket_test" />
+      <recent name="E:\project\tankChartDC\src\main\resources" />
+      <recent name="E:\project\TankChartDC\src\main\resources\static\images" />
+      <recent name="D:\ideawork\tankChartDC\src\main\resources\static\js" />
+    </key>
+  </component>
+  <component name="RestClientSettings">
+    <option name="REQUEST_HISTORY">
+      <list>
+        <RestClientRequest>
+          <option name="httpMethod" value="GET" />
+          <option name="urlBase" value="http://localhost:8088/tank_chart_dc/device/dispenser/stationBizId" />
+          <option name="urlPath" value="" />
+          <option name="textToSend" value="" />
+          <option name="filesToSend" value="" />
+        </RestClientRequest>
+        <RestClientRequest>
+          <option name="httpMethod" value="POST" />
+          <option name="urlBase" value="http://localhost:8088/tank_chart_dc/device/dispenser/" />
+          <option name="urlPath" value="" />
+          <option name="textToSend" value="" />
+          <option name="filesToSend" value="" />
+        </RestClientRequest>
+      </list>
+    </option>
+  </component>
+  <component name="RestServicesNavigator">
+    <treeState>
+      <expand>
+        <path>
+          <item name="Found 15 services " type="fcff1e1b:RestServiceStructure$RootNode" />
+        </path>
+        <path>
+          <item name="Found 15 services " type="fcff1e1b:RestServiceStructure$RootNode" />
+          <item name="tankChartDC" type="c588b436:RestServiceStructure$ProjectNode" />
+        </path>
+      </expand>
+      <select />
+    </treeState>
+  </component>
+  <component name="RunDashboard">
+    <option name="configurationTypes">
+      <set>
+        <option value="SpringBootApplicationConfigurationType" />
+      </set>
+    </option>
+  </component>
+  <component name="RunManager" selected="Spring Boot.TankChartDCApplication">
+    <configuration name="AirUtils" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.oket.util.AirUtils" />
+      <module name="tankChartDC" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.oket.util.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="CodeGenerator" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.oket.util.CodeGenerator" />
+      <module name="tankChartDC" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.oket.util.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="DeliveryServiceImplTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="tankChartDC" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.oket.delivery.service.impl.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="com.oket.delivery.service.impl" />
+      <option name="MAIN_CLASS_NAME" value="com.oket.delivery.service.impl.DeliveryServiceImplTest" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="DeliveryServiceImplTest.abc" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="tankChartDC" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.oket.delivery.service.impl.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="com.oket.delivery.service.impl" />
+      <option name="MAIN_CLASS_NAME" value="com.oket.delivery.service.impl.DeliveryServiceImplTest" />
+      <option name="METHOD_NAME" value="abc" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="DitJsonProcessTest1.saveTankRelNoz" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="tankChartDC" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.oket.tankchartdc.mina.process.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="com.oket.tankchartdc.mina.process" />
+      <option name="MAIN_CLASS_NAME" value="com.oket.tankchartdc.mina.process.DitJsonProcessTest1" />
+      <option name="METHOD_NAME" value="saveTankRelNoz" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TankApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+      <module name="tankChartDC" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.oket.tankchartdc.TankChartDCApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TankChartDCApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+      <module name="tankChartDC" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.oket.TankChartDCApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.AirUtils" />
+        <item itemvalue="Application.CodeGenerator" />
+        <item itemvalue="JUnit.DitJsonProcessTest1.saveTankRelNoz" />
+        <item itemvalue="JUnit.DeliveryServiceImplTest.abc" />
+        <item itemvalue="JUnit.DeliveryServiceImplTest" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration" cleanupOnStartRun="true">
+    <configuration>C:\Users\Administrator\AppData\Roaming\Subversion</configuration>
+    <supportedVersion>125</supportedVersion>
+  </component>
+  <component name="SvnFileUrlMappingImpl">
+    <option name="myMappingRoots">
+      <list>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="E:\project\tankChartDC" />
+          <option name="myCopyRoot" value="E:\project\tankChartDC" />
+        </SvnCopyRootSimple>
+      </list>
+    </option>
+    <option name="myMoreRealMappingRoots">
+      <list>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="E:\project\tankChartDC" />
+          <option name="myCopyRoot" value="E:\project\tankChartDC" />
+        </SvnCopyRootSimple>
+      </list>
+    </option>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b88dcb1c-02a3-4a2a-a13c-38a9656da44f" name="Default Changelist" comment="" />
+      <created>1573213929812</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1573213929812</updated>
+      <workItem from="1573213931046" duration="3152000" />
+      <workItem from="1573696943061" duration="9162000" />
+      <workItem from="1573707961980" duration="27070000" />
+      <workItem from="1573741995569" duration="313000" />
+      <workItem from="1573776581377" duration="8521000" />
+      <workItem from="1573785193919" duration="15866000" />
+      <workItem from="1573804137975" duration="669000" />
+      <workItem from="1573806254150" duration="6027000" />
+      <workItem from="1574036038630" duration="776000" />
+      <workItem from="1574047777250" duration="1280000" />
+      <workItem from="1574132707881" duration="7000" />
+      <workItem from="1574642767896" duration="661000" />
+      <workItem from="1574643440354" duration="4162000" />
+      <workItem from="1574651007966" duration="13463000" />
+      <workItem from="1574685227189" duration="6259000" />
+      <workItem from="1574727020826" duration="3505000" />
+      <workItem from="1574738323386" duration="13253000" />
+      <workItem from="1580690792656" duration="337000" />
+      <workItem from="1580691250199" duration="129000" />
+      <workItem from="1580701742162" duration="724000" />
+      <workItem from="1580703041462" duration="191000" />
+      <workItem from="1580703260510" duration="22391000" />
+      <workItem from="1580884689901" duration="3251000" />
+      <workItem from="1581552675230" duration="1920000" />
+      <workItem from="1581657721766" duration="1408000" />
+      <workItem from="1582598444528" duration="2716000" />
+      <workItem from="1582854239946" duration="99000" />
+      <workItem from="1585527491636" duration="21981000" />
+      <workItem from="1585613222846" duration="20742000" />
+      <workItem from="1585702721563" duration="28706000" />
+      <workItem from="1585786092678" duration="29410000" />
+      <workItem from="1585872087982" duration="5662000" />
+      <workItem from="1586229237075" duration="13513000" />
+      <workItem from="1586304182821" duration="28518000" />
+      <workItem from="1586390375927" duration="30205000" />
+      <workItem from="1586477162769" duration="22418000" />
+      <workItem from="1586563421930" duration="24943000" />
+      <workItem from="1586736258047" duration="11854000" />
+      <workItem from="1586760633492" duration="10149000" />
+      <workItem from="1586822564498" duration="26847000" />
+      <workItem from="1586908947350" duration="18901000" />
+      <workItem from="1586996164578" duration="21546000" />
+      <workItem from="1587027776794" duration="494000" />
+      <workItem from="1587081888228" duration="25649000" />
+      <workItem from="1587341205844" duration="28723000" />
+      <workItem from="1587427056422" duration="30453000" />
+      <workItem from="1587513899159" duration="27864000" />
+      <workItem from="1587600435230" duration="8427000" />
+      <workItem from="1587688908509" duration="22396000" />
+      <workItem from="1587859530449" duration="27681000" />
+      <workItem from="1587946127856" duration="7768000" />
+      <workItem from="1587954829319" duration="18490000" />
+      <workItem from="1588032277948" duration="19955000" />
+      <workItem from="1588118673366" duration="27312000" />
+      <workItem from="1588204959658" duration="12122000" />
+      <workItem from="1588723388524" duration="18843000" />
+      <workItem from="1588809912006" duration="27051000" />
+      <workItem from="1588896134390" duration="26919000" />
+      <workItem from="1588982735015" duration="18638000" />
+      <workItem from="1589155484107" duration="23868000" />
+      <workItem from="1589241830205" duration="24646000" />
+      <workItem from="1594005199107" duration="14290000" />
+      <workItem from="1594080269245" duration="16260000" />
+      <workItem from="1594166771727" duration="15117000" />
+      <workItem from="1594252764412" duration="11007000" />
+      <workItem from="1594279711286" duration="3143000" />
+      <workItem from="1594285119467" duration="14164000" />
+      <workItem from="1594426759795" duration="22387000" />
+      <workItem from="1594598440221" duration="4334000" />
+      <workItem from="1594684928982" duration="742000" />
+      <workItem from="1594690310402" duration="4815000" />
+      <workItem from="1594706391775" duration="619000" />
+      <workItem from="1594778221615" duration="14111000" />
+      <workItem from="1594857726763" duration="11920000" />
+      <workItem from="1594945650711" duration="19293000" />
+      <workItem from="1595203328668" duration="17783000" />
+      <workItem from="1595290465618" duration="3907000" />
+      <workItem from="1595299126043" duration="20691000" />
+      <workItem from="1595405373349" duration="1567000" />
+      <workItem from="1595406954695" duration="13998000" />
+      <workItem from="1595462630728" duration="32098000" />
+      <workItem from="1595548985201" duration="359000" />
+      <workItem from="1595549361723" duration="22566000" />
+      <workItem from="1595808190690" duration="22853000" />
+      <workItem from="1595894367149" duration="16413000" />
+      <workItem from="1595926785600" duration="1334000" />
+      <workItem from="1595981072455" duration="50624000" />
+      <workItem from="1596153724210" duration="24350000" />
+      <workItem from="1596188686019" duration="619000" />
+      <workItem from="1596278889058" duration="108000" />
+      <workItem from="1596413421475" duration="54509000" />
+      <workItem from="1596585782081" duration="45345000" />
+      <workItem from="1596758464347" duration="32902000" />
+      <workItem from="1596802984114" duration="12761000" />
+      <workItem from="1596855263935" duration="14304000" />
+      <workItem from="1597017581541" duration="26687000" />
+      <workItem from="1597104245422" duration="1066000" />
+      <workItem from="1597105373075" duration="20429000" />
+    </task>
+    <task id="LOCAL-00068" summary="修改油罐Bug">
+      <created>1587543197585</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1587543197585</updated>
+    </task>
+    <task id="LOCAL-00069" summary="枪机关系">
+      <created>1587544152657</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1587544152657</updated>
+    </task>
+    <task id="LOCAL-00070" summary="修改Bug">
+      <created>1587549622142</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1587549622143</updated>
+    </task>
+    <task id="LOCAL-00071" summary="回罐与校正接口">
+      <created>1587709442211</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1587709442211</updated>
+    </task>
+    <task id="LOCAL-00072" summary="回罐">
+      <created>1587869179709</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1587869179710</updated>
+    </task>
+    <task id="LOCAL-00073" summary="dit信息接口">
+      <created>1587870657440</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1587870657440</updated>
+    </task>
+    <task id="LOCAL-00074" summary="校正dao">
+      <created>1587877545715</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1587877545715</updated>
+    </task>
+    <task id="LOCAL-00075" summary="校正图">
+      <created>1587972576909</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1587972576912</updated>
+    </task>
+    <task id="LOCAL-00076" summary="枪罐关系修改bug">
+      <created>1587980433723</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1587980433723</updated>
+    </task>
+    <task id="LOCAL-00077" summary="回罐">
+      <created>1588060977986</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1588060977987</updated>
+    </task>
+    <task id="LOCAL-00078" summary="不连续异常">
+      <created>1588063088614</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1588063088614</updated>
+    </task>
+    <task id="LOCAL-00079" summary="回罐和超过45分钟校验">
+      <created>1588149254506</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1588149254507</updated>
+    </task>
+    <task id="LOCAL-00080" summary="45分钟校验">
+      <created>1588150958554</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1588150958554</updated>
+    </task>
+    <task id="LOCAL-00081" summary="超过45分钟校验">
+      <created>1588151411010</created>
+      <option name="number" value="00081" />
+      <option name="presentableId" value="LOCAL-00081" />
+      <option name="project" value="LOCAL" />
+      <updated>1588151411010</updated>
+    </task>
+    <task id="LOCAL-00082" summary="45分钟校验">
+      <created>1588211350616</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1588211350617</updated>
+    </task>
+    <task id="LOCAL-00083" summary="注入空指针">
+      <created>1588215667345</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1588215667345</updated>
+    </task>
+    <task id="LOCAL-00084" summary="bug">
+      <created>1588811341606</created>
+      <option name="number" value="00084" />
+      <option name="presentableId" value="LOCAL-00084" />
+      <option name="project" value="LOCAL" />
+      <updated>1588811341611</updated>
+    </task>
+    <task id="LOCAL-00085" summary="接口修改">
+      <created>1588902063303</created>
+      <option name="number" value="00085" />
+      <option name="presentableId" value="LOCAL-00085" />
+      <option name="project" value="LOCAL" />
+      <updated>1588902063303</updated>
+    </task>
+    <task id="LOCAL-00086" summary="整合图sql">
+      <created>1588902294590</created>
+      <option name="number" value="00086" />
+      <option name="presentableId" value="LOCAL-00086" />
+      <option name="project" value="LOCAL" />
+      <updated>1588902294590</updated>
+    </task>
+    <task id="LOCAL-00087" summary="消费者修改">
+      <created>1588903040167</created>
+      <option name="number" value="00087" />
+      <option name="presentableId" value="LOCAL-00087" />
+      <option name="project" value="LOCAL" />
+      <updated>1588903040167</updated>
+    </task>
+    <task id="LOCAL-00088" summary="整合表接口">
+      <created>1588920460062</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
+      <option name="project" value="LOCAL" />
+      <updated>1588920460062</updated>
+    </task>
+    <task id="LOCAL-00089" summary="整合图和整合表接口">
+      <created>1588995786990</created>
+      <option name="number" value="00089" />
+      <option name="presentableId" value="LOCAL-00089" />
+      <option name="project" value="LOCAL" />
+      <updated>1588995786992</updated>
+    </task>
+    <task id="LOCAL-00090" summary="修改Bug">
+      <created>1594100837307</created>
+      <option name="number" value="00090" />
+      <option name="presentableId" value="LOCAL-00090" />
+      <option name="project" value="LOCAL" />
+      <updated>1594100837308</updated>
+    </task>
+    <task id="LOCAL-00091" summary="排序">
+      <created>1594200501523</created>
+      <option name="number" value="00091" />
+      <option name="presentableId" value="LOCAL-00091" />
+      <option name="project" value="LOCAL" />
+      <updated>1594200501524</updated>
+    </task>
+    <task id="LOCAL-00092" summary="排序">
+      <created>1594275148717</created>
+      <option name="number" value="00092" />
+      <option name="presentableId" value="LOCAL-00092" />
+      <option name="project" value="LOCAL" />
+      <updated>1594275148718</updated>
+    </task>
+    <task id="LOCAL-00093" summary="付油组">
+      <created>1594352357521</created>
+      <option name="number" value="00093" />
+      <option name="presentableId" value="LOCAL-00093" />
+      <option name="project" value="LOCAL" />
+      <updated>1594352357522</updated>
+    </task>
+    <task id="LOCAL-00094" summary="卸油逻辑修改">
+      <created>1594457332047</created>
+      <option name="number" value="00094" />
+      <option name="presentableId" value="LOCAL-00094" />
+      <option name="project" value="LOCAL" />
+      <updated>1594457332048</updated>
+    </task>
+    <task id="LOCAL-00095" summary="修改Bug">
+      <created>1594791615704</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1594791615705</updated>
+    </task>
+    <task id="LOCAL-00096" summary="卸油">
+      <created>1594896073431</created>
+      <option name="number" value="00096" />
+      <option name="presentableId" value="LOCAL-00096" />
+      <option name="project" value="LOCAL" />
+      <updated>1594896073432</updated>
+    </task>
+    <task id="LOCAL-00097" summary="导出修改">
+      <created>1594969975197</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1594969975198</updated>
+    </task>
+    <task id="LOCAL-00098" summary="导出">
+      <created>1594973070407</created>
+      <option name="number" value="00098" />
+      <option name="presentableId" value="LOCAL-00098" />
+      <option name="project" value="LOCAL" />
+      <updated>1594973070408</updated>
+    </task>
+    <task id="LOCAL-00099" summary="卸油">
+      <created>1595228320220</created>
+      <option name="number" value="00099" />
+      <option name="presentableId" value="LOCAL-00099" />
+      <option name="project" value="LOCAL" />
+      <updated>1595228320221</updated>
+    </task>
+    <task id="LOCAL-00100" summary="卸油">
+      <created>1595311207518</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1595311207519</updated>
+    </task>
+    <task id="LOCAL-00101" summary="诊断图修改">
+      <created>1595561016957</created>
+      <option name="number" value="00101" />
+      <option name="presentableId" value="LOCAL-00101" />
+      <option name="project" value="LOCAL" />
+      <updated>1595561016958</updated>
+    </task>
+    <task id="LOCAL-00102" summary="导出数据">
+      <created>1595814065746</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1595814065747</updated>
+    </task>
+    <task id="LOCAL-00103" summary="卸油">
+      <created>1595831206814</created>
+      <option name="number" value="00103" />
+      <option name="presentableId" value="LOCAL-00103" />
+      <option name="project" value="LOCAL" />
+      <updated>1595831206814</updated>
+    </task>
+    <task id="LOCAL-00104" summary="修改bug">
+      <created>1595982960083</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1595982960084</updated>
+    </task>
+    <task id="LOCAL-00105" summary="超时上传">
+      <created>1596004195910</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
+      <option name="project" value="LOCAL" />
+      <updated>1596004195910</updated>
+    </task>
+    <task id="LOCAL-00106" summary="诊断图">
+      <created>1596015829107</created>
+      <option name="number" value="00106" />
+      <option name="presentableId" value="LOCAL-00106" />
+      <option name="project" value="LOCAL" />
+      <updated>1596015829107</updated>
+    </task>
+    <task id="LOCAL-00107" summary="json格式">
+      <created>1596087625657</created>
+      <option name="number" value="00107" />
+      <option name="presentableId" value="LOCAL-00107" />
+      <option name="project" value="LOCAL" />
+      <updated>1596087625658</updated>
+    </task>
+    <task id="LOCAL-00108" summary="异常校验">
+      <created>1596098083346</created>
+      <option name="number" value="00108" />
+      <option name="presentableId" value="LOCAL-00108" />
+      <option name="project" value="LOCAL" />
+      <updated>1596098083346</updated>
+    </task>
+    <task id="LOCAL-00109" summary="异常数据剔除">
+      <created>1596502891748</created>
+      <option name="number" value="00109" />
+      <option name="presentableId" value="LOCAL-00109" />
+      <option name="project" value="LOCAL" />
+      <updated>1596502891751</updated>
+    </task>
+    <task id="LOCAL-00110" summary="液位波动检测">
+      <created>1596675978118</created>
+      <option name="number" value="00110" />
+      <option name="presentableId" value="LOCAL-00110" />
+      <option name="project" value="LOCAL" />
+      <updated>1596675978120</updated>
+    </task>
+    <task id="LOCAL-00111" summary="异常检测">
+      <created>1596680105403</created>
+      <option name="number" value="00111" />
+      <option name="presentableId" value="LOCAL-00111" />
+      <option name="project" value="LOCAL" />
+      <updated>1596680105403</updated>
+    </task>
+    <task id="LOCAL-00112" summary="回罐">
+      <created>1596797258352</created>
+      <option name="number" value="00112" />
+      <option name="presentableId" value="LOCAL-00112" />
+      <option name="project" value="LOCAL" />
+      <updated>1596797258353</updated>
+    </task>
+    <task id="LOCAL-00113" summary="卸油">
+      <created>1596879746818</created>
+      <option name="number" value="00113" />
+      <option name="presentableId" value="LOCAL-00113" />
+      <option name="project" value="LOCAL" />
+      <updated>1596879746819</updated>
+    </task>
+    <task id="LOCAL-00114" summary="卸油">
+      <created>1597046633283</created>
+      <option name="number" value="00114" />
+      <option name="presentableId" value="LOCAL-00114" />
+      <option name="project" value="LOCAL" />
+      <updated>1597046633284</updated>
+    </task>
+    <task id="LOCAL-00115" summary="判空">
+      <created>1597049251444</created>
+      <option name="number" value="00115" />
+      <option name="presentableId" value="LOCAL-00115" />
+      <option name="project" value="LOCAL" />
+      <updated>1597049251444</updated>
+    </task>
+    <task id="LOCAL-00116" summary="异常波动">
+      <created>1597124282311</created>
+      <option name="number" value="00116" />
+      <option name="presentableId" value="LOCAL-00116" />
+      <option name="project" value="LOCAL" />
+      <updated>1597124282314</updated>
+    </task>
+    <option name="localTasksCounter" value="117" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="2" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="false" />
+    <option name="CHECK_NEW_TODO" value="false" />
+    <MESSAGE value="消费者修改" />
+    <MESSAGE value="整合表接口" />
+    <MESSAGE value="整合图和整合表接口" />
+    <MESSAGE value="排序" />
+    <MESSAGE value="付油组" />
+    <MESSAGE value="卸油判断修改" />
+    <MESSAGE value="卸油逻辑修改" />
+    <MESSAGE value="修改Bug" />
+    <MESSAGE value="导出修改" />
+    <MESSAGE value="导出" />
+    <MESSAGE value="诊断图修改" />
+    <MESSAGE value="导出数据" />
+    <MESSAGE value="修改bug" />
+    <MESSAGE value="超时上传" />
+    <MESSAGE value="诊断图" />
+    <MESSAGE value="json格式" />
+    <MESSAGE value="异常校验" />
+    <MESSAGE value="异常数据剔除" />
+    <MESSAGE value="液位波动检测" />
+    <MESSAGE value="异常检测" />
+    <MESSAGE value="回罐" />
+    <MESSAGE value="阈值修改" />
+    <MESSAGE value="卸油" />
+    <MESSAGE value="判空" />
+    <MESSAGE value="异常波动" />
+    <option name="LAST_COMMIT_MESSAGE" value="异常波动" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="586" y="198" key="#Inspections" timestamp="1596803453683">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="586" y="198" key="#Inspections/0.0.1920.1040@0.0.1920.1040" timestamp="1596803453683" />
+    <state x="440" y="94" key="#Project_Structure" timestamp="1595907168352">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="440" y="94" key="#Project_Structure/0.0.1920.1040@0.0.1920.1040" timestamp="1595907168352" />
+    <state x="765" y="225" key="#com.intellij.ide.util.MemberChooser" timestamp="1596784201161">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="765" y="225" key="#com.intellij.ide.util.MemberChooser/0.0.1920.1040@0.0.1920.1040" timestamp="1596784201161" />
+    <state x="638" y="442" key="#com.intellij.refactoring.move.MoveHandler.SelectRefactoringDialog" timestamp="1596759229236">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="638" y="442" key="#com.intellij.refactoring.move.MoveHandler.SelectRefactoringDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1596759229236" />
+    <state x="690" y="266" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1595581629061">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="690" y="266" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1595581629061" />
+    <state x="560" y="100" key="CommitChangelistDialog2" timestamp="1597124276248">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="560" y="100" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1597124276248" />
+    <state width="1056" height="687" key="DebuggerActiveHint" timestamp="1597038025774">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1056" height="687" key="DebuggerActiveHint/0.0.1920.1040@0.0.1920.1040" timestamp="1597038025774" />
+    <state x="83" y="185" width="1736" height="493" key="DiffContextDialog" timestamp="1597124270809">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="83" y="185" width="1736" height="493" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1597124270809" />
+    <state x="837" y="269" key="FileChooserDialogImpl" timestamp="1596686197449">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="837" y="269" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1596686197449" />
+    <state width="1726" height="128" key="GridCell.Tab.0.bottom" timestamp="1597132656162">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656162" />
+    <state width="1726" height="128" key="GridCell.Tab.0.center" timestamp="1597132656162">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656162" />
+    <state width="1726" height="128" key="GridCell.Tab.0.left" timestamp="1597132656162">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656162" />
+    <state width="1726" height="128" key="GridCell.Tab.0.right" timestamp="1597132656162">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656162" />
+    <state width="1726" height="128" key="GridCell.Tab.1.bottom" timestamp="1597132656162">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656162" />
+    <state width="1726" height="128" key="GridCell.Tab.1.center" timestamp="1597132656162">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656162" />
+    <state width="1726" height="128" key="GridCell.Tab.1.left" timestamp="1597132656162">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656162" />
+    <state width="1726" height="128" key="GridCell.Tab.1.right" timestamp="1597132656162">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656162" />
+    <state width="1726" height="128" key="GridCell.Tab.2.bottom" timestamp="1597132656163">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.2.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656163" />
+    <state width="1726" height="128" key="GridCell.Tab.2.center" timestamp="1597132656163">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.2.center/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656163" />
+    <state width="1726" height="128" key="GridCell.Tab.2.left" timestamp="1597132656163">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.2.left/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656163" />
+    <state width="1726" height="128" key="GridCell.Tab.2.right" timestamp="1597132656163">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1726" height="128" key="GridCell.Tab.2.right/0.0.1920.1040@0.0.1920.1040" timestamp="1597132656163" />
+    <state x="184" y="86" key="MergeDialog" timestamp="1595922756570">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="184" y="86" key="MergeDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1595922756570" />
+    <state x="930" y="257" key="MultipleFileMergeDialog" timestamp="1595922757423">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="930" y="257" key="MultipleFileMergeDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1595922757423" />
+    <state x="774" y="453" key="ReplaceDuplicatesPrompt" timestamp="1596857718491">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="774" y="453" key="ReplaceDuplicatesPrompt/0.0.1920.1040@0.0.1920.1040" timestamp="1596857718491" />
+    <state x="738" y="221" key="RollbackChangesDialog" timestamp="1596784430747">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="738" y="221" key="RollbackChangesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1596784430747" />
+    <state x="440" y="94" key="SettingsEditor" timestamp="1596682313056">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="440" y="94" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1596682313056" />
+    <state width="498" height="446" key="SwitcherDM" timestamp="1595899389872">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="498" height="446" key="SwitcherDM/0.0.1920.1040@0.0.1920.1040" timestamp="1595899389872" />
+    <state x="535" y="253" key="VcsDiffUtil.ChangesDialog" timestamp="1595907447309">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="535" y="253" key="VcsDiffUtil.ChangesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1595907447309" />
+    <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1596798245280">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="968" height="528" key="XDebugger.FullValuePopup/0.0.1920.1040@0.0.1920.1040" timestamp="1596798245280" />
+    <state x="92" y="92" width="1736" height="856" key="com.intellij.history.integration.ui.views.FileHistoryDialog" timestamp="1597133318562">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="92" y="92" width="1736" height="856" key="com.intellij.history.integration.ui.views.FileHistoryDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1597133318562" />
+    <state x="705" y="261" width="1114" height="642" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2" timestamp="1597105704348">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="705" y="261" width="1114" height="642" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2/0.0.1920.1040@0.0.1920.1040" timestamp="1597105704348" />
+    <state x="690" y="279" key="extract.method.dialog" timestamp="1596857716889">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="690" y="279" key="extract.method.dialog/0.0.1920.1040@0.0.1920.1040" timestamp="1596857716889" />
+    <state x="771" y="76" width="1149" height="964" key="find.popup" timestamp="1597117494986">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="771" y="76" width="1149" height="964" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1597117494986" />
+    <state x="334" y="180" key="new project wizard" timestamp="1595301032808">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="334" y="180" key="new project wizard/0.0.1920.1040@0.0.1920.1040" timestamp="1595301032808" />
+    <state x="661" y="275" key="refactoring.ChangeSignatureDialog" timestamp="1595400033976">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="661" y="275" key="refactoring.ChangeSignatureDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1595400033976" />
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1597112022646">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1597112022646" />
+    <state x="768" y="421" key="svn.sslCredentialsDialog" timestamp="1596879733463">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="768" y="421" key="svn.sslCredentialsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1596879733463" />
+  </component>
+  <component name="XDebuggerManager">
+    <pin-to-top-manager>
+      <pinned-members>
+        <PinnedItemInfo typeName="com.oket.tank4station.AbstractTankSession$NeedPersistence" fieldName="inventories" />
+        <PinnedItemInfo typeName="com.oket.tank4station.DescendingInventoryTrace" fieldName="traceProcessor" />
+        <PinnedItemInfo typeName="com.oket.tank4station.AbstractTankSession$NeedPersistence" fieldName="traces" />
+      </pinned-members>
+    </pin-to-top-manager>
+    <watches-manager>
+      <configuration name="SpringBootApplicationConfigurationType">
+        <watch expression="lists.get(1)" />
+        <watch expression="errorMap" language="JAVA" />
+      </configuration>
+    </watches-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/tankChartDC$TankChartDCApplication.ic" NAME="TankChartDCApplication Coverage Results" MODIFIED="1595559062973" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+  </component>
+</project>

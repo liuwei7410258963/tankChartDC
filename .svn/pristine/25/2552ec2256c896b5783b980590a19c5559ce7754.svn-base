@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.common.dao.UnionTableDao">
+
+	<update id="alertSumTable">
+		alter table ${alertTable}
+			UNION (${tableOthers})
+	</update>
+	<update id="createInvTable">
+		CREATE TABLE ${tableName} (
+			`id`           bigint(20) NOT NULL AUTO_INCREMENT,
+			`level`        double       DEFAULT NULL,
+			`tank_no`      smallint(6)  DEFAULT NULL,
+			`water_level`  double       DEFAULT NULL,
+			`temperature`  double       DEFAULT NULL,
+			`volume`       double       DEFAULT NULL,
+			`time`         datetime     DEFAULT NULL,
+			`water_volume` double       DEFAULT NULL,
+			`max_volume`   double       DEFAULT NULL COMMENT '最大罐容',
+			`oil_name`     varchar(100) DEFAULT NULL COMMENT '油品名称',
+			`oil_code`     varchar(20)  DEFAULT NULL COMMENT '油品编码',
+			PRIMARY KEY (`id`),
+			KEY `idx_station_tank` (`tank_no`,`time`)
+		)
+			ENGINE = MyISAM
+			DEFAULT CHARSET = utf8;
+	</update>
+
+	<select id="getUnionTableName" resultType="java.lang.String">
+		## 分组之后合并为一个字符串
+		SELECT GROUP_CONCAT(ta.UNION_TABLE_NAME separator ',') tablename
+		FROM union_table ta
+		WHERE ta.UNION_TABLE_TYPE = #{unionType}
+	</select>
+
+</mapper>

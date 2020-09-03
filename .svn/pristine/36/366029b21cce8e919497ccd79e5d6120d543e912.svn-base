@@ -1,0 +1,282 @@
+package com.oket.dispenser.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.oket.common.CommonObservable;
+import com.oket.device.service.DeviceService;
+import com.oket.dispenser.BzNozzleOut;
+import com.oket.dispenser.BzNozzleOutLast;
+import com.oket.dispenser.DispenserCacheManager;
+import com.oket.dispenser.NozzleOutType;
+import com.oket.dispenser.dao.BzNozzleOutLastDAO;
+import com.oket.dispenser.dao.NozzleOutDao;
+import com.oket.dispenser.service.NozzleOutService;
+import com.oket.oil.OilEntity;
+import com.oket.oil.service.OilService;
+import com.oket.tankchartdc.GroupConsumer;
+import com.oket.util.CommonUtil;
+import com.oket.util.TimeUtils;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.text.ParseException;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * <p>
+ * VIEW 服务实现类
+ * </p>
+ *
+ * @author sunbiaolong
+ * @since 2019-10-21
+ */
+@Service
+@Slf4j
+public class NozzleOutServiceImpl extends ServiceImpl<NozzleOutDao, BzNozzleOut> implements NozzleOutService {
+	/**
+	 * 存入的超时时间
+	 */
+	private final static int OVERTIME_SECONDS = 2;
+
+
+	private  static int OUT_AND_CURRENT_GAP =1;
+
+	@Value(value = "${outAndCurrentGap}")
+	public void setOutAndCurrentGap(int outAndCurrentGap) {
+		OUT_AND_CURRENT_GAP = outAndCurrentGap;
+	}
+
+	@Autowired
+	private OilService oilService;
+
+	/**
+	 * 两个泵码数之差减去付油的差的阈值，如果超过了，可能是数据没有上传
+	 */
+	private static final double PUMP_DIFF_THRESHOLD = 1.0;
+
+	@Resource
+	private BzNozzleOutLastDAO bzNozzleOutLastDAO;
+	@Autowired
+	private DispenserCacheManager dispenserCacheManager;
+	@Autowired
+	private DeviceService deviceService;
+	@Override
+	public void addObserver(Observer observer) {
+		nozzleOutObservable.addObserver(observer);
+	}
+	private final CommonObservable nozzleOutObservable = new CommonObservable();
+	@Override
+	public IPage<BzNozzleOut> query(JSONObject req, boolean isPage) {
+		// 参数根据需要判断来写
+		IPage<BzNozzleOut> page = new Page<>(req.getIntValue("pageNum"), req.getIntValue("pageRow"));
+		//查询条件 根据需要写
+		QueryWrapper<BzNozzleOut> wrapper = new QueryWrapper<>();
+		//查询条件
+		if (req.getString("startTime") != null) {
+			try {
+				wrapper.lambda().ge(BzNozzleOut::getStartTime, TimeUtils.parseToSecond(req.getString("startTime")));
+			} catch (ParseException e) {
+				log.error("解析时间失败", e);
+			}
+		}
+		if(req.getString("endTime") != null){
+			try {
+				wrapper.lambda().le(BzNozzleOut::getEndTime, TimeUtils.parseToSecond(req.getString("endTime")));
+			} catch (ParseException e) {
+				log.error("解析时间失败", e);
+			}
+		}
+		if (req.getString("oilCode") != null) {
+			wrapper.lambda().eq(BzNozzleOut::getOilCode, req.getString("oilCode"));
+		}
+		if (req.getString("nozzleNo") != null) {
+			wrapper.lambda().eq(BzNozzleOut::getNozzleNo, req.getString("nozzleNo"));
+		}
+		if (req.getString("tankNo") != null) {
+			wrapper.lambda().eq(BzNozzleOut::getTankNo, req.getString("tankNo"));
+		}
+		wrapper.lambda().orderByDesc(BzNozzleOut::getStartTime);
+		// 分页的数据
+		if (req.getBoolean("flag") == true) {
+			page = baseMapper.selectPage(page, wrapper);
+		} else {
+			//不分页的数据
+			page.setRecords(baseMapper.selectList(wrapper));
+		}
+		return page;
+	}
+
+	@Override
+	public List<BzNozzleOut> getNotMatched() {
+		return baseMapper.getNotMatched();
+	}
+
+	@Override
+	public List<BzNozzleOut> getByTimeAndNozzleNo(String nozzleNo, Date startTime, Date endTime) {
+		QueryWrapper<BzNozzleOut> qw = new QueryWrapper<>();
+		qw.lambda().eq(BzNozzleOut::getNozzleNo, nozzleNo);
+		qw.lambda().le(BzNozzleOut::getStartTime, endTime);
+		qw.lambda().ge(BzNozzleOut::getEndTime, startTime);
+		return list(qw);
+	}
+
+
+	@Transactional(rollbackFor = Exception.class)
+	@Override
+	public void processNozzleOutFromDit(BzNozzleOut bzNozzleOut) {
+		if (bzNozzleOut == null || bzNozzleOut.getNozzleNo() == null) {
+			log.error("无效数据：" + bzNozzleOut);
+			return;
+		}
+		if (bzNozzleOut.getOilCode() != null) {
+			OilEntity oilByCode = oilService.getOilByCode(bzNozzleOut.getOilCode());
+			if (oilByCode != null) {
+				bzNozzleOut.setOilName(oilByCode.getFullName());
+			}
+		}
+		bzNozzleOut.setTankNo(deviceService.getTankNo(Integer.valueOf(bzNozzleOut.getNozzleNo())));
+		BzNozzleOutLast bzNozzleOutLastFromCache = dispenserCacheManager.getNozzleOutLast(bzNozzleOut.getNozzleNo());
+		if (bzNozzleOut.getType().equals(NozzleOutType.OFFLINE)) {
+			bzNozzleOut.setStartTime(new Date(bzNozzleOut.getEndTime().getTime() - 1000 * 15));
+		}
+		if (bzNozzleOutLastFromCache != null) {
+			//有可能上传重复数据,要去重复
+			if (bzNozzleOut.getType().equals(NozzleOutType.OFFLINE)) {
+				//如果是离线,查看是否已经有存在相同的离线数据
+				final BzNozzleOut single = getSingle(bzNozzleOut.getEndTime(), bzNozzleOut.getNozzleNo());
+				if (single == null) {
+					if (processSystemAddition(bzNozzleOut)) {
+						return;
+					}
+					log.info("离线数据没有找到追加数据:{}",  bzNozzleOut);
+					super.save(bzNozzleOut);
+					if (bzNozzleOut.getEndTime().getTime()
+							> bzNozzleOutLastFromCache.getEndTime().getTime()) {
+						BzNozzleOutLast bzNozzleOutLast = BzNozzleOutLast.convertToLast(bzNozzleOut);
+						bzNozzleOutLast.setId(bzNozzleOutLastFromCache.getId());
+						bzNozzleOutLastDAO.updateById(bzNozzleOutLast);
+						dispenserCacheManager.updateNozzleOutLast(bzNozzleOutLast);
+					}
+				}
+			} else {
+				/*
+			因为存在脱机记录，上传时间不确定
+			 */
+				if (bzNozzleOut.getStartTime().getTime()
+						> bzNozzleOutLastFromCache.getStartTime().getTime()) {
+					if (System.currentTimeMillis()-bzNozzleOut.getEndTime().getTime()/1000/60>OUT_AND_CURRENT_GAP){
+						if (processSystemAddition(bzNozzleOut)) {
+							return;
+						}
+					}
+					super.save(bzNozzleOut);
+					BzNozzleOutLast bzNozzleOutLast = BzNozzleOutLast.convertToLast(bzNozzleOut);
+					bzNozzleOutLast.setId(bzNozzleOutLastFromCache.getId());
+					bzNozzleOutLastDAO.updateById(bzNozzleOutLast);
+					dispenserCacheManager.updateNozzleOutLast(bzNozzleOutLast);
+				}
+			}
+		} else {
+			super.save(bzNozzleOut);
+			BzNozzleOutLast bzNozzleOutLast = BzNozzleOutLast.convertToLast(bzNozzleOut);
+			bzNozzleOutLastDAO.insert(bzNozzleOutLast);
+			dispenserCacheManager.updateNozzleOutLast(bzNozzleOutLast);
+		}
+		notify(bzNozzleOut);
+		if (bzNozzleOut.getId()!=null&&bzNozzleOut.getTankNo() != null) {
+			try {
+				if (!GroupConsumer.getNozzleOutQueue().offer(bzNozzleOut, OVERTIME_SECONDS, TimeUnit.SECONDS)) {
+					log.error("放入数据失败：" + bzNozzleOut);
+				}
+			} catch (InterruptedException e) {
+				log.error(e.getMessage(), e);
+			}
+		} else {
+			log.error("付油记录对不到对应的油罐信息,或者有了重复记录:" + bzNozzleOut);
+		}
+	}
+
+	/**
+	 * 处理系统补加数据
+	 * @param bzNozzleOut
+	 * @return
+	 */
+	private boolean processSystemAddition(BzNozzleOut bzNozzleOut) {
+		final List<BzNozzleOut> systemAdditionNozzleOuts
+				= getSystemAdditionNozzleOuts(bzNozzleOut.getStartTime(), bzNozzleOut.getEndTime()
+				, bzNozzleOut.getNozzleNo());
+		if (!systemAdditionNozzleOuts.isEmpty()) {
+			for (BzNozzleOut sano : systemAdditionNozzleOuts) {
+				if (Math.abs(sano.getVolume() - bzNozzleOut.getVolume()) < 2) {
+					log.info("找到对应的追加付油信息，追加数据:{}\n,付油数据:{}", sano, bzNozzleOut);
+					sano.setType(bzNozzleOut.getType());
+					sano.setVolume(bzNozzleOut.getVolume());
+					super.updateById(bzNozzleOut);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * 通知观察者
+	 * @param bzNozzleOut
+	 */
+	private void notify(BzNozzleOut bzNozzleOut) {
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put("TYPE", "NOZZLE_OUT");
+		jsonObject.put("id", bzNozzleOut.getId());
+		jsonObject.put("nozzleNo",bzNozzleOut.getNozzleNo());
+		jsonObject.put("tankNo",bzNozzleOut.getTankNo());
+		jsonObject.put("startTime",bzNozzleOut.getStartTime());
+		jsonObject.put("endTime",bzNozzleOut.getEndTime());
+		nozzleOutObservable.setChanged();
+		nozzleOutObservable.notifyObservers(jsonObject);
+	}
+	/**
+	 * 获取付油信息
+	 *
+	 * @param endTime
+	 * @param nozzleNo
+	 * @return
+	 */
+	private BzNozzleOut getSingle(Date endTime, String nozzleNo) {
+		QueryWrapper<BzNozzleOut> qw = new QueryWrapper<>();
+		qw.lambda().eq(BzNozzleOut::getEndTime, endTime);
+		qw.lambda().eq(BzNozzleOut::getNozzleNo, nozzleNo);
+		qw.last("LIMIT 1");
+		return getOne(qw);
+	}
+
+
+	private List<BzNozzleOut> getSystemAdditionNozzleOuts(Date endTime, Date startTime, String nozzleNo) {
+		QueryWrapper<BzNozzleOut> qw = new QueryWrapper<>();
+		qw.lambda().ge(BzNozzleOut::getEndTime, startTime);
+		qw.lambda().le(BzNozzleOut::getStartTime, endTime);
+		qw.lambda().eq(BzNozzleOut::getNozzleNo, nozzleNo);
+		qw.lambda().eq(BzNozzleOut::getType, NozzleOutType.SYSTEM_ADDITION);
+		return list(qw);
+	}
+
+	@Override
+	public Collection<BzNozzleOutLast> getNozzleOutLast() {
+		return dispenserCacheManager.getAllNozzleOutLast();
+	}
+
+	@Override
+	public JSONObject getOilSum(JSONObject jsonObject) {
+		return CommonUtil.successPage(baseMapper.getOilSum(jsonObject));
+	}
+
+
+}

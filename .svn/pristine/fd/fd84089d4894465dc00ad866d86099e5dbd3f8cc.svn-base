@@ -1,0 +1,417 @@
+package com.oket.tankchartdc.service.impl;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.oket.oil.cache.OilCacheManager;
+import com.oket.tank4station.LevelState;
+import com.oket.tank4station.dao.DbInventoryDAO;
+import com.oket.tank4station.entity.DbInventory;
+import com.oket.tankchartdc.DbInventoryCycle;
+import com.oket.tankchartdc.entity.*;
+import com.oket.tankchartdc.dao.CorrectSamplesDao;
+import com.oket.tankchartdc.service.CorrectSamplesService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.oket.tankchartdc.service.DbInventoryCycleService;
+import com.oket.tankchartdc.service.ExportService;
+import com.oket.util.*;
+import io.swagger.models.auth.In;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.sql.Wrapper;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
+
+/**
+ * <p>
+ *  服务实现类
+ * </p>
+ *
+ * @author lw
+ * @since 2020-07-22
+ */
+@Service
+public class CorrectSamplesServiceImpl extends ServiceImpl<CorrectSamplesDao, CorrectSamples> implements CorrectSamplesService {
+
+    @Autowired
+    private DbInventoryDAO dbInventoryDAO;
+    @Autowired
+    CorrectingServiceImpl correctingService;
+    @Autowired
+    DbInventoryCycleService cycleService;
+
+    @Override
+    public void generateSamples(JSONObject jsonObject) {
+        List<CorrectSamples> lastInDbLists = new ArrayList<>();
+        List<CorrectingTableDTO> dbLists = correctingService.getResults(jsonObject);
+        Samples samples = null;
+        //罐内的周期有数据
+        List<ExportCorrectingSamples> result = new ArrayList<>();
+        if(dbLists.size()!=0) {
+            //液位Id
+            List<Long> inventoryIds = new ArrayList<>();
+            dbLists.stream().forEach(x->{
+                inventoryIds.add(x.getStartId());
+                inventoryIds.add(x.getEndId());
+            });
+            //付油组id
+            List<Long> groupIds = dbLists.stream().map(CorrectingTableDTO::getGroupId).collect(toList());
+            List<JSONObject> correctOutNums = baseMapper.selectCorrectOut(groupIds);
+            if(AirUtils.hv(correctOutNums)) {
+                for (CorrectingTableDTO list : dbLists) {
+                    correctOutNums.stream().filter(x -> x.getLongValue("id") == list.getGroupId()).forEach(x -> {
+                        list.setTankTempVtSum(x.getDoubleValue("outSum"));
+                    });
+                }
+            }
+            List<DbInventory> dbInventories = dbInventoryDAO.selectBatchIds(inventoryIds);
+            for (CorrectingTableDTO dto : dbLists) {
+                if (dto.isFlag() == true) {
+                    //第一条数据
+                    if (samples == null) {
+                        samples = new Samples();
+                        samples.setS_ID(dto.getCycleId());
+                        AtomicReference<String> OilCode = new AtomicReference<>("");
+                        dbInventories.stream().filter(x->x.getOilCode()!=null).limit(1).forEach(x-> OilCode.set(x.getOilCode()));
+                        //油品膨胀率
+                        if(!OilCode.equals("")) {
+                            samples.setOilExpansionRate(OilCacheManager.getOil(OilCode.get()).getOilExpansionRate());
+                        }
+                        else{
+                            samples.setOilExpansionRate(0.0);
+                        }
+                    } else {
+                        samples.setValuesEx(result);
+                        lastInDbLists.addAll(generateSamples(samples));
+                        //清空samples实体
+                        samples = new Samples();
+                        samples.setS_ID(dto.getCycleId());
+                        AtomicReference<String> OilCode = new AtomicReference<>("");
+                        dbInventories.stream().filter(x->x.getOilCode()!=null).limit(1).forEach(x-> OilCode.set(x.getOilCode()));
+                        //油品膨胀率
+                        if(!OilCode.equals("")) {
+                            samples.setOilExpansionRate(OilCacheManager.getOil(OilCode.get()).getOilExpansionRate());
+                        }
+                        else{
+                            samples.setOilExpansionRate(0.0);
+                        }
+                        result.clear();
+                    }
+                }
+                //周期的其他数据
+                else {
+                    ExportCorrectingSamples exportCorrectingSamples = new ExportCorrectingSamples();
+                    exportCorrectingSamples.setCycleId(dto.getCycleId());
+                    exportCorrectingSamples.setDeliveryId(dto.getDeliveryId());
+                    exportCorrectingSamples.setFlag(dto.isFlag());
+                    Long[] ids = {dto.getGroupId()};
+                    exportCorrectingSamples.setGroupIds(ids);
+                    exportCorrectingSamples.setOutNum(dto.getOutNum());
+                    exportCorrectingSamples.setBackNum(dto.getBackNum());
+                    if(AirUtils.hv(dto.getTankTempVtSum())) {
+                        exportCorrectingSamples.setOutNumVt(dto.getTankTempVtSum());
+                    }
+                    exportCorrectingSamples.setTankNo(dto.getTankNo());
+                    dbInventories.stream().filter(x->x.getId()==dto.getStartId()||x.getId()==dto.getEndId()).forEach(x->{
+                        if(x.getId()==dto.getStartId()){
+                            exportCorrectingSamples.setStartInventory(x);
+                        }
+                        if(x.getId()==dto.getEndId()){
+                            exportCorrectingSamples.setEndInventory(x);
+                        }
+                    });
+                    result.add(exportCorrectingSamples);
+                }
+            }
+        }
+        if(result.size()!=0) {
+            //最后一个周期生成文件保存
+            samples.setValuesEx(result);
+            lastInDbLists.addAll(generateSamples(samples));
+        }
+        List<Integer> ids = Arrays.stream(jsonObject.getString("deliveryIds").split(",")).map(Integer::new).collect(Collectors.toList());
+        QueryWrapper queryWrapper = new QueryWrapper();
+        queryWrapper.eq("tank_no",jsonObject.getIntValue("tankNo"));
+        queryWrapper.in("delivery_id",ids);
+        baseMapper.delete(queryWrapper);
+        this.saveBatch(lastInDbLists);
+    }
+
+    @Override
+    public JSONObject selectDeliveryId(JSONObject jsonObject) {
+        QueryWrapper queryWrapper = new QueryWrapper();
+        queryWrapper.select("delivery_id");
+        queryWrapper.eq("tank_no",jsonObject.getIntValue("tankNo"));
+        queryWrapper.orderByDesc("delivery_id");
+        List<DbInventoryCycle> ids = cycleService.list(queryWrapper);
+        List<Integer> integerIdList = ids.stream().distinct().map(DbInventoryCycle::getDeliveryId).collect(toList());
+        return CommonUtil.successJson(integerIdList);
+    }
+
+    @Override
+    public JSONObject selectChart(JSONObject jsonObject) {
+        /*
+         * 假设该油罐共16个周期
+         * 第一页，查 16-12周期
+         * 第二页，查 12-8周期
+         * 第三页，查 8-4周期
+         * 第四页，查 4-1周期
+         */
+        QueryWrapper queryWrapper = new QueryWrapper();
+        queryWrapper.select("delivery_id");
+        queryWrapper.eq("tank_no",jsonObject.getIntValue("tankNo"));
+        queryWrapper.orderByDesc("delivery_id");
+        List<CorrectSamples> ids = baseMapper.selectList(queryWrapper);
+        List<Integer> integerIdList = ids.stream().distinct().map(CorrectSamples::getDeliveryId).collect(toList());
+        List<Integer> queryIds;
+        if(AirUtils.hv(integerIdList)){
+            queryIds = getIntegerIds(jsonObject, integerIdList);
+            jsonObject.put("deliveryIds",queryIds);
+            List<CorrectingDTO> dbLists = baseMapper.select(jsonObject);
+            return CommonUtil.successPage1(jsonObject,dbLists,integerIdList.size());
+        }
+        else{
+            return CommonUtil.successPage(jsonObject,new ArrayList<>(),0);
+        }
+    }
+
+    /*
+     * 假设该油罐共16个周期
+     * 第一页，查 16-12周期
+     * 第二页，查 12-8周期
+     * 第三页，查 8-4周期
+     * 第四页，查 4-1周期
+     */
+    private List<Integer> getIntegerIds(JSONObject jsonObject, List<Integer> integerIdList) {
+        List<Integer> queryIds = new ArrayList<>();
+        int pageNum = jsonObject.getIntValue("pageNum");
+        if(pageNum==1){
+            for(int i=1;i<=5;i++){
+                if(integerIdList.size()==i-1){
+                    break;
+                }
+                queryIds.add(integerIdList.get(i-1));
+            }
+        }
+        else{
+            int startIndex = ((pageNum-1)*4)+1;
+            for(int i=1;i<=5;i++){
+                if(integerIdList.size()==startIndex+i-2){
+                    break;
+                }
+                queryIds.add(integerIdList.get(startIndex+i-2));
+            }
+        }
+        return queryIds;
+    }
+
+    @Override
+    public JSONObject selectTable(JSONObject jsonObject) {
+        /*
+         * 假设该油罐共16个周期
+         * 第一页，查 16-12周期
+         * 第二页，查 12-8周期
+         * 第三页，查 8-4周期
+         * 第四页，查 4-1周期
+         */
+        QueryWrapper queryWrapper = new QueryWrapper();
+        queryWrapper.select("delivery_id");
+        queryWrapper.eq("tank_no",jsonObject.getIntValue("tankNo"));
+        queryWrapper.orderByDesc("delivery_id");
+        List<CorrectSamples> ids = baseMapper.selectList(queryWrapper);
+        if(!AirUtils.hv(ids)){
+            return CommonUtil.successPage(jsonObject,new ArrayList<>(),0);
+        }
+        List<Integer> integerIdList = ids.stream().distinct().map(CorrectSamples::getDeliveryId).collect(toList());
+        List<Integer> queryIds = getIntegerIds(jsonObject, integerIdList);
+        List<CorrectSamples> dbLists = getResultCorrectSamples(jsonObject, queryIds);
+        return CommonUtil.successPage1(jsonObject,dbLists,integerIdList.size());
+    }
+
+    //导出和查询诊断表复用(诊断后数据)
+    public List<CorrectSamples> getResultCorrectSamples(JSONObject jsonObject, List<Integer> queryIds) {
+        QueryWrapper queryWrapper1 = new QueryWrapper();
+        queryWrapper1.eq("tank_no",jsonObject.getIntValue("tankNo"));
+        queryWrapper1.in("delivery_id",queryIds);
+        queryWrapper1.orderByDesc("start_inventory_id");
+        List<CorrectSamples> dbLists = baseMapper.selectList(queryWrapper1);
+        if(AirUtils.hv(dbLists)){
+            List<Long> inventoryIds = new ArrayList<>();
+            dbLists.stream().forEach(x->{
+                inventoryIds.add(x.getStartInventoryId());
+                inventoryIds.add(x.getEndInventoryId());
+            });
+            List<DbInventory> dbInventories = dbInventoryDAO.selectBatchIds(inventoryIds);
+            for (CorrectSamples sam : dbLists) {
+                dbInventories.stream().filter(x->x.getId().equals(sam.getStartInventoryId())||x.getId().equals(sam.getEndInventoryId())).forEach(x->{
+                    if(x.getId().equals(sam.getStartInventoryId())){
+                        sam.setStartInventory(x);
+                    }
+                    if(x.getId().equals(sam.getEndInventoryId())){
+                        sam.setEndInventory(x);
+                    }
+                });
+            }
+            List<CorrectSamples> resultLists = new ArrayList<>();
+            int i = 1;
+            //付出数
+            double outSum = 0.0;
+            //本周期内的第一条实际体积
+            double firstVolume = 0.0;
+            //上一条数据
+            CorrectSamples lastCorrecting = new CorrectSamples();
+            for(CorrectSamples x:dbLists){
+                //第一条数据
+                if(i==1){
+                    firstVolume = x.getEndInventory().getVolume();
+                    x.setFlag(true);
+                    x.setLevel(x.getEndInventory().getLevel());
+                    x.setTemp(x.getEndInventory().getTemperature());
+                    x.setOutNum(0.0);
+                    lastCorrecting = x;
+                    //其他全是0
+                    resultLists.add(x);
+                    //新周期的第二条数据，取开始点
+                    if (x.getDeltaNozzleVolume() != 0) {
+                        outSum+=x.getDeltaNozzleVolume();
+                    } else if (x.getDeltaVolume() != 0) {
+                        outSum+=x.getDeltaVolume();
+                    } else {
+                        outSum+=x.getOutNum();
+                    }
+                    lastCorrecting = getCorrectSamples(resultLists, outSum, firstVolume, lastCorrecting, x);
+                }
+                else{
+                    //下一周期的数据
+                    if(!x.getCycleId().equals(lastCorrecting.getCycleId())){
+                        firstVolume = x.getEndInventory().getVolume();
+                        outSum=0.0D;
+                        x.setFlag(true);
+                        x.setLevel(x.getEndInventory().getLevel());
+                        x.setTemp(x.getEndInventory().getTemperature());
+                        x.setOutNum(0.0);
+                        lastCorrecting = x;
+                        //其他全是0
+                        resultLists.add(x);
+                        //新周期的第二条数据，取开始点
+                        if (x.getDeltaNozzleVolume() != 0) {
+                            outSum+=x.getDeltaNozzleVolume();
+                        } else if (x.getDeltaVolume() != 0) {
+                            outSum+=x.getDeltaVolume();
+                        } else {
+                            outSum+=x.getOutNum();
+                        }
+                        lastCorrecting = getCorrectSamples(resultLists, outSum, firstVolume, lastCorrecting, x);
+                    }
+                    //还是当前周期
+                    else{
+                        x.setLevel(x.getStartInventory().getLevel());
+                        x.setTemp(x.getStartInventory().getTemperature());
+                        if(x.getDeltaNozzleVolume()!=0){
+                            x.setOutNum(x.getDeltaNozzleVolume());
+                        }
+                        else if(x.getDeltaVolume()!=0){
+                            x.setOutNum(x.getDeltaVolume());
+                        }
+                        else{
+                            x.setOutNum(x.getOutNum());
+                        }
+                        outSum+=x.getOutNum();
+                        x.setOutSum(outSum);
+                        x.setVolume(DoubleUtils.sub(x.getStartInventory().getVolume(),firstVolume,2));
+                        x.setVolumeDifference(DoubleUtils.sub(x.getVolume(),lastCorrecting.getVolume()));
+                        x.setError(DoubleUtils.sub(x.getOutSum(),x.getVolume(),2));
+                        x.setErrorRate(DoubleUtils.div(x.getError()*1000,x.getVolume(),2));
+                        x.setSegmentRate(DoubleUtils.div(x.getVolumeDifference(),(x.getLevel() - lastCorrecting.getLevel()),2));
+                        x.setSegmentError(DoubleUtils.sub(x.getOutNum(),x.getVolumeDifference(),2));
+                        lastCorrecting = x;
+                        resultLists.add(x);
+                    }
+                }
+                i++;
+            }
+            return resultLists;
+        }
+        else{
+            return Collections.emptyList();
+        }
+    }
+
+    private CorrectSamples getCorrectSamples(List<CorrectSamples> resultLists, double outSum, double firstVolume, CorrectSamples lastCorrecting, CorrectSamples x) {
+        CorrectSamples correctSamples1 = new CorrectSamples();
+        correctSamples1.setCycleId(x.getCycleId());
+        correctSamples1.setDeliveryId(x.getDeliveryId());
+        correctSamples1.setStartInventory(x.getStartInventory());
+        correctSamples1.setEndInventory(x.getEndInventory());
+        correctSamples1.setLevel(x.getStartInventory().getLevel());
+        correctSamples1.setTemp(x.getStartInventory().getTemperature());
+        if (x.getDeltaNozzleVolume() != 0) {
+            correctSamples1.setOutNum(x.getDeltaNozzleVolume());
+        } else if (x.getDeltaVolume() != 0) {
+            correctSamples1.setOutNum(x.getDeltaVolume());
+        } else {
+            correctSamples1.setOutNum(x.getOutNum());
+        }
+        correctSamples1.setOutSum(outSum);
+        correctSamples1.setVolume(DoubleUtils.sub(x.getStartInventory().getVolume(),firstVolume,2));
+        correctSamples1.setVolumeDifference(DoubleUtils.sub(correctSamples1.getVolume(),lastCorrecting.getVolume()));
+        correctSamples1.setError(DoubleUtils.sub(correctSamples1.getOutSum(),correctSamples1.getVolume(),2));
+        correctSamples1.setErrorRate(DoubleUtils.div(correctSamples1.getError()*1000,correctSamples1.getVolume(),2));
+        correctSamples1.setSegmentRate(DoubleUtils.div(correctSamples1.getVolumeDifference(),(correctSamples1.getLevel() - lastCorrecting.getLevel()),2));
+        correctSamples1.setSegmentError(DoubleUtils.sub(correctSamples1.getOutNum(),correctSamples1.getVolumeDifference(),2));
+        lastCorrecting = correctSamples1;
+        resultLists.add(correctSamples1);
+        return lastCorrecting;
+    }
+
+    /*
+     * 调用dll库，生成样本数据
+     */
+    private List<CorrectSamples> generateSamples(Samples samples){
+        String jsonString = JSON.toJSONString(samples, SerializerFeature.DisableCircularReferenceDetect);
+        // 格式化json字符串
+        jsonString = JsonFormatTool.formatJson2(jsonString);
+        String result = DeviationCalculator.calcDeviation(jsonString);
+        List<CorrectSamples> valueslists = new ArrayList<>();
+        if(!result.contains("Error")){
+            JSONObject jobj = JSON.parseObject(result);
+            JSONArray values = jobj.getJSONArray("valuesEx");
+            for (int i = 0 ; i < values.size();i++){
+                JSONObject key = (JSONObject)values.get(i);
+                CorrectSamples samplesValues = new CorrectSamples();
+                String groupIds = "";
+                for(Long id:key.getJSONArray("groupIds").toJavaList(Long.class)){
+                    groupIds = groupIds+","+id;
+                }
+                samplesValues.setGroupIds(groupIds.substring(1));
+                samplesValues.setDeltaVolume(key.getDoubleValue("deltaVolume"));
+                samplesValues.setDeltaNozzleVolume(key.getDoubleValue("deltaNozzleVolume"));
+                samplesValues.setStartInventory(JSONObject.toJavaObject(key.getJSONObject("startInventory"), DbInventory.class));
+                samplesValues.setEndInventory(JSONObject.toJavaObject(key.getJSONObject("endInventory"), DbInventory.class));
+                samplesValues.setTankNo(key.getIntValue("tankNo"));
+                samplesValues.setCycleId(key.getIntValue("cycleId"));
+                samplesValues.setOutNum(key.getDoubleValue("outNum"));
+                samplesValues.setOutNumV20(key.getDoubleValue("outNumV20"));
+                samplesValues.setFlag(key.getBoolean("flag"));
+                samplesValues.setDeliveryId(key.getInteger("deliveryId"));
+                samplesValues.setStartInventoryId(samplesValues.getStartInventory().getId());
+                samplesValues.setEndInventoryId(samplesValues.getEndInventory().getId());
+                valueslists.add(samplesValues);
+            }
+        }
+        else{
+            log.error("诊断数据dll出错了，原因是"+result);
+        }
+        return valueslists;
+    }
+
+}

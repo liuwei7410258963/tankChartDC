@@ -1,0 +1,236 @@
+package com.oket.tankchartdc.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import com.oket.dispenser.BzNozzleOut;
+import com.oket.dispenser.NozzleOutRelGroup;
+import com.oket.dispenser.VoNozzleOutRelGroup;
+import com.oket.dispenser.dao.VoNozzleOutGroupDao;
+import com.oket.dispenser.service.VoNozzleOutGroupService;
+import com.oket.tank4station.InventoryException;
+import com.oket.tank4station.LevelState;
+import com.oket.tank4station.service.DbInventoryTraceService;
+import com.oket.tank4station.service.vo.InventoryTraceMergeVO;
+import com.oket.tankchartdc.dao.CorrectingDAO;
+import com.oket.tankchartdc.entity.CorrectingDTO;
+import com.oket.tankchartdc.entity.CorrectingTableDTO;
+import com.oket.tankchartdc.service.CorrectingService;
+import com.oket.tankchartdc.service.DbInventoryCycleService;
+import com.oket.util.CommonUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * @author ：lw
+ * @date ：Created in 2020/4/24 11:21
+ * @description：校正实现类
+ */
+@Service
+public class CorrectingServiceImpl implements CorrectingService {
+    @Autowired
+    DbInventoryCycleService dbInventoryCycleService;
+    @Autowired(required = false)
+    CorrectingDAO correctingDAO;
+    @Autowired
+    private DbInventoryTraceService dbInventoryTraceService;
+    @Autowired
+    VoNozzleOutGroupDao voNozzleOutGroupDao;
+    @Autowired
+    VoNozzleOutGroupService voNozzleOutGroupService;
+
+
+    @Override
+    public JSONObject select(JSONObject jsonObject){
+        jsonObject.put("pageRow",5);
+        jsonObject.put("offSet",(jsonObject.getIntValue("pageNum")-1)*4);
+        int count = correctingDAO.count(jsonObject);
+        List<CorrectingDTO> dbList =  correctingDAO.select(jsonObject);
+        return CommonUtil.successPage1(jsonObject, dbList, count);
+    }
+    @Override
+    public JSONObject selectTable(JSONObject jsonObject){
+        //取1-5周期，5-9周期，9-13周期……
+        jsonObject.put("pageRow",5);
+        jsonObject.put("offSet",(jsonObject.getIntValue("pageNum")-1)*4);
+        int count = correctingDAO.countTable(jsonObject);
+        List<CorrectingTableDTO> resultLists = getResults(jsonObject);
+        return CommonUtil.successPage1(jsonObject, resultLists, count);
+    }
+
+    //查看诊断表和导出样本数据复用
+    public List<CorrectingTableDTO> getResults(JSONObject jsonObject) {
+        List<JSONObject> dbList = correctingDAO.selectTable(jsonObject);
+        List<CorrectingTableDTO> resultLists = new ArrayList<>();
+        int i = 1;
+        //付出数
+        double outSum = 0.0;
+        //本周期内的第一条实际体积
+        double firstVolume = 0.0;
+        //上一条数据
+        CorrectingTableDTO lastCorrectingTableDTO = new CorrectingTableDTO();
+        for(JSONObject list:dbList){
+            CorrectingTableDTO correctingTableDTO = new CorrectingTableDTO();
+            correctingTableDTO.setCycleId(list.getLongValue("cycleid"));
+            correctingTableDTO.setDeliveryId(list.getLongValue("deliveryId"));
+            correctingTableDTO.setGroupId(list.getLongValue("group_id"));
+            correctingTableDTO.setTraceId(list.getLongValue("trace_id"));
+            correctingTableDTO.setTankNo(list.getIntValue("trace_tankno"));
+            correctingTableDTO.setStartId(list.getLongValue("trace_startid"));
+            correctingTableDTO.setEndId(list.getLongValue("trace_endid"));
+            correctingTableDTO.setTraceStartTime(list.getString("trace_startime"));
+            correctingTableDTO.setTraceEndTime(list.getString("trace_endtime"));
+            correctingTableDTO.setTraceLevelstate(LevelState.getLevel(list.getIntValue("trace_levelstate")));
+            //第一条数据
+            if(i==1){
+                firstVolume = list.getDoubleValue("trace_endvolume");
+                correctingTableDTO.setFlag(true);
+                correctingTableDTO.setLevel(list.getDoubleValue("trace_endlevel"));
+                correctingTableDTO.setTemp(list.getDoubleValue("trace_endtem"));
+                lastCorrectingTableDTO = correctingTableDTO;
+                //其他全是0
+                resultLists.add(correctingTableDTO);
+                //新周期的第二条数据，取开始点
+                outSum+=list.getDoubleValue("group_volume");
+                lastCorrectingTableDTO = newCycle(resultLists, outSum, firstVolume, lastCorrectingTableDTO, list);
+            }
+            else{
+                //下一周期的数据
+                if(list.getLongValue("cycleid")!=lastCorrectingTableDTO.getCycleId()){
+                    firstVolume = list.getDoubleValue("trace_endvolume");
+                    outSum=0.0D;
+                    correctingTableDTO.setFlag(true);
+                    correctingTableDTO.setLevel(list.getDoubleValue("trace_endlevel"));
+                    correctingTableDTO.setTemp(list.getDoubleValue("trace_endtem"));
+                    lastCorrectingTableDTO = correctingTableDTO;
+                    //其他全是0
+                    resultLists.add(correctingTableDTO);
+                    //新周期的第二条数据，取开始点
+                    outSum+=list.getDoubleValue("group_volume");
+                    lastCorrectingTableDTO = newCycle(resultLists, outSum, firstVolume, lastCorrectingTableDTO, list);
+                }
+                //还是当前周期
+                else{
+                    correctingTableDTO.setDeliveryId(list.getLongValue("deliveryId"));
+                    correctingTableDTO.setLevel(list.getDoubleValue("trace_startlevel"));
+                    correctingTableDTO.setTemp(list.getDoubleValue("trace_starttem"));
+                    correctingTableDTO.setOutNum(list.getDoubleValue("group_volume"));
+                    outSum+=list.getDoubleValue("group_volume");
+                    correctingTableDTO.setOutSum(outSum);
+                    correctingTableDTO.setVolume(list.getDoubleValue("trace_startvolume")-firstVolume);
+                    correctingTableDTO.setVolumeDifference(correctingTableDTO.getVolume()-lastCorrectingTableDTO.getVolume());
+                    correctingTableDTO.setError(correctingTableDTO.getOutSum()-correctingTableDTO.getVolume());
+                    correctingTableDTO.setErrorRate(correctingTableDTO.getError()/correctingTableDTO.getVolume());
+                    correctingTableDTO.setSegmentRate(correctingTableDTO.getVolumeDifference()/(correctingTableDTO.getLevel()-lastCorrectingTableDTO.getLevel()));
+                    correctingTableDTO.setSegmentError(correctingTableDTO.getOutNum()-correctingTableDTO.getVolumeDifference());
+                    lastCorrectingTableDTO = correctingTableDTO;
+                    resultLists.add(correctingTableDTO);
+                }
+            }
+            i++;
+        }
+        return resultLists;
+    }
+
+    /*
+     * 新周期的第二条数据，取开始点（第一条取结束点）
+     */
+    private CorrectingTableDTO newCycle(List<CorrectingTableDTO> resultLists, double outSum, double firstVolume, CorrectingTableDTO lastCorrectingTableDTO, JSONObject list) {
+        CorrectingTableDTO correctingTableDTO1 = new CorrectingTableDTO();
+        correctingTableDTO1.setCycleId(list.getLongValue("cycleid"));
+        correctingTableDTO1.setDeliveryId(list.getLongValue("deliveryId"));
+        correctingTableDTO1.setGroupId(list.getLongValue("group_id"));
+        correctingTableDTO1.setTraceId(list.getLongValue("trace_id"));
+        correctingTableDTO1.setTankNo(list.getIntValue("trace_tankno"));
+        correctingTableDTO1.setStartId(list.getLongValue("trace_startid"));
+        correctingTableDTO1.setEndId(list.getLongValue("trace_endid"));
+        correctingTableDTO1.setTraceStartTime(list.getString("trace_startime"));
+        correctingTableDTO1.setTraceEndTime(list.getString("trace_endtime"));
+        correctingTableDTO1.setTraceLevelstate(LevelState.getLevel(list.getIntValue("trace_levelstate")));
+        correctingTableDTO1.setFlag(false);
+        correctingTableDTO1.setLevel(list.getDoubleValue("trace_startlevel"));
+        correctingTableDTO1.setTemp(list.getDoubleValue("trace_starttem"));
+        correctingTableDTO1.setOutNum(list.getDoubleValue("group_volume"));
+        correctingTableDTO1.setOutSum(outSum);
+        correctingTableDTO1.setVolume(list.getDoubleValue("trace_startvolume") - firstVolume);
+        correctingTableDTO1.setVolumeDifference(correctingTableDTO1.getVolume() - lastCorrectingTableDTO.getVolume());
+        correctingTableDTO1.setError(correctingTableDTO1.getOutSum() - correctingTableDTO1.getVolume());
+        correctingTableDTO1.setErrorRate(correctingTableDTO1.getError() / correctingTableDTO1.getVolume());
+        correctingTableDTO1.setSegmentRate(correctingTableDTO1.getVolumeDifference() / (correctingTableDTO1.getLevel() - lastCorrectingTableDTO.getLevel()));
+        correctingTableDTO1.setSegmentError(correctingTableDTO1.getOutNum() - correctingTableDTO1.getVolumeDifference());
+        lastCorrectingTableDTO = correctingTableDTO1;
+        resultLists.add(correctingTableDTO1);
+        return lastCorrectingTableDTO;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateTable(InventoryTraceMergeVO inventoryTraceMergeVO) throws InventoryException {
+        //合并液位组
+        dbInventoryTraceService.merge(inventoryTraceMergeVO);
+        //合并付油组
+//        mergeGroup(inventoryTraceMergeVO);
+    }
+
+    /*
+     * 合并付油组
+     */
+    private void mergeGroup(InventoryTraceMergeVO inventoryTraceMergeVO) {
+        //两个groupId,合并到小的id。0小，1大
+        String groupIds[] = inventoryTraceMergeVO.getGroupIds().split(",");
+        if(Integer.parseInt(groupIds[0])>Integer.parseInt(groupIds[1])){
+            String temp="";
+            temp = groupIds[1];
+            groupIds[1] = groupIds[0];
+            groupIds[0] = temp;
+        }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("ids",inventoryTraceMergeVO.getGroupIds());
+        //查出两个组中所有的付油数据
+        List<VoNozzleOutRelGroup> dbLists = voNozzleOutGroupDao.selectNozzleOutGroup(jsonObject);
+        //需要合并到时间小的组的付油ids，付油量，开始结束时间
+        StringBuilder outIds = new StringBuilder();
+        double volumes = 0.0;
+        Date startTime = null;
+        Date endTime = null;
+        for(VoNozzleOutRelGroup voNozzleOutRelGroup:dbLists){
+            for(BzNozzleOut bzNozzleOut:voNozzleOutRelGroup.getBzNozzleOuts()){
+                outIds.append(bzNozzleOut.getOutId()+",");
+                volumes+=bzNozzleOut.getVolume();
+                if(startTime==null){
+                    startTime = bzNozzleOut.getStartTime();
+                }
+                if(endTime==null){
+                    endTime = bzNozzleOut.getEndTime();
+                }
+                //找付油数据中开始时间最小的
+                if(bzNozzleOut.getStartTime().getTime()<=startTime.getTime()){
+                    startTime = bzNozzleOut.getStartTime();
+                }
+                //找付油数据中结束时间最大的
+                if(bzNozzleOut.getEndTime().getTime()>=endTime.getTime()){
+                    endTime = bzNozzleOut.getEndTime();
+                }
+            }
+        }
+        List<NozzleOutRelGroup> lists = new ArrayList<>();
+        //需要更新的组
+        NozzleOutRelGroup nozzleOutRelGroup1 = new NozzleOutRelGroup();
+        nozzleOutRelGroup1.setGroupId(Long.parseLong(groupIds[0]));
+        String outIdsString = outIds.toString();
+        nozzleOutRelGroup1.setIds(outIdsString);
+        nozzleOutRelGroup1.setVolume(volumes);
+        nozzleOutRelGroup1.setStartTime(startTime);
+        nozzleOutRelGroup1.setEndTime(endTime);
+        lists.add(nozzleOutRelGroup1);
+        //需要设置为禁用的组
+        NozzleOutRelGroup nozzleOutRelGroup2 = new NozzleOutRelGroup();
+        nozzleOutRelGroup2.setGroupId(Long.parseLong(groupIds[1]));
+        nozzleOutRelGroup2.setIds("");
+        lists.add(nozzleOutRelGroup2);
+        voNozzleOutGroupService.update(lists);
+    }
+}

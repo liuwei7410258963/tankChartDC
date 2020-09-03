@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.dispenser.dao.VoNozzleOutGroupDao">
+	<resultMap id="confirm" type="com.oket.dispenser.VoNozzleOutRelGroup">
+		<result property="groupId" column="groupId"/>
+		<result property="traceId" column="trace_id"/>
+		<result property="groupRelTraceId" column="group_rel_trace_id"/>
+		<result property="status" column="status"/>
+		<collection property="bzNozzleOuts" ofType="com.oket.dispenser.BzNozzleOut">
+			<result property="outId" column="out_id"/>
+			<result property="startTime" column="start_time"/>
+			<result property="endTime" column="end_time"/>
+			<result property="volume" column="volume"/>
+			<result property="nozzleNo" column="nozzle_no"/>
+			<result property="tankNo" column="tank_no"/>
+			<result property="relId" column="relId"/>
+		</collection>
+	</resultMap>
+	<select id="selectNozzleOutGroup" resultMap="confirm">
+		SELECT a.id as relId,a.group_id as groupId,d.trace_id as trace_id,d.id as group_rel_trace_id,a.status,b.id as out_id
+		,b.start_time,b.end_time,b.volume,b.nozzle_no,b.tank_no
+		FROM bz_nozzle_out_rel_group a
+		LEFT JOIN bz_nozzle_out b ON (a.`out_id`=b.`id` )
+		LEFT JOIN bz_nozzle_out_group c ON (a.group_id = c.id)
+		LEFT JOIN bz_trace_rel_out_group d ON (c.id = d.out_group_id)
+		WHERE 1=1
+		and a.status =1
+		and c.status =1
+		and d.status =1
+		<if test="ids!=null">
+			AND a.group_id in
+			<foreach item="item" collection="ids.split(',')" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+	<select id="selectPreAndNext" resultType="java.lang.Integer">
+        (SELECT id FROM bz_nozzle_out_group
+        WHERE  start_time&gt;#{startTime} AND tank_no = #{tankNo} and status = 1
+        ORDER BY start_time LIMIT 1)
+        UNION ALL
+        (SELECT id FROM bz_nozzle_out_group
+        WHERE start_time&lt;#{startTime} AND tank_no = #{tankNo} and status = 1
+         ORDER BY start_time DESC  LIMIT 1)
+    </select>
+	<select id="querytrace" resultType="com.alibaba.fastjson.JSONObject">
+		SELECT 	DATE_FORMAT(a.start_time,'%Y-%m-%d %T') startTime,a.level_state as levelState,
+		DATE_FORMAT(a.end_time,'%Y-%m-%d %T') endTime,a.start_volume AS startVolume,a.end_volume AS endVolume,
+		a.start_level AS startLevel,a.end_level AS endLevel,a.level_state AS levelStatue,a.id AS id,b.id AS relId,
+		b.status as relStatus
+		FROM db_inventory_trace a  LEFT JOIN bz_trace_rel_out_group  b ON a.id=b.trace_id
+		WHERE a.status =1
+        <if test="startTime!=null">
+            AND  a.start_time &gt;= #{startTime}
+        </if>
+        <if test="endTime!=null">
+            AND  a.end_time &lt;= #{endTime}
+        </if>
+        <if test="tankNo!=null">
+            AND  a.tank_no = #{tankNo}
+        </if>
+		ORDER BY a.start_time DESC,b.status DESC
+    </select>
+	<select id="count" resultType="java.lang.Integer">
+		SELECT count(*)
+		FROM bz_nozzle_out a
+		LEFT JOIN bz_trace_rel_out_group b ON a.id=b.out_group_id
+		WHERE status=1
+		<if test="tankNo!=null">
+			AND a.tank_no=#{tankNo}
+		</if>
+		<if test="startTime!=null">
+			AND a.start_time>=#{startTime}
+		</if>
+		<if test="endTime!=null">
+			AND a.end_time&lt;=#{endTime}
+		</if>
+		ORDER BY a.start_time DESC
+	</select>
+	<select id="listNozGroupAndRelId" resultType="com.alibaba.fastjson.JSONObject">
+		SELECT a.*,b.trace_Id AS traceId
+		FROM bz_nozzle_out a
+		LEFT JOIN bz_trace_rel_out_group b ON a.id=b.out_group_id
+		WHERE status=1
+		<if test="tankNo!=null">
+			AND a.tank_no=#{tankNo}
+		</if>
+		<if test="startTime!=null">
+			AND a.start_time>=#{startTime}
+		</if>
+		<if test="endTime!=null">
+			AND a.end_time&lt;=#{endTime}
+		</if>
+		<if test="offSet!=null and pageRow!=null ">
+			LIMIT #{offSet},#{pageRow}
+		</if>
+		ORDER BY a.start_time DESC
+	</select>
+
+</mapper>

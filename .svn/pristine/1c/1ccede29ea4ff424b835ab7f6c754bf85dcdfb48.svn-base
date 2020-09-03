@@ -1,0 +1,141 @@
+package com.oket.tankchartdc.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.oket.dispenser.BzNozzleOut;
+import com.oket.dispenser.BzNozzleOutGroup;
+import com.oket.dispenser.dao.NozzleOutDao;
+import com.oket.dispenser.service.NozzleOutService;
+import com.oket.dispenser.service.NozzleService;
+import com.oket.tankchartdc.dao.AbnormalDao;
+import com.oket.tankchartdc.entity.AbnormalEntity;
+import com.oket.tankchartdc.mina.json.JSONAcceptor;
+import com.oket.tankchartdc.service.AbnormalService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.oket.util.AirUtils;
+import com.oket.util.CommonUtil;
+import com.oket.util.TimeUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * <p>
+ *  服务实现类
+ * </p>
+ *
+ * @author lw
+ * @since 2020-04-01
+ */
+@Service
+public class AbnormalServiceImpl extends ServiceImpl<AbnormalDao, AbnormalEntity> implements AbnormalService {
+
+    @Autowired
+    NozzleOutService nozzleOutService;
+    @Autowired
+    NozzleOutDao nozzleOutDao;
+
+    @Override
+    public IPage<AbnormalEntity> query(JSONObject req, boolean isPage) {
+        // 参数根据需要判断来写
+        IPage<AbnormalEntity> page = new Page<>(req.getIntValue("pageNum"), req.getIntValue("pageRow"));
+        //查询条件 根据需要写
+        QueryWrapper<AbnormalEntity> wrapper = new QueryWrapper<>();
+        //查询中断异常
+        if(req.getIntValue("errorType")==1 && req.getString("ditType").equals("IFSF")){
+            if (req.getString("startTime") != null && req.getString("endTime") != null) {
+                wrapper.lambda().ge(AbnormalEntity::getStartTime,req.getString("startTime"));
+                wrapper.apply("(end_time<='"+req.getString("endTime")+"' or end_time is NULL)");
+            }
+            wrapper.lambda().eq(AbnormalEntity::getErrorType,1);
+            wrapper.lambda().eq(AbnormalEntity::getDitType,"IFSF");
+            wrapper.lambda().orderByDesc(AbnormalEntity::getStartTime);
+        }
+        else if(req.getIntValue("errorType")==1 && req.getString("ditType").equals("JSON")){
+            if (req.getString("startTime") != null && req.getString("endTime") != null) {
+                wrapper.lambda().ge(AbnormalEntity::getStartTime,req.getString("startTime"));
+                wrapper.apply("(end_time<='"+req.getString("endTime")+"' or end_time is NULL)");
+            }
+            wrapper.lambda().eq(AbnormalEntity::getErrorType,1);
+            wrapper.lambda().eq(AbnormalEntity::getDitType,"JSON");
+            wrapper.lambda().orderByDesc(AbnormalEntity::getStartTime);
+        }
+        //查询IFSF数据超时发送异常
+        else if(req.getIntValue("errorType")==2){
+            if (req.getString("startTime") != null && req.getString("endTime") != null) {
+                wrapper.lambda().ge(AbnormalEntity::getStartTime,req.getString("startTime"));
+                wrapper.apply("(end_time<='"+req.getString("endTime")+"' or end_time is NULL)");
+            }
+            wrapper.lambda().eq(AbnormalEntity::getErrorType,2);
+            wrapper.lambda().orderByDesc(AbnormalEntity::getStartTime);
+        }
+//        //查询泵码数异常
+//        else if(req.getIntValue("errorType")==3){
+//            wrapper.eq("error_type",3);
+//            if (req.getString("startTime") != null && req.getString("endTime") != null) {
+//                wrapper.ge("start_time",req.getString("startTime"));
+//                wrapper.le("end_time",req.getString("endTime"));
+//            }
+//            if (!isPage) {
+//                //不分页的数据
+//                page.setRecords(baseMapper.selectList(wrapper));
+//            } else {
+//                // 分页的数据
+//                page = baseMapper.selectPage(page, wrapper);
+//            }
+//            List<AbnormalEntity> records = page.getRecords();
+//            List<Long> ids = new ArrayList<>();
+//            List<JSONObject> result = new ArrayList<>();
+//            if(AirUtils.hv(records)) {
+//                records.stream().forEach(x -> {
+//                    String[] arrs = x.getInfo().split(",");
+//                    for(String id:arrs){
+//                        ids.add(Long.parseLong(id));
+//                    }
+//                });
+//                List<BzNozzleOut> bzNozzleOuts = nozzleOutDao.selectBatchIds(ids);
+//                records.stream().forEach(x->{
+//                    JSONObject jsonObject = new JSONObject();
+//                    jsonObject.put("nozzleNo",x.getCode());
+//                    String[] arrs = x.getInfo().split(",");
+//                    long normalId = Long.parseLong(arrs[0]);
+//                    long errorId = Long.parseLong(arrs[1]);
+//                    bzNozzleOuts.stream().filter(y->y.getId()==normalId).forEach(y->{
+//                        jsonObject.put("normalStartTime",y.getStartTime());
+//                        jsonObject.put("normalEndTime",y.getEndTime());
+//                        jsonObject.put("normalPump",y.getPumpSum());
+//                        jsonObject.put("normalVolume",y.getVolume());
+//                        jsonObject.put("oilCode",y.getOilCode());
+//                    });
+//                    bzNozzleOuts.stream().filter(y->y.getId()==errorId).forEach(y->{
+//                        jsonObject.put("errorStartTime",y.getStartTime());
+//                        jsonObject.put("errorEndTime",y.getEndTime());
+//                        jsonObject.put("errorPump",y.getPumpSum());
+//                        jsonObject.put("errorVolume",y.getVolume());
+//                    });
+//                    jsonObject.put("diff",Math.abs(jsonObject.getDoubleValue("normalPump")-jsonObject.getDoubleValue("errorPump")));
+//                    result.add(jsonObject);
+//                });
+//            }
+//            IPage<JSONObject> resultPage = new Page();
+//            resultPage.setRecords(result);
+//            resultPage.setTotal(page.getTotal());
+//            resultPage.setPages(page.getPages());
+//            return page;
+//
+//        }
+        if (!isPage) {
+            //不分页的数据
+            page.setRecords(baseMapper.selectList(wrapper));
+        } else {
+            // 分页的数据
+            page = baseMapper.selectPage(page, wrapper);
+        }
+        return page;
+    }
+}

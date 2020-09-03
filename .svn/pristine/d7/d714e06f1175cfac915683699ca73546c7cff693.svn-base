@@ -1,0 +1,49 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/tank_chart_dc?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=GMT%2B8
+    username: root
+    password: yui579GHJ
+    driver-class-name: com.mysql.jdbc.Driver
+# mybatis-plus配置
+mybatis-plus:
+  typeEnumsPackage: com.oket.device,com.oket.dispenser,com.oket.common.base,com.oket.oil,com.oket.delivery,com.oket.tank4station,com.oket.tankchartdc
+  mapper-locations: classpath*:mapper/**/*.xml
+  #mybatis数据库字段内容为空时，返回该字段
+  configuration:
+    call-setters-on-nulls: true
+    #驼峰式命名
+    map-underscore-to-camel-case: true
+# 不需要分页查询列表标志
+noPage: 1
+dit:
+  emulator:
+    #    是否启用dit模拟器
+    enable: false
+#上传文件的路径
+uploadFilePath: ./socket_test
+#导出文件的路径
+exportFilePath: ./export_files
+#导出文件储存zip的路径
+exportZipFilePath: ./doc
+
+#可修改的配置文件的路径
+modifiablePortAndIpPath: ./doc/portAndIp.properties
+
+#dit配置文件位置
+ditIniFilePath: C:/Program Files/DIT_Agent/setup.ini
+#ditIniFilePath=C:/Program Files/DIT_Agent/setup.ini
+
+websocketKey: oket
+websocketValue: zEcAY4dlR@XOFyb8
+
+
+#INI_FILE_PATH=C:/Program Files/DIT_Agent/setup.ini
+# 保存数据的位置
+baseFilePath: ./biz
+#液位轨迹没有匹配完成的最长天数
+nozzleOutMaxNotMatchedDay: 1
+#付油结束时间距离当前时间的分钟差，超过这个值就要检查是否系统补充数据
+outAndCurrentGap: 1
+
+#dll动态库文件位置
+dllFilePath: ./doc/libvt_algo.dll

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- Tell the browser to be responsive to screen width -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <!-- Favicon icon -->
+    <title>DIT模拟器</title>
+    <!-- Bootstrap Core CSS -->
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon.ico">
+    <title>Home</title>
+    <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <!-- 字体颜色样式 -->
+    <link href="css/style.css" rel="stylesheet">
+    <!-- 上传文件样式 -->
+    <link rel="stylesheet" href="css/fileinput.min.css">
+    <!-- 页面顶部蓝色样式 -->
+    <link href="css/blue.css" id="theme" rel="stylesheet">
+</head>
+<style>
+    #word{
+        width: 100%;
+        height: 70px;
+        text-align: center;
+        line-height: 70px;
+        font-size: 34px;
+    }
+    input[type=radio] {
+        display: block;
+        line-height: 35px;
+        color: #666;
+        margin-bottom: 0;
+        font-weight: normal;
+        cursor: pointer;
+        width: 0px!important;
+        height: 0px!important;
+        position: absolute;
+        left: 10px;
+        top: 13px;
+        border:none!important;
+        background: #fff!important;
+    }
+    label{
+        float: left;
+        display: inline-block;
+        margin-right: 10px;
+        cursor: pointer;
+        padding-left: 25px;
+        position: relative;
+        height: 30px;
+        margin-bottom: 0!important;
+    }
+    label span{
+        display: block;
+        line-height: 35px;
+    }
+    input[type=radio]:before {
+        content: '';
+        width: 16px;
+        height: 16px;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%,-50%);
+        background: url("images/radio_unchecked.png");
+        -webkit-background-size: 100% 100%;
+        background-size: 100% 100%;
+    }
+    input[type=radio]:checked:before {
+        background-image: url("images/radio_checked.png");
+    }
+    input[type=checkbox] {
+        display: block;
+        line-height: 35px;
+        color: #666;
+        margin-bottom: 0;
+        font-weight: normal;
+        cursor: pointer;
+        position: absolute;
+        width: 0!important;
+        height: 0!important;
+        left: 13px;
+        top: 13px;
+        border:none!important;
+        background: #fff!important;
+    }
+    input[type=checkbox]:before {
+        content: '';
+        width: 16px;
+        height: 16px;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%,-50%);
+        background: url("images/checkbox_unchecked.png");
+        -webkit-background-size: 100% 100%;
+        background-size: 100% 100%;
+    }
+    input[type=checkbox]:checked:before {
+        background-image: url("images/checkbox_checked.png");
+    }
+    input[type=checkbox]:checked:disabled:before {
+        background-image: url("images/checkbox_disabled.png");
+    }
+    #fileInput>div{
+        width:100%!important;
+        height: 40px!important;
+    }
+</style>
+<body class="fix-header fix-sidebar card-no-border">
+<div class="preloader">
+    <svg class="circular" viewBox="25 25 50 50">
+        <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="2" stroke-miterlimit="10" /> </svg>
+</div>
+<header class="topbar">
+    <nav class="navbar top-navbar navbar-toggleable-sm navbar-light" style="margin-bottom: 0px">
+        <div class="navbar-collapse">
+            <li>
+                <h3 style="margin: 0;color: #F4A000;height: 40px;line-height: 40px">DIT模拟器</h3>
+            </li>
+            <ul id="sidebarnav">
+                <li>
+                    <a  href="dit_single.html"><i class="mdi mdi-earth"></i><span class="hide-menu">单条指令模拟</span></a>
+                </li>
+                <li>
+                    <a  href="dit_multiple.html" style="color: #F4A000"><i class="mdi mdi-table"></i><span class="hide-menu">多条指令模拟</span></a>
+                </li>
+                <li>
+                    <a  href="index.html" target="_blank">
+                        <span style="font-size: 16px" class="glyphicon glyphicon-blackboard" aria-hidden="true"></span>
+                        <span class="hide-menu">监控中心</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+</header>
+<div id="main-wrapper">
+    <div class="page-wrapper" style="padding-bottom: 0">
+        <div class="container-fluid" style="padding: 10px 30px 10px 30px">
+            <div class="row" >
+                <div class="panel panel-default" style="width: 100%;">
+                    <div class="panel-body">
+                        <div class="col-lg-2" style="display: inline-block">
+                            <span>IP地址</span>
+                            <input
+                                    id="ip-add"
+                                    class="form-control"
+                                    type="text"
+                                    value="127.0.0.1"
+                                    aria-describedby="basic-addon1"
+                                    style="display: inline-block;width: 150px"
+                                    disabled>
+                        </div>
+                        <div class="col-lg-2" style="display: inline-block">
+                            <span>IFSF端口号</span>
+                            <input
+                                    id="ifsf-port"
+                                    class="form-control"
+                                    type="text"
+                                    value="9005"
+                                    aria-describedby="basic-addon1"
+                                    style="display: inline-block;width: 150px"
+                                    disabled>
+                        </div>
+                        <div class="col-lg-2" style="display: inline-block">
+                            <span>JSON端口号</span>
+                            <input
+                                    id="json-port"
+                                    class="form-control"
+                                    type="text"
+                                    value="9006"
+                                    aria-describedby="basic-addon1"
+                                    style="display: inline-block;width: 150px"
+                                    disabled>
+                        </div>
+                        <div class="col-lg-4" style="display: inline-block">
+                            <button
+                                    id="editInfo"
+                                    type="button"
+                                    class="btn btn-info"
+                                    onclick="editInfo()">修改</button>
+                            <span id="ifsfTip" style="color: green;font-size: 12px;"></span>；
+                            <span id="jsonTip" style="color: green;font-size: 12px;"></span>
+                            <!--开启、关闭 端口连接-->
+                            <button
+                                    id="ifsfBtn"
+                                    type="button"
+                                    style="margin-left: 10px;"
+                                    class="btn btn-info"
+                                    onclick="ifsfPortFun()">关闭</button>
+                            <button
+                                    id="jsonBtn"
+                                    type="button"
+                                    class="btn btn-info"
+                                    onclick="jsonPortFun()">关闭</button>
+
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex;width: 100%;">
+                    <div style="flex: 1;margin-right: 15px;">
+                        <div class="panel panel-default" style="height: 100%;margin-bottom: 0">
+                            <div class="container-fluid panel-body" style="padding: 5px 10px">
+                                <div style="margin-bottom: 10px">
+                                    <h5 style="display: inline-block;margin-right: 20px">收发数据:</h5>
+                                    <button class="btn btn-info" id="clear" onclick="ClearTextArea()">清空数据</button>
+                                    <select
+                                            id="change"
+                                            class="form-control"
+                                            style="width: 200px;"
+                                            onchange="gradeChange(this.options[this.options.selectedIndex].value)">
+                                        <option value ="全部">全部数据</option>
+                                        <option value ="液位数据">液位数据</option>
+                                        <option value="正常交易数据">正常交易数据</option>
+                                        <option value="脱机交易数据">脱机交易数据</option>
+                                        <option value="加油开始结束数据">加油开始结束数据</option>
+                                        <option value="加油中数据">加油中数据</option>
+                                        <option value ="枪罐关系">枪罐关系</option>
+                                        <option value="配送数据">配送数据</option>
+                                        <option value="油罐基本信息">油罐基本信息</option>
+                                        <option value="离线交易">离线交易</option>
+                                        <option value="交易数据">交易数据</option>
+                                        <option value ="罐存数据">罐存数据</option>
+                                        <option value="加油机油枪对应关系">加油机油枪对应关系</option>
+                                    </select>
+                                </div>
+
+                                <div class="contact-box text-center">
+                                    <div class="form-group" style="margin-bottom: 10px;">
+									<textarea
+                                            class="form-control"
+                                            id="message"
+                                            name="message"
+                                            rows="34"
+                                            placeholder="已发送内容*"
+                                            required="">
+									</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="float: right;width: 460px;">
+                        <div class="panel panel-default" style="margin-bottom: 0">
+                            <div class="container-fluid panel-body" id="fileUpload" style="padding: 5px 10px">
+                                <h5 style="display: inline-block;margin-right: 10px">上传数据文件文件</h5>
+                                <input class="input-sm" id="fileInput" type="file" multiple="multiple" style="display: inline-block">
+                            </div>
+                            <hr style="margin: 0px">
+                            <div class="container-fluid panel-body" style="padding: 5px 10px">
+                                <form role="form">
+                                    <div >
+                                        <label>
+                                            <input type="checkbox" name="checkall" value="all"/>
+                                            <span>全选</span>
+                                        </label>
+                                    </div>
+                                    <div style="margin-left: 65px;">
+                                        <div style="float: left">
+                                            <h5>JSON数据类型</h5>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="枪罐关系"/>
+                                                <span>枪罐关系</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="配送数据"/>
+                                                <span>配送数据</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="油罐基本信息"/>
+                                                <span>油罐基本信息</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="离线交易"/>
+                                                <span>离线交易</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="交易数据"/>
+                                                <span>交易数据</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="罐存数据"/>
+                                                <span>罐存数据</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="加油机油枪对应关系"/>
+                                                <span>加油机油枪对应关系</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="卸油数据"/>
+                                                <span>卸油数据</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="回罐数据"/>
+                                                <span>回罐数据</span>
+                                            </label>
+                                        </div>
+                                        <div style="float: left">
+                                            <h5>IFSF数据类型</h5>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="液位数据" />
+                                                <span>液位数据</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="正常交易数据"/>
+                                                <span>正常交易数据</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="脱机交易数据"/>
+                                                <span>脱机交易数据</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="加油开始结束数据"/>
+                                                <span>加油开始结束数据</span>
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" name="checkbox" value="加油中数据"/>
+                                                <span>加油中数据</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <hr style="margin: 0px">
+                            <div
+                                    class="container-fluid panel-body"
+                                    style="padding: 5px 10px;height: 390px;position: relative;overflow-y: auto;" >
+                                <h5 class="card-title" style="display: inline-block">已上传文件</h5>
+                                <span id="rootUrl" style="font-size: 12px;color: blue"></span>
+                                <div class="card-body table-responsive">
+                                    <table class="table table-hover" id="fileList" style="margin-bottom: 0">
+                                        <thead class="text-warning" id="tableHead">
+                                        <th>暂无文件</th>
+                                        </thead>
+                                        <tbody id="stock-table"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <hr style="margin: 0px">
+                            <div
+                                    class="container-fluid panel-body"
+                                    style="padding: 12px 10px">
+                                <label style="left: 8px;">
+                                    <input
+                                            type="checkbox"
+                                            name="closeWindow"
+                                            checked/>
+                                    <span>关闭浏览器后台运行</span>
+                                </label>
+                                <div
+                                        class="dropup"
+                                        style="float: left;top: 4px;left:20px;display: inline-block">
+                                    <button
+                                            class="btn btn-sm btn-default dropdown-toggle"
+                                            type="button"
+                                            id="dropdownMenu2"
+                                            data-toggle="dropdown"
+                                            aria-haspopup="true"
+                                            aria-expanded="false">
+                                        X 1
+                                    </button>
+                                    <ul
+                                            class="dropdown-menu"
+                                            aria-labelledby="dropdownMenu2">
+                                        <li>
+                                            <a
+                                                    href="javascript:;"
+                                                    onclick="changeSpeed('X 1',1)">
+                                                X 1
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a
+                                                    href="javascript:;"
+                                                    onclick="changeSpeed('X 2',2)">
+                                                X 2
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a
+                                                    href="javascript:;"
+                                                    onclick="changeSpeed('X 4',4)">
+                                                X 4
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a
+                                                    href="javascript:;"
+                                                    onclick="changeSpeed('X 8',8)">
+                                                X 8
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a
+                                                    href="javascript:;"
+                                                    onclick="changeSpeed('X 16',16)">
+                                                X 16
+                                            </a>
+                                        </li>
+                                    </ul>
+                                    倍速
+                                </div>
+                                <div style="float: left;margin: 4px 0px 0px 50px;">
+                                    <button
+                                            id="startStopTrigger"
+                                            class="btn btn-sm btn-info"
+                                            onclick='startStopTrigger()'>
+                                        开始
+                                    </button>
+                                    <button
+                                            id="trigger"
+                                            class="btn btn-sm btn-success"
+                                            style="display: none;"
+                                            onclick='triggerBtn()'>
+                                        暂停
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                        id="alertTip"
+                        class="alert alert-success "
+                        style="position: absolute;left: 42%;top:150px;display: none">
+                    <strong id="tipcontainer"></strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<script type="text/javascript" src="/js/jquery-3.4.1.min.js"></script>
+<script src="js/bootstrap.js"></script>
+<script type="text/javascript" src="js/fileinput.min.js"></script>
+<script src="js/jquery.slimscroll.js"></script>
+<script src="js/waves.js"></script>
+<script src="js/jquery-form.js"></script>
+<script src="js/sidebarmenu.js"></script>
+<script src="js/custom.min.js"></script>
+<script src="js/main.js"></script>
+<script>
+    ClearTextArea();
+    var jsonReceiver = null;
+    var ifsfReceiver = null;
+    var sendSpeed = 1; // 上传速度
+    getConfig();
+
+    var localIp;
+    var localIfsfPort;
+    var localJsonPort;
+    var jsonStatus;
+    var ifsfStatus;
+
+    $(document).ready(function() {
+        stocks = new Array();
+        getAllList();
+        getCheck();
+    });
+    function getCheck(){
+        $.ajax({
+            type :"GET",
+            url :"/type",
+            data : null,
+            dataType :"json",
+            cache :false,
+            success: function (data) {
+                var info = data.info
+                if(data.code === '100'){
+                    if(info.functionType === null){ // 数据类型,字符串拼接
+                        // 全选
+                        $('[name=checkall]').prop("checked",true)
+                        $('[name=checkbox]').prop("checked",true)
+                    } else {
+                        $("input[type=checkbox]").each(function(i){
+                            $(this).prop('disabled', true)
+                        })
+                        $('[name=closeWindow]').prop('disabled',false)
+                        // 所有不可点击
+                        var getInfoFuncList =info.functionType.split(',')
+                        for(var fi = 0; fi < getInfoFuncList.length; fi++){
+                            $('[name=checkbox]').each(function(){
+                                if($(this).val() === getInfoFuncList[fi]){
+                                    $(this).prop('checked',true)
+                                }
+                            })
+                        }
+                    }
+                    if(info.fileName === null){ //文件名数组
+                        // 全选
+                        $('[name=checkAllFile]').prop("checked",true)
+                        $('[name=tableCheckbox]').prop("checked",true)
+                    } else {
+                        // 所有不可点击
+                        $("input[type=checkbox]").each(function(i){
+                            $(this).prop('disabled', true)
+                        })
+                        $('[name=closeWindow]').prop('disabled',false)
+                        for(var fn = 0; fn < info.fileName.length; fn++){
+                            $('[name=tableCheckbox]').each(function(){
+                                if($(this).val() === info.fileName[fn]){
+                                    $(this).prop('checked',true)
+                                }
+                            })
+                        }
+                    }
+                    if(info.speed === 0){ //速度
+                        $('#dropdownMenu2').text('X'+ 1)
+                    } else {
+                        $('#dropdownMenu2').text('X'+info.speed)
+                    }
+                    if(info.status === null || info.status === 'stop'){ // 状态
+
+                    } else if(info.status === 'run'){
+                        startFlag = false
+                        $('#trigger').show()
+                        $('#startStopTrigger').text("结束");
+                        $('#startStopTrigger').addClass("btn-danger")
+                    } else if(info.status === 'resume'){
+                        startFlag = false
+                        pauseFlag = true
+                        $('#trigger').show()
+                        $('#startStopTrigger').text("结束");
+                        $('#startStopTrigger').addClass("btn-danger")
+                        $('#trigger').text("暂停");
+                    } else if(info.status === 'pause'){
+                        startFlag = false
+                        pauseFlag = false
+                        $('#trigger').show()
+                        $('#startStopTrigger').text("结束");
+                        $('#startStopTrigger').addClass("btn-danger")
+                        $('#trigger').text("继续");
+                        $('#trigger').addClass("btn-warning")
+                    }
+                }
+            }
+        });
+    }
+    var localIp;
+    function afterGetAll() {
+        jsonReceiver = JSON.parse(sessionStorage.getItem(TYPE_JSON.name));
+        console.log(jsonReceiver);
+        console.log(localIp);
+        buildWebsocket(jsonReceiver.type, jsonReceiver.id, jsonReceiver.port,localIp);
+        ifsfReceiver = JSON.parse(sessionStorage.getItem(TYPE_IFSF.name));
+        buildWebsocket(ifsfReceiver.type, ifsfReceiver.id, ifsfReceiver.port,localIp);
+    }
+    $("#btn_add").click(function () {
+        $("#myModalLabel").text("连接");
+        $('#myModal').modal();
+    });
+    $("#dit_socket").click(function () {
+        var ip = $("#ditip").val();
+        var port = parseInt($("#ditport").val());
+        openLink(ip, port);
+    });
+    function openLink(ip, port) {
+        buildWebsocket(2, temp.id, temp.port,temp.ip);
+    };
+    function getAllList() {
+        stocks.length = 0;
+        $.ajax({
+            type :"GET",
+            url :"/allfile",
+            data : null,
+            dataType :"json",
+            cache :false,
+            success: function (data) {
+                $("#tableHead").empty().append(getStockHead());
+                $("#stock-table").empty();
+                var rootUrl=''
+                $('#rootUrl').empty()
+                if(data.data!=null) {
+                    var rootZero = data.data[0].split('\\')
+                    for (var k = 0; k < rootZero.length - 1; k++) {
+                        rootUrl += rootZero[k] + '\\'
+                    }
+                    rootUrl = rootUrl.substring(0, rootUrl.length - 1)
+                    $('#rootUrl').append('(根目录:' + rootUrl + ')')
+                    $.each(data.data, function (index, item) {
+                        var list = item.split('\\')
+                        var fileName = list[list.length - 1]
+                        stocks.push(item);
+                        var height = (index * 37 + 90)-10;
+                        $("#stock-table").append(
+                            "<tr>" +
+                            "<td>" +
+                            "<input style='position: absolute;top:" + height  + "px;left: 30px;' type='checkbox' name='tableCheckbox' value='" + item + "' onclick='checkFile()'/>" + "</td>" +
+                            "<td>" + fileName + "</td>"
+                        );
+                    })
+                }
+            }
+        });
+        function getStockHead() {
+            var stockHead;
+            stockHead= "<th style='padding-right: 0;width: 40px;'><input type='checkbox' name='checkAllFile' onclick='allCheck()' style='position: absolute;top: 47px;left: 30px;'/></th><th>文件名称</th>"
+            return stockHead;
+        }
+    }
+    var startFlag = true
+    //    开始结束切换
+    function startStopTrigger() {
+        if(startFlag){ //开始
+            run()
+            startFlag = !startFlag;
+        } else {
+            stop()
+            startFlag = !startFlag;
+        }
+
+    }
+    // 开始
+    function run() {
+        var checkDataType = ''
+        var fileList = []
+        $("input[name=checkbox]:checked").each(function(i){//把所有被选中的复选框的值存入数组
+            checkDataType+=($(this).val()+',')
+        });
+        $("input[name=tableCheckbox]:checked").each(function(i){//把所有被选中的复选框的值存入数组
+            fileList.push($(this).val())
+        });
+        $("input[type=checkbox]").each(function(i){
+            $(this).prop('disabled', true)
+        })
+        $('[name=closeWindow]').prop('disabled',false)
+        var postdata = {
+            functionType: checkDataType,
+            fileName:fileList,
+            speed: sendSpeed
+        }
+        if(postdata.functionType === ''&& postdata.fileName.length === 0){
+            consoleTip('请选择数据类型及下发文件', 'alert-danger')
+            startFlag = !startFlag
+        }else if(postdata.functionType === '' && postdata.fileName.length > 0){
+            consoleTip('请选择数据类型', 'alert-danger')
+            startFlag = !startFlag
+        }else if(postdata.functionType !== '' && postdata.fileName.length === 0){
+            consoleTip('请选择下发文件', 'alert-danger')
+            startFlag = !startFlag
+        }else {
+            $('#trigger').show()
+            $('#startStopTrigger').text("结束");
+            $('#startStopTrigger').addClass("btn-danger")
+            $.ajax({
+                url : "/run",
+                type : "POST",
+                data: JSON.stringify(postdata),
+                cache : false,
+                processData : false,
+                contentType : "application/json",
+                success : function (data) {
+                    if(data.code === "1"){
+                        consoleTip('文件上传成功','')
+                        // $('input:checkbox').prop('checked',false);
+                        // stop();
+                    }else{
+                        consoleTip('文件上传失败','alert-danger')
+                    }
+                }
+            })
+        }
+
+    }
+    // 停止
+    function stop() {
+        $.ajax({
+            url : "/stop",
+            type : "GET",
+            datatype:"JSON",
+            cache : false,
+            data : null,
+            processData : false,
+            contentType : "application/json",
+            success : function (data) {
+                consoleTip('停止下发文件', 'alert-danger')
+            }
+        })
+
+        $('#startStopTrigger').text("开始");
+        $('#startStopTrigger').removeClass("btn-danger")
+        $("input[type=checkbox]").each(function(i){
+            $(this).prop('disabled', false)
+        })
+        $('#trigger').hide()
+        $('input:checkbox').prop('checked',true);
+        $('[name=closeWindow]').prop('checked',true)
+    };
+    var pauseFlag = true // 继续
+    //	暂停继续切换
+    function triggerBtn(){
+        if(pauseFlag){ // 继续
+            pause()
+        }else{ // 暂停
+            resume()
+        }
+        pauseFlag = !pauseFlag
+    }
+    // 暂停
+    function pause() {
+        $.ajax({
+            url : "/pause",
+            type : "GET",
+            datatype:"JSON",
+            cache : false,
+            data : null,
+            processData : false,
+            contentType : "application/json",
+            success : function (data) {
+                consoleTip('暂停下发文件', 'alert-danger')
+            }
+        })
+        $('#trigger').text("继续");
+        $('#trigger').addClass("btn-warning")
+    }
+    // 继续
+    function resume() {
+        $.ajax({
+            url : "/resume",
+            type : "GET",
+            datatype:"JSON",
+            cache : false,
+            data : null,
+            processData : false,
+            contentType : "application/json",
+            success : function (data) {
+                consoleTip('继续下发文件', '')
+            }
+        })
+        $('#trigger').text("暂停");
+        $('#trigger').removeClass("btn-warning")
+    }
+    $("#fileInput").fileinput({
+        language: 'zh',  // 多语言设置，需要引入local中相应的js，例如locales/zh.js
+        uploadUrl: 'upload', // 上传地址
+        minFileCount: 1, // 最小上传数量
+        maxFileCount: 100, // 最大上传数量
+        overwriteInitial: false, // 覆盖初始预览内容和标题设置
+        showCancel: false, // 显示取消按钮
+        showZoom: false, // 显示预览按钮
+        dropZoneEnabled: false, // 是否可拖拽
+        uploadLabel: "上传文件", // 上传按钮内容
+        browseLabel: '选择文件', // 浏览按钮内容
+        showPreview: true, //是否显示预览
+        hideThumbnailContent:true,  // 是否隐藏文件内容
+        showRemove: true, // 显示移除按钮
+        browseClass: "btn btn-info", // 浏览按钮样式
+        uploadClass: "btn btn-info", // 上传按钮样式
+        fileActionSettings: {   // 在预览窗口中为新选择的文件缩略图设置文件操作的对象配置
+            showRemove: true,  // 显示删除按钮
+            showUpload: false,  // 显示上传按钮
+            showDownload: false,  // 显示下载按钮
+            showZoom: false, // 显示预览按钮
+            showDrag: false  // 显示拖拽
+        }
+    }).on('filebatchpreupload', function(event, data) { //该方法将在上传之前触发
+        for( var z = 0; z < data.files.length; z++){
+            var itemLog = data.files[z].name.split('.')
+            if(itemLog[itemLog.length-1]!=='log'){
+                consoleTip('仅支持后缀为log的文件类型', 'alert-danger')
+                $(".fileinput-remove-button").click();
+                $("#fileInput").prop('disabled', false)
+                return this
+            }
+        }
+    }).on("fileuploaded", function (event, data) {    //文件上传成功回调
+        if(data.response.code === '1'){
+            consoleTip('文件上传成功', '')
+            $(".fileinput-remove-button").click();
+            getAllList()
+        }else if(data.response.code === '90003'){ // 存在
+            consoleTip(data.response.msg, 'alert-danger')
+        }
+    }).on('fileerror', function(event, data, msg) { //文件上传失败回调
+    })
+    //数据类型全选
+    $('input[name="checkall"]').on("click",function(){
+        if($(this).is(':checked')){
+            $('input[name="checkbox"]').each(function(){
+                $(this).prop("checked",true);
+            });
+        } else {
+            $('input[name="checkbox"]').each(function(){
+                $(this).prop("checked",false);
+            });
+        }
+    });
+    //判断数据类型是否全选
+    $('input[name=checkbox]').click(function(){
+        if($('[name=checkbox]:checked').length==$('[name=checkbox]').length){
+            $('[name=checkall]').prop('checked',true)
+        } else {
+            $('[name=checkall]').prop('checked',false)
+        }
+    })
+    //全选
+    function allCheck(){
+        if($('input[name=checkAllFile]').is(':checked')){
+            $('input[name=tableCheckbox]').each(function(){
+                $(this).prop("checked",true);
+            });
+        } else {
+            $('input[name=tableCheckbox]').each(function(){
+                $(this).prop("checked",false);
+            });
+        }
+    }
+    // 选择一个文件
+    function checkFile() {
+        if($("input[name=tableCheckbox]:checked").length === $("input[name=tableCheckbox]").length){
+            $('input[name=checkAllFile]').prop("checked",true)
+        }else {
+            $('input[name=checkAllFile]').prop("checked",false)
+        }
+    }
+    // 速度下拉框
+    function changeSpeed(speedString,speed) {
+        sendSpeed = speed
+        if(startFlag === false){
+            $.ajax({
+                url : "/changeSpeed",
+                type : "POST",
+                data: sendSpeed,
+                cache : false,
+                processData : false,
+                contentType : "application/json",
+                success : function (data) {
+                    if(data.code === "1"){
+                        consoleTip('修改倍速成功','')
+                        $('#dropdownMenu2').text(speedString)
+                    }else{
+                        consoleTip('修改倍速失败','alert-danger')
+                    }
+                }
+            })
+        }else{
+            $('#dropdownMenu2').text(speedString)
+        }
+    }
+
+    $(window).on("unload", function(e) {
+        //没被选中，关闭页面停止后台程序
+        if(!$('input[name=closeWindow]').is(':checked')){
+            stop();
+        }
+    });
+</script>
+</body>
+
+</html>

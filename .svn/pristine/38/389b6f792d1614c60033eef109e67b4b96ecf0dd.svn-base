@@ -1,0 +1,5 @@
+#modifiablePortAndIp
+#Wed Dec 25 13:50:37 CST 2019
+dit.emulator.ifsfPort=9006
+dit.emulator.jsonPort=9005
+dit.emulator.connectIp=localhost

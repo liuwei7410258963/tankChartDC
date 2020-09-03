@@ -1,0 +1,239 @@
+package com.oket.tank4station.service.impl;
+
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.oket.common.base.Status;
+import com.oket.station.ServerLog;
+import com.oket.station.bizservice.ServiceStatistics;
+import com.oket.station.service.ServerLogService;
+import com.oket.tank4station.Inventory;
+import com.oket.tank4station.InventoryCacheManager;
+import com.oket.tank4station.dao.DbInventoryAlarmDAO;
+import com.oket.tank4station.entity.DbInventoryAlarm;
+import com.oket.tank4station.entity.DbInventoryLast;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.tank4station.service.DbInventoryAlarmService;
+import com.oket.tank4station.service.DbInventoryTraceService;
+import com.oket.tank4station.websocket.BizWebSocketServer;
+import com.oket.util.AirUtils;
+import com.oket.util.TimeUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import java.text.ParseException;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import static java.util.stream.Collectors.toList;
+
+/**
+ * @description: 液位报警service
+ * @author: SunBiaoLong
+ * @create: 2020-03-17 13:09
+ **/
+@Service
+@Slf4j
+public class DbInventoryAlarmServiceImpl extends ServiceImpl<DbInventoryAlarmDAO, DbInventoryAlarm> implements DbInventoryAlarmService {
+
+    @Autowired
+    private DbInventoryTraceService dbInventoryTraceService;
+
+    @Autowired
+    private ServerLogService serverLogService;
+
+    @Resource
+    BizWebSocketServer bizWebSocketServer;
+
+    @Override
+    public IPage<DbInventoryAlarm> query(JSONObject req, boolean isPage) {
+        // 参数根据需要判断来写
+        IPage<DbInventoryAlarm> page = new Page<>(req.getIntValue("pageNum"), req.getIntValue("pageRow"));
+        //查询条件 根据需要写
+        QueryWrapper<DbInventoryAlarm> wrapper = new QueryWrapper<>();
+        if (req.getString("tankNo") != null) {
+            wrapper.lambda().eq(DbInventoryAlarm::getTankNo, req.getString("tankNo"));
+        }
+        if (AirUtils.hv(req.getIntValue("type"))) {
+            wrapper.lambda().eq(DbInventoryAlarm::getType, req.getIntValue("type"));
+        }
+        //如果是监控中心，需要查询出日期条件内的和所有endtime为空的
+        if(req.getBoolean("ishomepage")!=null && req.getBoolean("ishomepage")==true){
+            //查询条件
+            if (req.getString("startTime") != null && req.getString("endTime") != null) {
+                wrapper.apply("(start_time >='"+req.getString("startTime")+"' and end_time<='" + req.getString("endTime") + "') or end_time is NULL");
+            }
+            wrapper.lambda().orderByDesc(DbInventoryAlarm::getStartTime);
+            List<DbInventoryAlarm> dbLists = baseMapper.selectList(wrapper);
+            List<DbInventoryAlarm> result;
+            result = dbLists.stream().filter(x->x.getEndTime()==null)
+                    .sorted(Comparator.comparing(DbInventoryAlarm::getStartTime).reversed())
+                    .collect(toList());
+            List<DbInventoryAlarm> temp = dbLists.stream().filter(x->x.getEndTime()!=null).sorted(Comparator.comparing(DbInventoryAlarm::getStartTime).reversed()).collect(toList());
+            result.addAll(temp);
+            return page.setRecords(result);
+        }
+        else{
+            //查询条件
+            if (req.getString("startTime") != null && req.getString("endTime") != null) {
+                try {
+                    wrapper.lambda().ge(DbInventoryAlarm::getStartTime, TimeUtils.parseToSecond(req.getString("startTime")));
+                    wrapper.apply("(end_time<='" + req.getString("endTime") + "' or end_time is NULL)");
+                } catch (ParseException e) {
+                    log.error("", e);
+                }
+            }
+            wrapper.lambda().orderByDesc(DbInventoryAlarm::getStartTime);
+        }
+        if (req.getBoolean("flag")==false) {
+            //不分页的数据
+            page.setRecords(baseMapper.selectList(wrapper));
+        } else {
+            // 分页的数据
+            page = baseMapper.selectPage(page, wrapper);
+        }
+        return page;
+    }
+
+    @Override
+    public void saveLongTimeNoUpload(Inventory inventory, Date lastUploadTime) {
+        if (inventory == null) {
+            return;
+        }
+        log.info("液位超时报警,tankNO：" + inventory.getTankNo() + ",上次上传时间:" + lastUploadTime);
+
+        final DbInventoryAlarm alarm = new DbInventoryAlarm();
+        alarm.init(inventory);
+        alarm.setType(DbInventoryAlarm.TIMEOUT);
+        //查询关联的轨迹
+        final DbInventoryTrace beforeTrace = dbInventoryTraceService.getBeforeTrace(alarm.getStartTime(), alarm.getTankNo());
+        if (beforeTrace != null) {
+            alarm.setTraceId(beforeTrace.getId());
+        }
+
+        baseMapper.insert(alarm);
+        bizWebSocketServer.sendMessage1(alarm);
+        InventoryCacheManager.putInventoryAlarm(alarm.getTankNo(), alarm);
+    }
+
+    @Override
+    public void firstProcessLongTimeNoUpload(Inventory inventory) {
+        QueryWrapper<DbInventoryAlarm> qw = new QueryWrapper<>();
+        qw.lambda().eq(DbInventoryAlarm::isClosed, false);
+        qw.lambda().eq(DbInventoryAlarm::getTankNo, inventory.getTankNo());
+        qw.lambda().eq(DbInventoryAlarm::getType, DbInventoryAlarm.TIMEOUT);
+        qw.last("LIMIT 1");
+        final DbInventoryAlarm alarm = getOne(qw);
+        if (alarm != null) {
+            endLongTimeNoUpload(inventory);
+        }
+    }
+
+
+    @Override
+    public void initAlarm(List<DbInventoryLast> lastList) {
+        if (lastList == null || lastList.isEmpty()) {
+            return;
+        }
+        QueryWrapper<DbInventoryAlarm> qw = new QueryWrapper<>();
+        qw.lambda().eq(DbInventoryAlarm::isClosed, false);
+        qw.lambda().eq(DbInventoryAlarm::getType, DbInventoryAlarm.TIMEOUT);
+        final List<DbInventoryAlarm> inventoryAlarms = list(qw);
+        AAA:
+        for (DbInventoryLast dbInventoryLast : lastList) {
+            if (inventoryAlarms != null && !inventoryAlarms.isEmpty()) {
+                for (DbInventoryAlarm inventoryAlarm : inventoryAlarms) {
+                    if (inventoryAlarm.getTankNo().equals(dbInventoryLast.getTankNo())) {
+                        InventoryCacheManager.putInventoryAlarm(inventoryAlarm.getTankNo(), inventoryAlarm);
+                        ServiceStatistics.initLastUploadTimeMap(dbInventoryLast, true);
+                        log.error("初始化检测出已经存在超时上传:inventoryAlarm:{}",inventoryAlarm);
+                        continue AAA;
+                    }
+                }
+            }
+            long seconds = (System.currentTimeMillis() - dbInventoryLast.getTime().getTime()) / 1000;
+            boolean longTimeNoUpload=false;
+            if (seconds > DbInventoryAlarm.TIMEOUT_THRESHOLD) {
+                log.error("初始化检测出超时上传:seconds:{},dbInventoryLast:{}",seconds,dbInventoryLast);
+                saveLongTimeNoUpload(Inventory.convertFromInventory(dbInventoryLast), dbInventoryLast.getTime());
+                longTimeNoUpload = true;
+            }
+            ServiceStatistics.initLastUploadTimeMap(dbInventoryLast, longTimeNoUpload);
+        }
+    }
+
+    @Override
+    public void endLongTimeNoUpload(Inventory inventory) {
+        if (inventory == null) {
+            return;
+        }
+        log.info("结束液位上传过长记录,tankNo:" + inventory.getTankNo() + ";time:" + inventory.getTime());
+        final DbInventoryAlarm unFinished = findUnFinished(inventory.getTankNo());
+        if (unFinished != null) {
+            unFinished.setEndAlarm(inventory);
+            if (unFinished.getTraceId() != null) {
+                final DbInventoryTrace byId = dbInventoryTraceService.getById(unFinished.getTraceId());
+                if (byId != null && byId.getClosed() == DbInventoryTrace.FINISHED
+                        && byId.getEndTime().equals(unFinished.getStartTime())) {
+                    //轨迹已经结束，异常信息应该归属于下一条数据
+                    final DbInventoryTrace nextTrace = dbInventoryTraceService.getNextTrace(byId.getEndTime(), byId.getTankNo());
+                    if (nextTrace != null) {
+                        unFinished.setTraceId(nextTrace.getId());
+                    }
+                }
+            }
+            //查询是否有离线数据，如果有，应该删除离线数据部分
+
+            final ServerLog log = serverLogService.getLog(unFinished.getStartTime(), unFinished.getEndTime(), ServerLog.OFFLINE);
+            if (log != null) {
+                //分割成两个部分，
+
+                //离线之前的那部分报警信息
+                final DbInventoryAlarm alarm = new DbInventoryAlarm();
+                alarm.setType(unFinished.getType());
+                alarm.setTankNo(unFinished.getTankNo());
+                alarm.setStartLevel(unFinished.getStartLevel());
+                alarm.setStartTime(unFinished.getStartTime());
+                alarm.setStartWaterLevel(unFinished.getStartWaterLevel());
+                alarm.setStartWaterVolume(unFinished.getStartWaterVolume());
+                alarm.setStartVolume(unFinished.getStartVolume());
+                alarm.setStartTemperature(unFinished.getStartTemperature());
+                alarm.setStatus(Status.ENABLE);
+                alarm.setEndLevel(unFinished.getStartLevel());
+                //结束时间是离线的开始时间
+                alarm.setEndTime(log.getStartTime());
+                alarm.setEndWaterLevel(unFinished.getStartWaterLevel());
+                alarm.setEndWaterVolume(unFinished.getStartWaterVolume());
+                alarm.setEndVolume(unFinished.getStartVolume());
+                alarm.setEndTemperature(unFinished.getStartTemperature());
+                alarm.setClosed(true);
+                alarm.setTraceId(unFinished.getTraceId());
+
+
+                this.save(alarm);
+                bizWebSocketServer.sendMessage1(alarm);
+                //离线之后的那部分报警，更改开始时间为离线结束时间
+                unFinished.setStartTime(log.getEndTime());
+            }
+            bizWebSocketServer.sendMessage1(unFinished);
+            this.updateById(unFinished);
+            InventoryCacheManager.removeInventoryAlarm(unFinished.getTankNo());
+        }
+    }
+
+
+    private DbInventoryAlarm findUnFinished(int tankNo) {
+        QueryWrapper<DbInventoryAlarm> qw = new QueryWrapper<>();
+        qw.lambda().eq(DbInventoryAlarm::isClosed, false);
+        qw.lambda().eq(DbInventoryAlarm::getTankNo, tankNo);
+        qw.last(" LIMIT 1");
+        return this.getOne(qw);
+    }
+}

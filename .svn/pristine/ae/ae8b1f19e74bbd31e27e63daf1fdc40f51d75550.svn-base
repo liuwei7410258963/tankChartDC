@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.tankchartdc.dao.BackToTankConfirmDao">
+    <select id="select" resultType="com.alibaba.fastjson.JSONObject">
+         SELECT *,DATE_FORMAT(a.end_time, '%Y-%m-%d %T') backConfirmEndTime,DATE_FORMAT(a.start_time, '%Y-%m-%d %T') backConfirmStartTime
+          FROM back_to_tank_confirm a
+           LEFT JOIN bz_nozzle_out b ON a.out_id = b.id
+           WHERE a.back_id = #{backId}
+           order by start_time desc
+    </select>
+</mapper>

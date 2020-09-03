@@ -1,0 +1,62 @@
+package com.oket.tankchartdc.controller;
+
+import com.alibaba.fastjson.JSONObject;
+import com.oket.tankchartdc.BackToTank;
+import com.oket.tankchartdc.entity.BackToTankConfirmEntity;
+import com.oket.tankchartdc.service.BackToTankService;
+import com.oket.util.CommonUtil;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+
+/**
+ * @description: 回罐接口
+ * @author: SunBiaoLong
+ * @create: 2020-04-17 08:27
+ **/
+@RestController
+@RequestMapping("/tankchartdc/back")
+public class BackToTankController {
+	@Autowired
+	private BackToTankService backToTankService;
+
+	@GetMapping(value = "/list")
+	@ApiImplicitParams({
+			@ApiImplicitParam(value = "行数", name = "pageRow", required = true, paramType = "query"),
+			@ApiImplicitParam(value = "当前页数", name = "pageNum", required = true, paramType = "query"),
+			@ApiImplicitParam(value = "罐号", name = "tankNo", paramType = "query"),
+			@ApiImplicitParam(value = "开始时间", name = "startTime", required = true, paramType = "query"),
+			@ApiImplicitParam(value = "结束时间", name = "endTime", required = true, paramType = "query"),
+			@ApiImplicitParam(value = "是否分页", name = "isPage", required = true, paramType = "query"),
+	})
+	public JSONObject list(HttpServletRequest request) {
+		final JSONObject jsonObject = CommonUtil.request2Json(request);
+		return backToTankService.select(jsonObject);
+	}
+
+
+	/**
+	 * 新增回罐及确认数据
+	 */
+	@PostMapping("/add")
+	@ApiOperation(value = "更新回罐确认数据")
+	public JSONObject add(@RequestBody BackToTank backToTank) {
+		backToTankService.add(backToTank);
+		return CommonUtil.successJson();
+	}
+
+	/**
+	 * 新增回罐及确认数据
+	 */
+	@PostMapping("/confirm")
+	@ApiOperation(value = "确定是不是回罐")
+	public JSONObject confirm(int id, boolean isBackToTank) {
+		backToTankService.confirm(id, isBackToTank);
+		return CommonUtil.successJson();
+	}
+}

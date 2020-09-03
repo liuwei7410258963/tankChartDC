@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.tankchartdc.dao.DitDao">
+    <select id="selectIfsf" resultType="java.lang.Integer">
+       select ifsf from c_dit_port where type =1 limit 1
+    </select>
+
+    <select id="selectJson" resultType="java.lang.Integer">
+       select json from c_dit_port where type =1 limit 1
+    </select>
+
+    <select id="selectTestJson" resultType="java.lang.Integer">
+       select json from c_dit_port where type =2 limit 1
+    </select>
+
+    <select id="selectTestIfsf" resultType="java.lang.Integer">
+       select ifsf from c_dit_port where type =2 limit 1
+    </select>
+</mapper>

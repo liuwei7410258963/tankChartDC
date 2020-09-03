@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.dispenser.dao.NozzleOutDao">
+
+	<select id="getOilSum" resultType="com.alibaba.fastjson.JSONObject">
+		SELECT
+		cast(SUM(VOLUME) AS decimal(15,2)) oilSum, oil_short_name oilShortName,OIL_CODE oilCode
+		FROM
+		bz_nozzle_out bno
+		WHERE START_TIME <![CDATA[ >= ]]> #{startTime} AND (END_TIME <![CDATA[ <= ]]> #{endTime})
+		<if test="orgId!=null">
+			AND ORG_ID = #{orgId}
+		</if>
+		<if test="pOrgId!=null">
+			AND P_ORG_ID = #{pOrgId}
+		</if>
+		<if test="stationId!=null">
+			AND STATION_ID = #{stationId}
+		</if>
+		<if test="hoseCode!=null">
+			AND HOSE_CODE = #{hoseCode}
+		</if>
+
+	</select>
+
+	<resultMap id="hoseLsit" type="com.oket.dispenser.BzNozzleOut">
+		<id column="ID" property="id"/>
+		<result column="STATION_ID" property="stationId"/>
+		<result column="STATION_CODE" property="stationCode"/>
+		<result column="TANK_CODE" property="tankCode"/>
+		<result column="OIL_CODE" property="oilCode"/>
+		<result column="HOSE_ID" property="hoseId"/>
+		<result column="HOSE_CODE" property="hoseCode"/>
+		<result column="MACHINE_CODE" property="machineCode"/>
+		<result column="UNIT" property="unit"/>
+		<result column="VOLUME" property="volume"/>
+		<result column="SERIAL_NUMBER" property="serialNumber"/>
+		<result column="ALL_VOLUME" property="allVolume"/>
+		<result column="PRICE" property="price"/>
+		<result column="AMOUNT" property="amount"/>
+		<result column="START_TIME" property="startTime"/>
+		<result column="END_TIME" property="endTime"/>
+		<result column="C_SYS_TIME" property="cSysTime"/>
+		<result column="S_SYS_TIME" property="sSysTime"/>
+		<result column="INSERT_TIME" property="insertTime"/>
+		<result column="IMPORT_ID" property="importId"/>
+		<result column="FY_TYPE" property="fyType"/>
+
+	</resultMap>
+
+	<select id="getNotMatched" resultType="com.oket.dispenser.BzNozzleOut">
+		SELECT bno.*
+		FROM bz_nozzle_out bno
+			     left join bz_nozzle_out_rel_group bnorg on (bno.id = bnorg.out_id and status = 1)
+		where ISNULL(bnorg.id) and tank_no is not null and  isNull(bno.reserved_field)
+		order by bno.start_time
+	</select>
+
+</mapper>

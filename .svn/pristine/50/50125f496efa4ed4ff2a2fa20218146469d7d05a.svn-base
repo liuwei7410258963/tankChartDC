@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.tank4station.dao.DbInventoryDAO">
+
+	<insert id="batchInsert" parameterType="java.util.List" >
+		INSERT INTO ${tableName}(id,tank_no, level, water_level, temperature,
+		volume, water_volume, max_volume, time, oil_code, oil_name)
+		values
+		<foreach collection="inventoryList" index="index" item="dbInventory" separator="," >
+			(  #{dbInventory.id},#{dbInventory.tankNo},#{dbInventory.level},#{dbInventory.waterLevel},#{dbInventory.temperature}
+			 ,#{dbInventory.volume},#{dbInventory.waterVolume},#{dbInventory.maxVolume},
+			 #{dbInventory.time},#{dbInventory.oilCode},#{dbInventory.oilName})
+		</foreach>
+	</insert>
+
+	<insert id="saveInventory" parameterType="com.oket.tank4station.entity.DbInventory" >
+		INSERT INTO ${tableName}(id,tank_no, level, water_level, temperature,
+		                         volume, water_volume, max_volume, time, oil_code, oil_name)
+		values ( #{dbInventory.id},#{dbInventory.tankNo},#{dbInventory.level},#{dbInventory.waterLevel},#{dbInventory.temperature}
+		 ,#{dbInventory.volume},#{dbInventory.waterVolume},#{dbInventory.maxVolume},
+		 #{dbInventory.time},#{dbInventory.oilCode},#{dbInventory.oilName})
+
+	</insert>
+</mapper>

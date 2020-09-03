@@ -1,0 +1,248 @@
+package com.oket.tankchartdc.mina.process;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.oket.common.base.OnlineStatus;
+import com.oket.common.base.Status;
+import com.oket.delivery.BzDelivery;
+import com.oket.delivery.DeliveryType;
+import com.oket.delivery.LossAlarm;
+import com.oket.delivery.service.DeliveryService;
+import com.oket.device.*;
+import com.oket.device.dao.NozRelDisDao;
+import com.oket.device.dao.NozTankRelationDao;
+import com.oket.device.service.NozRelDisService;
+import com.oket.device.service.NozTankRelationService;
+import com.oket.dispenser.BzNozzleOut;
+import com.oket.dispenser.NozzleOutConsumer;
+import com.oket.station.StationEntity;
+import com.oket.tankchartdc.mina.json.bean.*;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
+
+/**
+ * @description: dit json 处理
+ * @author: SunBiaoLong
+ * @create: 2019-12-07 09:24
+ **/
+@Service
+@Slf4j
+public class DitJsonProcess extends BaseProcess {
+	/**
+	 * 存入时间超时阈值
+	 */
+	private final static int OVERTIME_SECONDS = 2;
+
+
+	@Autowired
+	DeliveryService deliveryService;
+
+	/**
+	 * 处理加油机数据
+	 *
+	 * @param bzNozzleOut
+	 */
+	public void processNozzleOut(BzNozzleOut bzNozzleOut) {
+		//设定的等待时间为2s，如果超过2s还没加进去返回true
+		try {
+			if (!NozzleOutConsumer.getNozzleOutQueue().offer(bzNozzleOut, OVERTIME_SECONDS, TimeUnit.SECONDS)) {
+				log.error("放入数据失败：" + bzNozzleOut);
+			}
+		} catch (InterruptedException e) {
+			log.error(e.getMessage(), e);
+		}
+
+	}
+
+
+	/**
+	 * 处理油罐信息
+	 *
+	 * @param tankList
+	 */
+	public void processTank(List<Tank> tankList) {
+		if (tankList != null && !tankList.isEmpty()) {
+			final List<TankInfo> tankCollect = tankList.parallelStream().map(tank -> {
+				TankInfo tankInfo = new TankInfo();
+				tankInfo.setTankNo(Integer.valueOf(tank.getTankNo()));
+				tankInfo.setDetailInfo(tankInfo.getTankNo() + "");
+				tankInfo.setOilCode(tank.getOilNo());
+				tankInfo.setMaxVolume(tank.getTankVolume());
+				if (tank.getActive()) {
+					tankInfo.setStatus(Status.ENABLE);
+				} else {
+					tankInfo.setStatus(Status.DISABLE);
+				}
+				return tankInfo;
+			}).collect(Collectors.toList());
+			deviceService.processTanks(tankCollect);
+		}
+
+	}
+
+	/**
+	 * 处理油枪加油机关系
+	 *
+	 * @param nozzleRelDispensers
+	 */
+	public void processHoseRelDispenser(List<NozzleRelDispenser> nozzleRelDispensers) {
+		List<Nozzle4Device> nozList = new ArrayList<>();
+		final List<Dispenser4Device> dispenserCollect = nozzleRelDispensers.parallelStream().map(hoseRelDispenser -> {
+			Dispenser4Device dispenser = new Dispenser4Device();
+			dispenser.setDispenserNo(Integer.valueOf(hoseRelDispenser.getDispenserID()));
+			dispenser.setProductType(hoseRelDispenser.getDispenserBrand());
+			Nozzle4Device nozzle4Device = new Nozzle4Device();
+			nozzle4Device.setNozzleNo(Integer.valueOf(hoseRelDispenser.getNozzleId()));
+			nozzle4Device.setDetailInfo(nozzle4Device.getNozzleNo() + "");
+			nozzle4Device.setDispenserNo(Integer.valueOf(hoseRelDispenser.getDispenserID()));
+			nozList.add(nozzle4Device);
+			dispenser.setNozzle4Devices(nozList);
+			return dispenser;
+		}).collect(Collectors.toList());
+		deviceService.processDispenser(dispenserCollect);
+		/*
+		注意：先要处理加油机信息。然后处理油枪信息，不可变化
+		 */
+		final List<Nozzle4Device> nozzleCollect = nozzleRelDispensers.parallelStream().map(hoseRelDispenser -> {
+			Nozzle4Device nozzle = new Nozzle4Device();
+			nozzle.setDispenserNo(Integer.valueOf(hoseRelDispenser.getDispenserID()));
+			nozzle.setNozzleNo(Integer.valueOf(hoseRelDispenser.getNozzleId()));
+			if ("0".equals(hoseRelDispenser.getHoseStatus())) {
+				nozzle.setOnlineStatus(OnlineStatus.ONLINE);
+			} else if ("1".equals(hoseRelDispenser.getHoseStatus())) {
+				nozzle.setOnlineStatus(OnlineStatus.OFFLINE);
+			}
+			nozzle.setOnlineStatusChangeTime(hoseRelDispenser.getHoseStatusTime());
+			return nozzle;
+		}).collect(Collectors.toList());
+		deviceService.processNozzleBaseData(nozzleCollect);
+	}
+
+	/**
+	 * 处理枪罐关系
+	 *
+	 * @param tankRelNozzles
+	 */
+	public void processTankRelGun(List<TankRelNozzle> tankRelNozzles) {
+		final List<Nozzle4Device> nozzleCollect = tankRelNozzles.parallelStream().map(tankRelHose -> {
+			Nozzle4Device nozzle = new Nozzle4Device();
+			nozzle.setTankNo(Integer.valueOf(tankRelHose.getTankNo()));
+			nozzle.setNozzleNo(Integer.valueOf(tankRelHose.getNozzleNo()));
+			nozzle.setOilCode(tankRelHose.getOilNo());
+			return nozzle;
+		}).collect(Collectors.toList());
+		deviceService.processNozzleRelTank(nozzleCollect);
+	}
+
+	/**
+	 * 处理油站信息
+	 *
+	 * @param station
+	 */
+	public void processStation(Station station) {
+		final StationEntity stationEntity = Station.convertToStationEntity(station);
+		stationService.processStation(stationEntity);
+	}
+
+
+	/**
+	 * 处理卸油数据
+	 *
+	 * @param deliverieList
+	 */
+	public void processDelivery(List<Delivery> deliverieList) {
+		final List<BzDelivery> deliveryCollect = deliverieList.parallelStream().map(x -> {
+			BzDelivery delivery = new BzDelivery();
+			delivery.setDeliveryNo(x.getDeliveryNo());
+			delivery.setTankNo(Integer.valueOf(x.getTankNo()));
+			delivery.setAuditor(x.getAuditor());
+			delivery.setVolume(x.getLitre());
+			delivery.setReceiveTime(x.getReceiveTime());
+			delivery.setAuditorTime(x.getAuditorTime());
+			delivery.setDeliveryType(DeliveryType.getEnum(Integer.parseInt(x.getReceiveMode())));
+			delivery.setOilCode(x.getOilNo());
+			delivery.setReceiveDataType(1);
+			return delivery;
+		}).collect(Collectors.toList());
+		for (BzDelivery list : deliveryCollect) {
+			deliveryService.processDelivery(list);
+		}
+	}
+
+	/**
+	 * 处理卸油期间付出数据
+	 *
+	 * @param nozzleOutWhenDeliveryList
+	 */
+	public void processNozzleOutWhenDelivery(List<NozzleOutWhenDelivery> nozzleOutWhenDeliveryList) {
+		final List<BzDelivery> deliveryCollect = nozzleOutWhenDeliveryList.parallelStream().map(x -> {
+			BzDelivery delivery = new BzDelivery();
+			delivery.setDeliveryNo(x.getDeliveryNo());
+			delivery.setVolume(x.getReceiveLitre());
+			delivery.setTankNo(Integer.valueOf(x.getTankNo()));
+			delivery.setNozzleOut(x.getNozzleOut());
+			delivery.setReportStartTime(x.getStartTime());
+			delivery.setReportEndTime(x.getEndTime());
+			delivery.setVolume(x.getReceiveLitre());
+			delivery.setReceiveDataType(3);
+			return delivery;
+		}).collect(Collectors.toList());
+		for (BzDelivery list : deliveryCollect) {
+			deliveryService.processDelivery(list);
+		}
+	}
+
+	/**
+	 * 处理卸油期间付出数据
+	 *
+	 * @param ditBackToTankList
+	 */
+	public void processBackToTank(List<DitBackToTank> ditBackToTankList) {
+//		final List<BzDelivery> deliveryCollect = ditBackToTankList.parallelStream().map(x -> {
+//			BzDelivery delivery = new BzDelivery();
+//			delivery.setDeliveryNo(x.getDeliveryNo());
+//			delivery.setVolume(x.getReceiveLitre());
+//			delivery.setTankNo(Integer.valueOf(x.getTankNo()));
+//			delivery.setNozzleOut(x.getNozzleOut());
+//			delivery.setReportStartTime(x.getStartTime());
+//			delivery.setReportEndTime(x.getEndTime());
+//			delivery.setVolume(x.getReceiveLitre());
+//			delivery.setReceiveDataType(3);
+//			return delivery;
+//		}).collect(Collectors.toList());
+//		for (BzDelivery list : deliveryCollect) {
+//			deliveryService.processDelivery(list);
+//		}
+	}
+
+	/**
+	 * 处理卸油损益报警信息
+	 *
+	 * @param deliveries
+	 */
+	public void processDeliveryLossAlarm(List<DeliveryLossAlarm> deliveries) {
+		final List<BzDelivery> deliveryCollect = deliveries.parallelStream().map(x -> {
+			BzDelivery delivery = new BzDelivery();
+			delivery.setDeliveryNo(x.getDeliveryNo());
+			delivery.setLoss(x.getLoss());
+			delivery.setVolume(x.getReceiveLitre());
+			delivery.setOilCode(x.getOilCode());
+			delivery.setReceiveDataType(2);
+			delivery.setReceiveTime(x.getDate());
+			delivery.setLossAlarm(x.getDeliveryAlarmCode() == null ? LossAlarm.NORMAL : LossAlarm.getLossAlarm(x.getDeliveryAlarmCode()));
+			return delivery;
+		}).collect(Collectors.toList());
+		for (BzDelivery list : deliveryCollect) {
+			deliveryService.processDelivery(list);
+		}
+	}
+
+
+}
+

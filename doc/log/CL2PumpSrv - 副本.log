@@ -1,0 +1,733 @@
+23-07-2013 00:00:00:265  *******LOG: RENAMING of C:\Office\PumpSrv\Log\CL2PumpSrv.Log to C:\Office\PumpSrv\Log\CL2PumpSrv.22 SUCCEDED 
+23-07-2013 00:00:00:265  .................. CL2PumpSrv IFSF Version 1.0.19.1430  Running Multi threads
+23-07-2013 00:00:00:265  CGCIEvents::GetWetStockData - lWetStockFlags 2 
+23-07-2013 00:00:00:296  Requested Tank Reading for tank TP=1 
+23-07-2013 00:00:00:296  Requested Tank Reading for tank TP=2 
+23-07-2013 00:00:00:296  Requested Tank Reading for tank TP=3 
+23-07-2013 00:00:00:296  Requested Tank Reading for tank TP=4 
+23-07-2013 00:00:00:296  Requested Tank Reading for tank TP=5 
+23-07-2013 00:00:00:312   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.1A.00.07.01.21.40.41.42.43.44. 
+23-07-2013 00:00:00:390   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.3A.00.25.01.21.40.04.01.00.39.15.41.07.09.00.00.11.96.79.39.42.07.09.00.00.11.96.79.39.43.03.02.21.30.44.04.00.00.00.00. 
+23-07-2013 00:00:00:406  CGCI::TankReading3 
+23-07-2013 00:00:00:406  MGR : CGCI::TankReading3 - lTankNumber = 1 ,lProduct = 1 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1003915 ,lWaterLevel = 0 ,lTemperature = 2130 ,lVolume = 11967939 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:00:00:421   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.1B.00.07.01.22.40.41.42.43.44. 
+23-07-2013 00:00:00:625   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.3B.00.25.01.22.40.04.01.47.86.97.41.07.09.00.00.19.72.00.80.42.07.09.00.00.19.72.00.80.43.03.02.24.83.44.04.00.00.00.00. 
+23-07-2013 00:00:00:625  CGCI::TankReading3 
+23-07-2013 00:00:00:625  MGR : CGCI::TankReading3 - lTankNumber = 2 ,lProduct = 13 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1478697 ,lWaterLevel = 0 ,lTemperature = 2483 ,lVolume = 19720080 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:00:00:640   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.1C.00.07.01.23.40.41.42.43.44. 
+23-07-2013 00:00:00:859   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.3C.00.25.01.23.40.04.00.00.00.00.41.07.00.00.00.00.00.00.00.42.07.00.00.00.00.00.00.00.43.03.00.00.00.44.04.00.00.00.00. 
+23-07-2013 00:00:00:875  CGCI::TankReading3 
+23-07-2013 00:00:00:875  MGR : CGCI::TankReading3 - lTankNumber = 3 ,lProduct = 1 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 0 ,lWaterLevel = 0 ,lTemperature = 0 ,lVolume = 0 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:00:00:890   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.1D.00.07.01.24.40.41.42.43.44. 
+23-07-2013 00:00:01:093   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.3D.00.25.01.24.40.04.01.89.94.64.41.07.09.00.00.25.89.82.73.42.07.09.00.00.25.89.82.73.43.03.02.25.15.44.04.00.00.00.00. 
+23-07-2013 00:00:01:109  CGCI::TankReading3 
+23-07-2013 00:00:01:109  MGR : CGCI::TankReading3 - lTankNumber = 4 ,lProduct = 3 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1899464 ,lWaterLevel = 0 ,lTemperature = 2515 ,lVolume = 25898273 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:00:01:125   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.1E.00.07.01.25.40.41.42.43.44. 
+23-07-2013 00:00:01:328   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.3E.00.25.01.25.40.04.01.83.16.21.41.07.09.00.00.24.96.95.04.42.07.09.00.00.24.96.95.04.43.03.02.24.35.44.04.00.00.00.00. 
+23-07-2013 00:00:01:343  CGCI::TankReading3 
+23-07-2013 00:00:01:375  MGR : CGCI::TankReading3 - lTankNumber = 5 ,lProduct = 3 ,nFlags = 4096 ,lStatus1 = 0 ,lFuelLevel = 1831621 ,lWaterLevel = 0 ,lTemperature = 2435 ,lVolume = 24969504 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:00:07:062  CGCIEvents::GetWetStockData - lWetStockFlags 2 
+23-07-2013 00:00:07:109  Requested Tank Reading for tank TP=1 
+23-07-2013 00:00:07:109  Requested Tank Reading for tank TP=2 
+23-07-2013 00:00:07:109  Requested Tank Reading for tank TP=3 
+23-07-2013 00:00:07:109  Requested Tank Reading for tank TP=4 
+23-07-2013 00:00:07:109  Requested Tank Reading for tank TP=5 
+23-07-2013 00:00:07:125   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.1F.00.07.01.21.40.41.42.43.44. 
+23-07-2013 00:00:07:187   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.3F.00.25.01.21.40.04.01.00.39.11.41.07.09.00.00.11.96.78.76.42.07.09.00.00.11.96.78.76.43.03.02.21.30.44.04.00.00.00.00. 
+23-07-2013 00:00:07:203  CGCI::TankReading3 
+23-07-2013 00:00:07:234  MGR : CGCI::TankReading3 - lTankNumber = 1 ,lProduct = 1 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1003911 ,lWaterLevel = 0 ,lTemperature = 2130 ,lVolume = 11967876 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:00:07:250   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.01.00.07.01.22.40.41.42.43.44. 
+23-07-2013 00:00:07:421   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.21.00.25.01.22.40.04.01.47.86.97.41.07.09.00.00.19.72.00.90.42.07.09.00.00.19.72.00.90.43.03.02.24.83.44.04.00.00.00.00. 
+23-07-2013 00:00:07:437  CGCI::TankReading3 
+23-07-2013 00:00:07:453  MGR : CGCI::TankReading3 - lTankNumber = 2 ,lProduct = 13 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1478697 ,lWaterLevel = 0 ,lTemperature = 2483 ,lVolume = 19720090 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:00:07:468   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.02.00.07.01.23.40.41.42.43.44. 
+23-07-2013 00:00:07:703   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.22.00.25.01.23.40.04.00.00.00.00.41.07.00.00.00.00.00.00.00.42.07.00.00.00.00.00.00.00.43.03.00.00.00.44.04.00.00.00.00. 
+23-07-2013 00:00:07:718  CGCI::TankReading3 
+23-07-2013 00:00:07:750  MGR : CGCI::TankReading3 - lTankNumber = 3 ,lProduct = 1 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 0 ,lWaterLevel = 0 ,lTemperature = 0 ,lVolume = 0 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:00:07:765   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.03.00.07.01.24.40.41.42.43.44. 
+23-07-2013 00:00:07:937   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.23.00.25.01.24.40.04.01.89.94.58.41.07.09.00.00.25.89.81.95.42.07.09.00.00.25.89.81.95.43.03.02.25.15.44.04.00.00.00.00. 
+23-07-2013 00:00:07:953  CGCI::TankReading3 
+23-07-2013 00:00:07:984  MGR : CGCI::TankReading3 - lTankNumber = 4 ,lProduct = 3 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1899458 ,lWaterLevel = 0 ,lTemperature = 2515 ,lVolume = 25898195 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:00:08:000   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.04.00.07.01.25.40.41.42.43.44. 
+23-07-2013 00:00:08:171   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.24.00.25.01.25.40.04.01.83.16.15.41.07.09.00.00.24.96.94.24.42.07.09.00.00.24.96.94.24.43.03.02.24.35.44.04.00.00.00.00. 
+23-07-2013 00:00:08:187  CGCI::TankReading3 
+23-07-2013 00:00:08:234  MGR : CGCI::TankReading3 - lTankNumber = 5 ,lProduct = 3 ,nFlags = 4096 ,lStatus1 = 0 ,lFuelLevel = 1831615 ,lWaterLevel = 0 ,lTemperature = 2435 ,lVolume = 24969424 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:02:50:265   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 55 ...02.01.01.05.00.27.00.2F.04. C8.00.05.05.06.00.01.00.00.06.05.06.00.00.13.57.07.04.04.00.07.37.08.01.01.0A.04.00.00.00.60.CA.04.20.13.07.21.CB.03.18.41.45. 
+23-07-2013 00:03:26:171  CGCIEvents::ReservePump - lPumpNumber 7 
+23-07-2013 00:03:26:171  MGR : Pump - 7, Send SetPumpStatus, ONode=7, PumpStatus=READY,PumpReserv=PRE_PAY_AT_POS, FP_State=Idle  
+23-07-2013 00:03:26:171  CGCI::SetPumpStatus 
+23-07-2013 00:03:26:171  MGR : CGCI::SetPumpStatus - lPumpNumber = 7 ,lStatus = 1 ,lRes = 6 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:03:26:421  CGCIEvents::AuthorizeAndLimit - lPumpNumber 7 , lVolume 0 , lValue 1197470, nFlags 0X00000022 
+23-07-2013 00:03:26:484  CGCI::GetCurrentTransactionNumber 
+23-07-2013 00:03:26:484  MGR : CGCI::GetCurrentTransactionNumber - lPumpNumber=7, pTrsNumber=84590, GCI RetCode = 0: GCI OK  
+23-07-2013 00:03:26:484  MGR : GetCurrentTransactionNumber(Pump number = 7 , Trs number = 84590), GCI RetCode = 0: GCI OK  
+23-07-2013 00:03:26:500   10.91.55.67 port 6666: >>SND>> LEN : 26 ...01.07.02.01.00.59.00.12.01.21.1B.05.06.00.11.97.47.19.01.01.1E.02.02.01.3E.00. 
+23-07-2013 00:03:26:781   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 11 ...02.01.01.07.00.F9.00.03.01.21.00. 
+23-07-2013 00:03:27:015   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.07.00.8F.00.0E.01.21.64.00.14.01.05.15.01.01.16.02.00.00. 
+23-07-2013 00:03:27:031  CGCI::SetPumpStatus 
+23-07-2013 00:03:27:046  MGR : CGCI::SetPumpStatus - lPumpNumber = 7 ,lStatus = 3 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:03:27:046  MGR : Send SetPumpStatus, Pump=7, PumpStatus=AUTHORIZED,PumpReserv=NO CHANGE, FP_State=Authorised, Nozzle=1  
+23-07-2013 00:03:34:750   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.07.00.81.00.0E.01.21.64.00.14.01.06.15.01.01.16.02.00.00. 
+23-07-2013 00:03:34:765  CGCI::SetPumpStatus 
+23-07-2013 00:03:34:781  MGR : CGCI::SetPumpStatus - lPumpNumber = 7 ,lStatus = 3 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:03:34:781  MGR : Send SetPumpStatus, Pump=7, PumpStatus=AUTHORIZED,PumpReserv=NO CHANGE, FP_State=Started, Nozzle=1  
+23-07-2013 00:03:39:703   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.07.00.82.00.0E.01.21.64.00.14.01.08.15.01.01.16.02.00.00. 
+23-07-2013 00:03:39:718  CGCI::SetPumpStatus 
+23-07-2013 00:03:39:781  MGR : CGCI::SetPumpStatus - lPumpNumber = 7 ,lStatus = 4 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:03:39:781  MGR : Send SetPumpStatus, Pump=7, PumpStatus=DISPENSING,PumpReserv=NO CHANGE, FP_State=Fuelling, Nozzle=1  
+23-07-2013 00:03:44:625   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.00.20.38.23.05.06.00.00.02.83. 
+23-07-2013 00:03:44:640  CGCI::RollingUpdate 
+23-07-2013 00:03:44:656  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 2830 ,lValue = 20380 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:03:44:656  Send RollingUpdate - lVolume=2830, lValue=20380, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:03:49:546   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.00.42.19.23.05.06.00.00.05.86. 
+23-07-2013 00:03:49:562  CGCI::RollingUpdate 
+23-07-2013 00:03:49:578  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 5860 ,lValue = 42190 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:03:49:578  Send RollingUpdate - lVolume=5860, lValue=42190, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:03:54:703   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.00.63.51.23.05.06.00.00.08.82. 
+23-07-2013 00:03:54:718  CGCI::RollingUpdate 
+23-07-2013 00:03:54:734  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 8820 ,lValue = 63510 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:03:54:734  Send RollingUpdate - lVolume=8820, lValue=63510, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:03:59:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.00.85.03.23.05.06.00.00.11.81. 
+23-07-2013 00:03:59:500  CGCI::RollingUpdate 
+23-07-2013 00:03:59:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 11810 ,lValue = 85030 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:03:59:515  Send RollingUpdate - lVolume=11810, lValue=85030, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:04:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.01.06.42.23.05.06.00.00.14.78. 
+23-07-2013 00:04:04:515  CGCI::RollingUpdate 
+23-07-2013 00:04:04:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 14780 ,lValue = 106420 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:04:531  Send RollingUpdate - lVolume=14780, lValue=106420, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:09:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.01.27.87.23.05.06.00.00.17.76. 
+23-07-2013 00:04:09:500  CGCI::RollingUpdate 
+23-07-2013 00:04:09:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 17760 ,lValue = 127870 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:09:515  Send RollingUpdate - lVolume=17760, lValue=127870, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:14:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.01.49.19.23.05.06.00.00.20.72. 
+23-07-2013 00:04:14:515  CGCI::RollingUpdate 
+23-07-2013 00:04:14:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 20720 ,lValue = 149190 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:14:531  Send RollingUpdate - lVolume=20720, lValue=149190, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:19:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.01.70.57.23.05.06.00.00.23.69. 
+23-07-2013 00:04:19:515  CGCI::RollingUpdate 
+23-07-2013 00:04:19:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 23690 ,lValue = 170570 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:19:531  Send RollingUpdate - lVolume=23690, lValue=170570, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:24:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.01.91.67.23.05.06.00.00.26.62. 
+23-07-2013 00:04:24:500  CGCI::RollingUpdate 
+23-07-2013 00:04:24:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 26620 ,lValue = 191670 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:24:515  Send RollingUpdate - lVolume=26620, lValue=191670, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:29:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.02.13.55.23.05.06.00.00.29.66. 
+23-07-2013 00:04:29:500  CGCI::RollingUpdate 
+23-07-2013 00:04:29:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 29660 ,lValue = 213550 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:29:515  Send RollingUpdate - lVolume=29660, lValue=213550, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:34:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.02.35.08.23.05.06.00.00.32.65. 
+23-07-2013 00:04:34:500  CGCI::RollingUpdate 
+23-07-2013 00:04:34:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 32650 ,lValue = 235080 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:34:515  Send RollingUpdate - lVolume=32650, lValue=235080, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:39:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.02.56.47.23.05.06.00.00.35.62. 
+23-07-2013 00:04:39:515  CGCI::RollingUpdate 
+23-07-2013 00:04:39:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 35620 ,lValue = 256470 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:39:531  Send RollingUpdate - lVolume=35620, lValue=256470, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:44:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.02.77.35.23.05.06.00.00.38.52. 
+23-07-2013 00:04:44:500  CGCI::RollingUpdate 
+23-07-2013 00:04:44:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 38520 ,lValue = 277350 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:44:515  Send RollingUpdate - lVolume=38520, lValue=277350, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:49:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.02.99.38.23.05.06.00.00.41.58. 
+23-07-2013 00:04:49:515  CGCI::RollingUpdate 
+23-07-2013 00:04:49:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 41580 ,lValue = 299380 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:49:531  Send RollingUpdate - lVolume=41580, lValue=299380, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:54:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.03.20.62.23.05.06.00.00.44.53. 
+23-07-2013 00:04:54:500  CGCI::RollingUpdate 
+23-07-2013 00:04:54:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 44530 ,lValue = 320620 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:54:515  Send RollingUpdate - lVolume=44530, lValue=320620, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:04:59:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.03.42.51.23.05.06.00.00.47.57. 
+23-07-2013 00:04:59:500  CGCI::RollingUpdate 
+23-07-2013 00:04:59:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 47570 ,lValue = 342510 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:04:59:515  Send RollingUpdate - lVolume=47570, lValue=342510, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:04:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.03.63.53.23.05.06.00.00.50.49. 
+23-07-2013 00:05:04:500  CGCI::RollingUpdate 
+23-07-2013 00:05:04:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 50490 ,lValue = 363530 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:04:531  Send RollingUpdate - lVolume=50490, lValue=363530, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:09:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.03.84.99.23.05.06.00.00.53.47. 
+23-07-2013 00:05:09:500  CGCI::RollingUpdate 
+23-07-2013 00:05:09:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 53470 ,lValue = 384990 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:09:515  Send RollingUpdate - lVolume=53470, lValue=384990, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:14:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.04.06.59.23.05.06.00.00.56.47. 
+23-07-2013 00:05:14:515  CGCI::RollingUpdate 
+23-07-2013 00:05:14:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 56470 ,lValue = 406590 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:14:531  Send RollingUpdate - lVolume=56470, lValue=406590, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:19:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.04.27.97.23.05.06.00.00.59.44. 
+23-07-2013 00:05:19:500  CGCI::RollingUpdate 
+23-07-2013 00:05:19:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 59440 ,lValue = 427970 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:19:515  Send RollingUpdate - lVolume=59440, lValue=427970, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:24:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.04.49.28.23.05.06.00.00.62.40. 
+23-07-2013 00:05:24:500  CGCI::RollingUpdate 
+23-07-2013 00:05:24:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 62400 ,lValue = 449280 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:24:515  Send RollingUpdate - lVolume=62400, lValue=449280, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:29:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.04.70.67.23.05.06.00.00.65.37. 
+23-07-2013 00:05:29:515  CGCI::RollingUpdate 
+23-07-2013 00:05:29:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 65370 ,lValue = 470670 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:29:531  Send RollingUpdate - lVolume=65370, lValue=470670, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:34:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.04.92.12.23.05.06.00.00.68.35. 
+23-07-2013 00:05:34:500  CGCI::RollingUpdate 
+23-07-2013 00:05:34:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 68350 ,lValue = 492120 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:34:515  Send RollingUpdate - lVolume=68350, lValue=492120, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:39:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.05.13.72.23.05.06.00.00.71.35. 
+23-07-2013 00:05:39:500  CGCI::RollingUpdate 
+23-07-2013 00:05:39:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 71350 ,lValue = 513720 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:39:515  Send RollingUpdate - lVolume=71350, lValue=513720, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:44:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.05.35.03.23.05.06.00.00.74.31. 
+23-07-2013 00:05:44:500  CGCI::RollingUpdate 
+23-07-2013 00:05:44:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 74310 ,lValue = 535030 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:44:515  Send RollingUpdate - lVolume=74310, lValue=535030, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:49:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.05.56.63.23.05.06.00.00.77.31. 
+23-07-2013 00:05:49:515  CGCI::RollingUpdate 
+23-07-2013 00:05:49:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 77310 ,lValue = 556630 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:49:531  Send RollingUpdate - lVolume=77310, lValue=556630, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:54:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.05.78.09.23.05.06.00.00.80.29. 
+23-07-2013 00:05:54:515  CGCI::RollingUpdate 
+23-07-2013 00:05:54:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 80290 ,lValue = 578090 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:54:531  Send RollingUpdate - lVolume=80290, lValue=578090, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:05:59:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.05.99.26.23.05.06.00.00.83.23. 
+23-07-2013 00:05:59:500  CGCI::RollingUpdate 
+23-07-2013 00:05:59:515  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 83230 ,lValue = 599260 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:05:59:515  Send RollingUpdate - lVolume=83230, lValue=599260, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:06:04:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.06.01.99.23.05.06.00.00.83.61. 
+23-07-2013 00:06:04:515  CGCI::RollingUpdate 
+23-07-2013 00:06:04:531  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 83610 ,lValue = 601990 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:06:04:531  Send RollingUpdate - lVolume=83610, lValue=601990, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:06:09:484   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.07.00.80.00.12.01.21.66.00.22.05.06.00.06.01.99.23.05.06.00.00.83.61. 
+23-07-2013 00:06:09:500  CGCI::RollingUpdate 
+23-07-2013 00:06:09:500  MGR : CGCI::RollingUpdate - lPumpNumber = 7 ,lTrsNumber = 84590 ,lVolume = 83610 ,lValue = 601990 ,lGradePrice = 7200 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:06:09:500  Send RollingUpdate - lVolume=83610, lValue=601990, TrsID=84590, nNozzle=1,nGrade=1 
+23-07-2013 00:06:10:656   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.07.00.83.00.0E.01.21.64.00.14.01.03.15.01.00.16.02.00.00. 
+23-07-2013 00:06:10:671  CGCI::SetPumpStatus 
+23-07-2013 00:06:10:750  MGR : CGCI::SetPumpStatus - lPumpNumber = 7 ,lStatus = 1 ,lRes = 0 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:06:10:750  MGR : Send SetPumpStatus, Pump=7, PumpStatus=READY,PumpReserv=NULL_RES, FP_State=Idle, Nozzle=1  
+23-07-2013 00:06:10:890   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 40 ...02.01.01.07.00.80.00.20.04.21.21.30.49.64.00.01.02.30.49.15.01.02.14.02.00.00.05.05.06.00.06.01.99.06.05.06.00.00.83.61. 
+23-07-2013 00:06:10:906  Transaction: 4873, Transaction Status=Payable - PumpID=7 
+23-07-2013 00:06:10:921   10.91.55.67 port 6666: >>SND>> LEN : 20 ...01.07.02.01.00.1A.00.0C.04.21.21.30.49.05.06.07.08.0A.CC.CD. 
+23-07-2013 00:06:11:125   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 60 ...02.01.01.07.00.3A.00.34.04.21.21.30.49.05.05.06.00.06.01.99.06.05.06.00.00.83.61.07.04.04.00.07.20.08.01.01.0A.04.00.00.00.01.CC.07.0A.00.00.36.00.11.43.CD.07.0A.00.00.36.00.95.04. 
+23-07-2013 00:06:11:140  CGCI::PAKReadyTransaction2 
+23-07-2013 00:06:11:312  MGR : CGCI::PAKReadyTransaction2 - lPumpNumber = 7 ,lTrsNumber = 84590 ,nNozzle = 1 ,lVolume = 83610 ,lValue = 601990 ,nLevel = 0 ,lGradePrice = 7200 ,nGrade = 1 ,lFlags = 3 ,lTotalVal = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:06:11:312  MGR : Send PAKReadyTransaction2 - PumpID=7, TrsID=84590, SeqId=1309, NozzleID=1, lVolume=83610, lValue=601990, Grade=1, Price=7200, SCounter=360011430, ECounter=360095040  
+23-07-2013 00:06:11:312  CGCI::SetParam 
+23-07-2013 00:06:11:312  MGR : CGCI::SetParam - szTableName=IFSF, lKey1=0, lKey2=0, szFieldName=TransactionFileIndex, nFiledType=0, szVal=, lVal=1291, bCreate=1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:06:11:343   10.91.55.67 port 6666: >>SND>> LEN : 15 ...01.07.02.01.00.5B.00.07.04.21.21.30.49.1E.00. 
+23-07-2013 00:06:12:062   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 54 ...02.01.01.07.00.FB.00.06.04.21.21.30.49.00.02.01.01.07.00.80.00.20.04.21.21.30.49.64.00.01.02.30.49.15.01.01.14.02.00.00.05.05.06.00.06.01.99.06.05.06.00.00.83.61. 
+23-07-2013 00:06:12:093  Transaction: 4873, Transaction Status=Cleared - PumpID=7 
+23-07-2013 00:07:57:109   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.10.00.80.00.0E.01.21.64.00.14.01.04.15.01.01.16.02.02.01. 
+23-07-2013 00:07:57:125  CGCI::GetPumpInfo 
+23-07-2013 00:07:57:125  MGR : CGCI::GetPumpInfo lPumpNumber = 16, lFlags = 4, GCI RetCode = 0: GCI OK  
+23-07-2013 00:07:57:125  CGCI::SetPumpStatus 
+23-07-2013 00:07:57:140  MGR : CGCI::SetPumpStatus - lPumpNumber = 16 ,lStatus = 2 ,lRes = 4 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:07:57:140  MGR : Send SetPumpStatus, Pump=16, PumpStatus=REQUESTING,PumpReserv=PAY_AT_KIOSK, FP_State=Calling, Nozzle=1  
+23-07-2013 00:07:57:187  CGCIEvents::AuthorizeAndLimit - lPumpNumber 16 , lVolume 0 , lValue 9000000, nFlags 0X00000001 
+23-07-2013 00:07:57:234  CGCI::GetCurrentTransactionNumber 
+23-07-2013 00:07:57:250  MGR : CGCI::GetCurrentTransactionNumber - lPumpNumber=16, pTrsNumber=84621, GCI RetCode = 0: GCI OK  
+23-07-2013 00:07:57:250  MGR : GetCurrentTransactionNumber(Pump number = 16 , Trs number = 84621), GCI RetCode = 0: GCI OK  
+23-07-2013 00:07:57:265   10.91.55.67 port 6666: >>SND>> LEN : 16 ...01.10.02.01.00.58.00.08.01.21.1E.02.02.01.3E.00. 
+23-07-2013 00:07:57:406   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 11 ...02.01.01.10.00.F8.00.03.01.21.00. 
+23-07-2013 00:07:57:640   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.10.00.80.00.0E.01.21.64.00.14.01.06.15.01.01.16.02.02.01. 
+23-07-2013 00:07:57:656  CGCI::SetPumpStatus 
+23-07-2013 00:07:57:671  MGR : CGCI::SetPumpStatus - lPumpNumber = 16 ,lStatus = 3 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:07:57:671  MGR : Send SetPumpStatus, Pump=16, PumpStatus=AUTHORIZED,PumpReserv=NO CHANGE, FP_State=Started, Nozzle=1  
+23-07-2013 00:08:03:328   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.10.00.80.00.0E.01.21.64.00.14.01.08.15.01.01.16.02.02.01. 
+23-07-2013 00:08:03:343  CGCI::SetPumpStatus 
+23-07-2013 00:08:03:375  MGR : CGCI::SetPumpStatus - lPumpNumber = 16 ,lStatus = 4 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:08:03:375  MGR : Send SetPumpStatus, Pump=16, PumpStatus=DISPENSING,PumpReserv=NO CHANGE, FP_State=Fuelling, Nozzle=1  
+23-07-2013 00:08:03:562   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.01.93.23.05.06.00.00.00.26. 
+23-07-2013 00:08:03:578  CGCI::RollingUpdate 
+23-07-2013 00:08:03:578  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84621 ,lVolume = 260 ,lValue = 1930 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:08:03:578  Send RollingUpdate - lVolume=260, lValue=1930, TrsID=84621, nNozzle=1,nGrade=60 
+23-07-2013 00:08:07:328   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.14.92.23.05.06.00.00.02.01. 
+23-07-2013 00:08:07:343  CGCI::RollingUpdate 
+23-07-2013 00:08:07:343  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84621 ,lVolume = 2010 ,lValue = 14920 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:08:07:343  Send RollingUpdate - lVolume=2010, lValue=14920, TrsID=84621, nNozzle=1,nGrade=60 
+23-07-2013 00:08:11:140   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.28.86.23.05.06.00.00.03.89. 
+23-07-2013 00:08:11:156  CGCI::RollingUpdate 
+23-07-2013 00:08:11:156  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84621 ,lVolume = 3890 ,lValue = 28860 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:08:11:156  Send RollingUpdate - lVolume=3890, lValue=28860, TrsID=84621, nNozzle=1,nGrade=60 
+23-07-2013 00:08:14:953   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.29.16.23.05.06.00.00.03.93. 
+23-07-2013 00:08:14:968  CGCI::RollingUpdate 
+23-07-2013 00:08:14:968  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84621 ,lVolume = 3930 ,lValue = 29160 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:08:14:968  Send RollingUpdate - lVolume=3930, lValue=29160, TrsID=84621, nNozzle=1,nGrade=60 
+23-07-2013 00:08:18:765   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.29.83.23.05.06.00.00.04.02. 
+23-07-2013 00:08:18:781  CGCI::RollingUpdate 
+23-07-2013 00:08:18:781  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84621 ,lVolume = 4020 ,lValue = 29830 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:08:18:781  Send RollingUpdate - lVolume=4020, lValue=29830, TrsID=84621, nNozzle=1,nGrade=60 
+23-07-2013 00:08:26:531   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.10.00.80.00.0E.01.21.64.00.14.01.03.15.01.00.16.02.02.01. 
+23-07-2013 00:08:26:546  CGCI::SetPumpStatus 
+23-07-2013 00:08:26:578  MGR : CGCI::SetPumpStatus - lPumpNumber = 16 ,lStatus = 1 ,lRes = 0 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:08:26:578  MGR : Send SetPumpStatus, Pump=16, PumpStatus=READY,PumpReserv=NULL_RES, FP_State=Idle, Nozzle=1  
+23-07-2013 00:08:27:046   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 40 ...02.01.01.10.00.80.00.20.04.21.21.00.29.64.00.01.02.00.29.15.01.02.14.02.00.00.05.05.06.00.00.30.00.06.05.06.00.00.04.04. 
+23-07-2013 00:08:27:062  Transaction: 41, Transaction Status=Payable - PumpID=16 
+23-07-2013 00:08:27:078   10.91.55.67 port 6666: >>SND>> LEN : 20 ...01.10.02.01.00.19.00.0C.04.21.21.00.29.05.06.07.08.0A.CC.CD. 
+23-07-2013 00:08:27:312   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 60 ...02.01.01.10.00.39.00.34.04.21.21.00.29.05.05.06.00.00.30.00.06.05.06.00.00.04.04.07.04.04.00.07.42.08.01.01.0A.04.00.00.00.60.CC.07.0A.00.00.83.60.25.83.CD.07.0A.00.00.83.60.29.87. 
+23-07-2013 00:08:27:328  CGCI::PAKReadyTransaction2 
+23-07-2013 00:08:27:375  MGR : CGCI::PAKReadyTransaction2 - lPumpNumber = 16 ,lTrsNumber = 84621 ,nNozzle = 1 ,lVolume = 4040 ,lValue = 30000 ,nLevel = 0 ,lGradePrice = 7420 ,nGrade = 60 ,lFlags = 3 ,lTotalVal = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:08:27:375  MGR : Send PAKReadyTransaction2 - PumpID=16, TrsID=84621, SeqId=29, NozzleID=1, lVolume=4040, lValue=30000, Grade=60, Price=7420, SCounter=836025830, ECounter=836029870  
+23-07-2013 00:08:27:390   10.91.55.67 port 6666: >>SND>> LEN : 15 ...01.10.02.01.00.5A.00.07.04.21.21.00.29.1E.00. 
+23-07-2013 00:08:27:546   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 54 ...02.01.01.10.00.FA.00.06.04.21.21.00.29.00.02.01.01.10.00.80.00.20.04.21.21.00.29.64.00.01.02.00.29.15.01.01.14.02.00.00.05.05.06.00.00.30.00.06.05.06.00.00.04.04. 
+23-07-2013 00:08:27:578  Transaction: 41, Transaction Status=Cleared - PumpID=16 
+23-07-2013 00:27:57:921   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.03.00.80.00.0E.01.21.64.00.14.01.04.15.01.01.16.02.02.01. 
+23-07-2013 00:27:57:937  CGCI::GetPumpInfo 
+23-07-2013 00:27:57:937  MGR : CGCI::GetPumpInfo lPumpNumber = 3, lFlags = 4, GCI RetCode = 0: GCI OK  
+23-07-2013 00:27:57:937  CGCI::SetPumpStatus 
+23-07-2013 00:27:57:953  MGR : CGCI::SetPumpStatus - lPumpNumber = 3 ,lStatus = 2 ,lRes = 4 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:27:57:953  MGR : Send SetPumpStatus, Pump=3, PumpStatus=REQUESTING,PumpReserv=PAY_AT_KIOSK, FP_State=Calling, Nozzle=1  
+23-07-2013 00:27:58:015  CGCIEvents::AuthorizeAndLimit - lPumpNumber 3 , lVolume 0 , lValue 9000000, nFlags 0X00000001 
+23-07-2013 00:27:58:078  CGCI::GetCurrentTransactionNumber 
+23-07-2013 00:27:58:109  MGR : CGCI::GetCurrentTransactionNumber - lPumpNumber=3, pTrsNumber=84752, GCI RetCode = 0: GCI OK  
+23-07-2013 00:27:58:109  MGR : GetCurrentTransactionNumber(Pump number = 3 , Trs number = 84752), GCI RetCode = 0: GCI OK  
+23-07-2013 00:27:58:125   10.91.55.67 port 6666: >>SND>> LEN : 16 ...01.03.02.01.00.4A.00.08.01.21.1E.02.02.01.3E.00. 
+23-07-2013 00:27:58:390   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 11 ...02.01.01.03.00.EA.00.03.01.21.00. 
+23-07-2013 00:27:58:625   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.03.00.80.00.0E.01.21.64.00.14.01.06.15.01.01.16.02.02.01. 
+23-07-2013 00:27:58:640  CGCI::SetPumpStatus 
+23-07-2013 00:27:58:656  MGR : CGCI::SetPumpStatus - lPumpNumber = 3 ,lStatus = 3 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:27:58:656  MGR : Send SetPumpStatus, Pump=3, PumpStatus=AUTHORIZED,PumpReserv=NO CHANGE, FP_State=Started, Nozzle=1  
+23-07-2013 00:28:01:906   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.03.00.80.00.0E.01.21.64.00.14.01.03.15.01.00.16.02.02.01. 
+23-07-2013 00:28:01:921  CGCI::SetPumpStatus 
+23-07-2013 00:28:01:984  MGR : CGCI::SetPumpStatus - lPumpNumber = 3 ,lStatus = 1 ,lRes = 0 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:01:984  MGR : Send SetPumpStatus, Pump=3, PumpStatus=READY,PumpReserv=NULL_RES, FP_State=Idle, Nozzle=1  
+23-07-2013 00:28:09:437   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.03.00.80.00.0E.01.21.64.00.14.01.04.15.01.01.16.02.02.01. 
+23-07-2013 00:28:09:453  CGCI::GetPumpInfo 
+23-07-2013 00:28:09:453  MGR : CGCI::GetPumpInfo lPumpNumber = 3, lFlags = 4, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:09:453  CGCI::SetPumpStatus 
+23-07-2013 00:28:09:468  MGR : CGCI::SetPumpStatus - lPumpNumber = 3 ,lStatus = 2 ,lRes = 4 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:09:468  MGR : Send SetPumpStatus, Pump=3, PumpStatus=REQUESTING,PumpReserv=PAY_AT_KIOSK, FP_State=Calling, Nozzle=1  
+23-07-2013 00:28:09:531  CGCIEvents::AuthorizeAndLimit - lPumpNumber 3 , lVolume 0 , lValue 9000000, nFlags 0X00000001 
+23-07-2013 00:28:09:546  CGCI::GetCurrentTransactionNumber 
+23-07-2013 00:28:09:562  MGR : CGCI::GetCurrentTransactionNumber - lPumpNumber=3, pTrsNumber=84755, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:09:562  MGR : GetCurrentTransactionNumber(Pump number = 3 , Trs number = 84755), GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:09:578   10.91.55.67 port 6666: >>SND>> LEN : 16 ...01.03.02.01.00.4D.00.08.01.21.1E.02.02.01.3E.00. 
+23-07-2013 00:28:09:718   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 11 ...02.01.01.03.00.ED.00.03.01.21.00. 
+23-07-2013 00:28:10:046   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.03.00.80.00.0E.01.21.64.00.14.01.06.15.01.01.16.02.02.01. 
+23-07-2013 00:28:10:062  CGCI::SetPumpStatus 
+23-07-2013 00:28:10:093  MGR : CGCI::SetPumpStatus - lPumpNumber = 3 ,lStatus = 3 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:10:093  MGR : Send SetPumpStatus, Pump=3, PumpStatus=AUTHORIZED,PumpReserv=NO CHANGE, FP_State=Started, Nozzle=1  
+23-07-2013 00:28:12:171   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.03.00.80.00.0E.01.21.64.00.14.01.08.15.01.01.16.02.02.01. 
+23-07-2013 00:28:12:187  CGCI::SetPumpStatus 
+23-07-2013 00:28:12:234  MGR : CGCI::SetPumpStatus - lPumpNumber = 3 ,lStatus = 4 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:12:234  MGR : Send SetPumpStatus, Pump=3, PumpStatus=DISPENSING,PumpReserv=NO CHANGE, FP_State=Fuelling, Nozzle=1  
+23-07-2013 00:28:12:468   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.00.00.87.23.05.06.00.00.00.12. 
+23-07-2013 00:28:12:484  CGCI::RollingUpdate 
+23-07-2013 00:28:12:484  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 120 ,lValue = 870 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:12:484  Send RollingUpdate - lVolume=120, lValue=870, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:16:218   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.00.15.81.23.05.06.00.00.02.18. 
+23-07-2013 00:28:16:234  CGCI::RollingUpdate 
+23-07-2013 00:28:16:234  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 2180 ,lValue = 15810 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:16:234  Send RollingUpdate - lVolume=2180, lValue=15810, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:19:984   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.00.30.89.23.05.06.00.00.04.26. 
+23-07-2013 00:28:20:000  CGCI::RollingUpdate 
+23-07-2013 00:28:20:000  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 4260 ,lValue = 30890 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:20:000  Send RollingUpdate - lVolume=4260, lValue=30890, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:23:812   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.00.46.18.23.05.06.00.00.06.37. 
+23-07-2013 00:28:23:828  CGCI::RollingUpdate 
+23-07-2013 00:28:23:828  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 6370 ,lValue = 46180 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:23:828  Send RollingUpdate - lVolume=6370, lValue=46180, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:27:609   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.00.61.05.23.05.06.00.00.08.42. 
+23-07-2013 00:28:27:625  CGCI::RollingUpdate 
+23-07-2013 00:28:27:625  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 8420 ,lValue = 61050 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:27:625  Send RollingUpdate - lVolume=8420, lValue=61050, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:31:437   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.00.76.27.23.05.06.00.00.10.52. 
+23-07-2013 00:28:31:453  CGCI::RollingUpdate 
+23-07-2013 00:28:31:453  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 10520 ,lValue = 76270 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:31:453  Send RollingUpdate - lVolume=10520, lValue=76270, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:35:250   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.00.91.57.23.05.06.00.00.12.63. 
+23-07-2013 00:28:35:265  CGCI::RollingUpdate 
+23-07-2013 00:28:35:265  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 12630 ,lValue = 91570 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:35:265  Send RollingUpdate - lVolume=12630, lValue=91570, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:39:078   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.01.06.72.23.05.06.00.00.14.72. 
+23-07-2013 00:28:39:093  CGCI::RollingUpdate 
+23-07-2013 00:28:39:093  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 14720 ,lValue = 106720 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:39:093  Send RollingUpdate - lVolume=14720, lValue=106720, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:42:906   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.01.22.02.23.05.06.00.00.16.83. 
+23-07-2013 00:28:42:921  CGCI::RollingUpdate 
+23-07-2013 00:28:42:921  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 16830 ,lValue = 122020 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:42:921  Send RollingUpdate - lVolume=16830, lValue=122020, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:46:718   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.01.37.32.23.05.06.00.00.18.94. 
+23-07-2013 00:28:46:734  CGCI::RollingUpdate 
+23-07-2013 00:28:46:734  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 18940 ,lValue = 137320 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:46:734  Send RollingUpdate - lVolume=18940, lValue=137320, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:50:703   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.01.52.69.23.05.06.00.00.21.06. 
+23-07-2013 00:28:50:718  CGCI::RollingUpdate 
+23-07-2013 00:28:50:718  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 21060 ,lValue = 152690 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:50:718  Send RollingUpdate - lVolume=21060, lValue=152690, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:54:390   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.01.68.13.23.05.06.00.00.23.19. 
+23-07-2013 00:28:54:406  CGCI::RollingUpdate 
+23-07-2013 00:28:54:406  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 23190 ,lValue = 168130 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:54:406  Send RollingUpdate - lVolume=23190, lValue=168130, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:28:58:187   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.01.83.06.23.05.06.00.00.25.25. 
+23-07-2013 00:28:58:203  CGCI::RollingUpdate 
+23-07-2013 00:28:58:203  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 25250 ,lValue = 183060 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:28:58:203  Send RollingUpdate - lVolume=25250, lValue=183060, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:29:01:984   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.01.98.22.23.05.06.00.00.27.34. 
+23-07-2013 00:29:02:000  CGCI::RollingUpdate 
+23-07-2013 00:29:02:000  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 27340 ,lValue = 198220 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:02:000  Send RollingUpdate - lVolume=27340, lValue=198220, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:29:05:828   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.02.13.73.23.05.06.00.00.29.48. 
+23-07-2013 00:29:05:843  CGCI::RollingUpdate 
+23-07-2013 00:29:05:843  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 29480 ,lValue = 213730 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:05:843  Send RollingUpdate - lVolume=29480, lValue=213730, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:29:09:812   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.02.28.96.23.05.06.00.00.31.58. 
+23-07-2013 00:29:09:828  CGCI::RollingUpdate 
+23-07-2013 00:29:09:828  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 31580 ,lValue = 228960 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:09:828  Send RollingUpdate - lVolume=31580, lValue=228960, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:29:13:562   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.02.44.11.23.05.06.00.00.33.67. 
+23-07-2013 00:29:13:578  CGCI::RollingUpdate 
+23-07-2013 00:29:13:578  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 33670 ,lValue = 244110 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:13:578  Send RollingUpdate - lVolume=33670, lValue=244110, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:29:17:312   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.02.59.41.23.05.06.00.00.35.78. 
+23-07-2013 00:29:17:328  CGCI::RollingUpdate 
+23-07-2013 00:29:17:328  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 35780 ,lValue = 259410 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:17:328  Send RollingUpdate - lVolume=35780, lValue=259410, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:29:21:109   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.02.74.70.23.05.06.00.00.37.89. 
+23-07-2013 00:29:21:125  CGCI::RollingUpdate 
+23-07-2013 00:29:21:125  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 37890 ,lValue = 274700 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:21:125  Send RollingUpdate - lVolume=37890, lValue=274700, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:29:24:937   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.02.89.93.23.05.06.00.00.39.99. 
+23-07-2013 00:29:24:953  CGCI::RollingUpdate 
+23-07-2013 00:29:24:953  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 39990 ,lValue = 289930 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:24:953  Send RollingUpdate - lVolume=39990, lValue=289930, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:29:28:734   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.02.99.06.23.05.06.00.00.41.25. 
+23-07-2013 00:29:28:750  CGCI::RollingUpdate 
+23-07-2013 00:29:28:750  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 41250 ,lValue = 299060 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:28:750  Send RollingUpdate - lVolume=41250, lValue=299060, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:29:32:562   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.03.00.80.00.12.01.21.66.00.22.05.06.00.02.99.57.23.05.06.00.00.41.32. 
+23-07-2013 00:29:32:578  CGCI::RollingUpdate 
+23-07-2013 00:29:32:578  MGR : CGCI::RollingUpdate - lPumpNumber = 3 ,lTrsNumber = 84755 ,lVolume = 41320 ,lValue = 299570 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:32:578  Send RollingUpdate - lVolume=41320, lValue=299570, TrsID=84755, nNozzle=1,nGrade=1 
+23-07-2013 00:29:41:125   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.03.00.80.00.0E.01.21.64.00.14.01.03.15.01.00.16.02.02.01. 
+23-07-2013 00:29:41:140  CGCI::SetPumpStatus 
+23-07-2013 00:29:41:171  MGR : CGCI::SetPumpStatus - lPumpNumber = 3 ,lStatus = 1 ,lRes = 0 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:41:171  MGR : Send SetPumpStatus, Pump=3, PumpStatus=READY,PumpReserv=NULL_RES, FP_State=Idle, Nozzle=1  
+23-07-2013 00:29:41:828   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 40 ...02.01.01.03.00.80.00.20.04.21.21.00.09.64.00.01.02.00.09.15.01.02.14.02.00.00.05.05.06.00.03.00.00.06.05.06.00.00.41.38. 
+23-07-2013 00:29:41:843  Transaction: 9, Transaction Status=Payable - PumpID=3 
+23-07-2013 00:29:41:859   10.91.55.67 port 6666: >>SND>> LEN : 20 ...01.03.02.01.00.0E.00.0C.04.21.21.00.09.05.06.07.08.0A.CC.CD. 
+23-07-2013 00:29:42:062   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 60 ...02.01.01.03.00.2E.00.34.04.21.21.00.09.05.05.06.00.03.00.00.06.05.06.00.00.41.38.07.04.04.00.07.25.08.01.01.0A.04.00.00.00.01.CC.07.0A.00.01.40.57.97.37.CD.07.0A.00.01.40.58.38.75. 
+23-07-2013 00:29:42:078  CGCI::PAKReadyTransaction2 
+23-07-2013 00:29:42:140  MGR : CGCI::PAKReadyTransaction2 - lPumpNumber = 3 ,lTrsNumber = 84755 ,nNozzle = 1 ,lVolume = 41380 ,lValue = 300000 ,nLevel = 0 ,lGradePrice = 7250 ,nGrade = 1 ,lFlags = 3 ,lTotalVal = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:29:42:140  MGR : Send PAKReadyTransaction2 - PumpID=3, TrsID=84755, SeqId=9, NozzleID=1, lVolume=41380, lValue=300000, Grade=1, Price=7250, SCounter=1405797370, ECounter=1405838750  
+23-07-2013 00:29:42:156   10.91.55.67 port 6666: >>SND>> LEN : 15 ...01.03.02.01.00.4F.00.07.04.21.21.00.09.1E.00. 
+23-07-2013 00:29:42:359   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 54 ...02.01.01.03.00.EF.00.06.04.21.21.00.09.00.02.01.01.03.00.80.00.20.04.21.21.00.09.64.00.01.02.00.09.15.01.01.14.02.00.00.05.05.06.00.03.00.00.06.05.06.00.00.41.38. 
+23-07-2013 00:29:42:390  Transaction: 9, Transaction Status=Cleared - PumpID=3 
+23-07-2013 00:30:01:109  CGCIEvents::GetWetStockData - lWetStockFlags 2 
+23-07-2013 00:30:01:125  Requested Tank Reading for tank TP=1 
+23-07-2013 00:30:01:125  Requested Tank Reading for tank TP=2 
+23-07-2013 00:30:01:125  Requested Tank Reading for tank TP=3 
+23-07-2013 00:30:01:125  Requested Tank Reading for tank TP=4 
+23-07-2013 00:30:01:125  Requested Tank Reading for tank TP=5 
+23-07-2013 00:30:01:140   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.05.00.07.01.21.40.41.42.43.44. 
+23-07-2013 00:30:01:203   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.25.00.25.01.21.40.04.01.00.39.02.41.07.09.00.00.11.96.77.29.42.07.09.00.00.11.96.77.29.43.03.02.21.29.44.04.00.00.00.00. 
+23-07-2013 00:30:01:218  CGCI::TankReading3 
+23-07-2013 00:30:01:234  MGR : CGCI::TankReading3 - lTankNumber = 1 ,lProduct = 1 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1003902 ,lWaterLevel = 0 ,lTemperature = 2129 ,lVolume = 11967729 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:30:01:250   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.06.00.07.01.22.40.41.42.43.44. 
+23-07-2013 00:30:01:437   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.26.00.25.01.22.40.04.01.47.84.14.41.07.09.00.00.19.71.55.78.42.07.09.00.00.19.71.55.78.43.03.02.24.81.44.04.00.00.00.00. 
+23-07-2013 00:30:01:453  CGCI::TankReading3 
+23-07-2013 00:30:01:468  MGR : CGCI::TankReading3 - lTankNumber = 2 ,lProduct = 13 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1478414 ,lWaterLevel = 0 ,lTemperature = 2481 ,lVolume = 19715578 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:30:01:484   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.07.00.07.01.23.40.41.42.43.44. 
+23-07-2013 00:30:01:671   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.27.00.25.01.23.40.04.00.00.00.00.41.07.00.00.00.00.00.00.00.42.07.00.00.00.00.00.00.00.43.03.00.00.00.44.04.00.00.00.00. 
+23-07-2013 00:30:01:687  CGCI::TankReading3 
+23-07-2013 00:30:01:703  MGR : CGCI::TankReading3 - lTankNumber = 3 ,lProduct = 1 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 0 ,lWaterLevel = 0 ,lTemperature = 0 ,lVolume = 0 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:30:01:718   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.08.00.07.01.24.40.41.42.43.44. 
+23-07-2013 00:30:01:968   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.28.00.25.01.24.40.04.01.89.30.48.41.07.09.00.00.25.81.40.90.42.07.09.00.00.25.81.40.90.43.03.02.25.13.44.04.00.00.00.00. 
+23-07-2013 00:30:01:984  CGCI::TankReading3 
+23-07-2013 00:30:02:000  MGR : CGCI::TankReading3 - lTankNumber = 4 ,lProduct = 3 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1893048 ,lWaterLevel = 0 ,lTemperature = 2513 ,lVolume = 25814090 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:30:02:015   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.09.00.07.01.25.40.41.42.43.44. 
+23-07-2013 00:30:02:203   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.29.00.25.01.25.40.04.01.82.86.20.41.07.09.00.00.24.92.81.88.42.07.09.00.00.24.92.81.88.43.03.02.24.33.44.04.00.00.00.00. 
+23-07-2013 00:30:02:218  CGCI::TankReading3 
+23-07-2013 00:30:02:250  MGR : CGCI::TankReading3 - lTankNumber = 5 ,lProduct = 3 ,nFlags = 4096 ,lStatus1 = 0 ,lFuelLevel = 1828620 ,lWaterLevel = 0 ,lTemperature = 2433 ,lVolume = 24928188 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:39:49:359   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.10.00.80.00.0E.01.21.64.00.14.01.04.15.01.01.16.02.02.01. 
+23-07-2013 00:39:49:375  CGCI::GetPumpInfo 
+23-07-2013 00:39:49:375  MGR : CGCI::GetPumpInfo lPumpNumber = 16, lFlags = 4, GCI RetCode = 0: GCI OK  
+23-07-2013 00:39:49:375  CGCI::SetPumpStatus 
+23-07-2013 00:39:49:390  MGR : CGCI::SetPumpStatus - lPumpNumber = 16 ,lStatus = 2 ,lRes = 4 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:39:49:390  MGR : Send SetPumpStatus, Pump=16, PumpStatus=REQUESTING,PumpReserv=PAY_AT_KIOSK, FP_State=Calling, Nozzle=1  
+23-07-2013 00:39:49:437  CGCIEvents::AuthorizeAndLimit - lPumpNumber 16 , lVolume 0 , lValue 9000000, nFlags 0X00000001 
+23-07-2013 00:39:49:500  CGCI::GetCurrentTransactionNumber 
+23-07-2013 00:39:49:531  MGR : CGCI::GetCurrentTransactionNumber - lPumpNumber=16, pTrsNumber=84832, GCI RetCode = 0: GCI OK  
+23-07-2013 00:39:49:531  MGR : GetCurrentTransactionNumber(Pump number = 16 , Trs number = 84832), GCI RetCode = 0: GCI OK  
+23-07-2013 00:39:49:546   10.91.55.67 port 6666: >>SND>> LEN : 16 ...01.10.02.01.00.5D.00.08.01.21.1E.02.02.01.3E.00. 
+23-07-2013 00:39:49:828   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 11 ...02.01.01.10.00.FD.00.03.01.21.00. 
+23-07-2013 00:39:49:921   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.10.00.80.00.0E.01.21.64.00.14.01.06.15.01.01.16.02.02.01. 
+23-07-2013 00:39:49:937  CGCI::SetPumpStatus 
+23-07-2013 00:39:49:953  MGR : CGCI::SetPumpStatus - lPumpNumber = 16 ,lStatus = 3 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:39:49:953  MGR : Send SetPumpStatus, Pump=16, PumpStatus=AUTHORIZED,PumpReserv=NO CHANGE, FP_State=Started, Nozzle=1  
+23-07-2013 00:39:56:765   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.10.00.80.00.0E.01.21.64.00.14.01.08.15.01.01.16.02.02.01. 
+23-07-2013 00:39:56:781  CGCI::SetPumpStatus 
+23-07-2013 00:39:56:812  MGR : CGCI::SetPumpStatus - lPumpNumber = 16 ,lStatus = 4 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:39:56:812  MGR : Send SetPumpStatus, Pump=16, PumpStatus=DISPENSING,PumpReserv=NO CHANGE, FP_State=Fuelling, Nozzle=1  
+23-07-2013 00:39:57:031   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.03.34.23.05.06.00.00.00.45. 
+23-07-2013 00:39:57:046  CGCI::RollingUpdate 
+23-07-2013 00:39:57:046  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 450 ,lValue = 3340 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:39:57:046  Send RollingUpdate - lVolume=450, lValue=3340, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:00:781   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.13.73.23.05.06.00.00.01.85. 
+23-07-2013 00:40:00:796  CGCI::RollingUpdate 
+23-07-2013 00:40:00:796  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 1850 ,lValue = 13730 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:00:796  Send RollingUpdate - lVolume=1850, lValue=13730, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:04:531   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.22.04.23.05.06.00.00.02.97. 
+23-07-2013 00:40:04:546  CGCI::RollingUpdate 
+23-07-2013 00:40:04:546  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 2970 ,lValue = 22040 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:04:546  Send RollingUpdate - lVolume=2970, lValue=22040, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:08:343   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.29.24.23.05.06.00.00.03.94. 
+23-07-2013 00:40:08:359  CGCI::RollingUpdate 
+23-07-2013 00:40:08:359  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 3940 ,lValue = 29240 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:08:359  Send RollingUpdate - lVolume=3940, lValue=29240, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:12:328   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.38.07.23.05.06.00.00.05.13. 
+23-07-2013 00:40:12:343  CGCI::RollingUpdate 
+23-07-2013 00:40:12:343  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 5130 ,lValue = 38070 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:12:343  Send RollingUpdate - lVolume=5130, lValue=38070, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:16:078   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.50.53.23.05.06.00.00.06.81. 
+23-07-2013 00:40:16:078  CGCI::RollingUpdate 
+23-07-2013 00:40:16:078  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 6810 ,lValue = 50530 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:16:078  Send RollingUpdate - lVolume=6810, lValue=50530, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:19:828   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.62.85.23.05.06.00.00.08.47. 
+23-07-2013 00:40:19:843  CGCI::RollingUpdate 
+23-07-2013 00:40:19:843  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 8470 ,lValue = 62850 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:19:843  Send RollingUpdate - lVolume=8470, lValue=62850, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:23:593   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.75.98.23.05.06.00.00.10.24. 
+23-07-2013 00:40:23:609  CGCI::RollingUpdate 
+23-07-2013 00:40:23:609  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 10240 ,lValue = 75980 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:23:609  Send RollingUpdate - lVolume=10240, lValue=75980, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:27:453   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.00.88.67.23.05.06.00.00.11.95. 
+23-07-2013 00:40:27:468  CGCI::RollingUpdate 
+23-07-2013 00:40:27:468  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 11950 ,lValue = 88670 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:27:468  Send RollingUpdate - lVolume=11950, lValue=88670, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:31:296   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.01.03.06.23.05.06.00.00.13.89. 
+23-07-2013 00:40:31:312  CGCI::RollingUpdate 
+23-07-2013 00:40:31:312  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 13890 ,lValue = 103060 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:31:312  Send RollingUpdate - lVolume=13890, lValue=103060, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:35:046   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.01.17.98.23.05.06.00.00.15.90. 
+23-07-2013 00:40:35:062  CGCI::RollingUpdate 
+23-07-2013 00:40:35:062  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 15900 ,lValue = 117980 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:35:062  Send RollingUpdate - lVolume=15900, lValue=117980, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:38:843   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.01.32.08.23.05.06.00.00.17.80. 
+23-07-2013 00:40:38:859  CGCI::RollingUpdate 
+23-07-2013 00:40:38:859  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 17800 ,lValue = 132080 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:38:859  Send RollingUpdate - lVolume=17800, lValue=132080, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:42:671   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.01.46.18.23.05.06.00.00.19.70. 
+23-07-2013 00:40:42:687  CGCI::RollingUpdate 
+23-07-2013 00:40:42:687  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 19700 ,lValue = 146180 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:42:687  Send RollingUpdate - lVolume=19700, lValue=146180, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:46:515   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.01.61.02.23.05.06.00.00.21.70. 
+23-07-2013 00:40:46:531  CGCI::RollingUpdate 
+23-07-2013 00:40:46:531  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 21700 ,lValue = 161020 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:46:531  Send RollingUpdate - lVolume=21700, lValue=161020, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:50:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.01.75.26.23.05.06.00.00.23.62. 
+23-07-2013 00:40:50:515  CGCI::RollingUpdate 
+23-07-2013 00:40:50:515  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 23620 ,lValue = 175260 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:50:515  Send RollingUpdate - lVolume=23620, lValue=175260, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:54:250   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.01.89.80.23.05.06.00.00.25.58. 
+23-07-2013 00:40:54:265  CGCI::RollingUpdate 
+23-07-2013 00:40:54:265  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 25580 ,lValue = 189800 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:54:265  Send RollingUpdate - lVolume=25580, lValue=189800, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:40:58:000   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.03.98.23.05.06.00.00.27.49. 
+23-07-2013 00:40:58:015  CGCI::RollingUpdate 
+23-07-2013 00:40:58:015  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 27490 ,lValue = 203980 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:40:58:015  Send RollingUpdate - lVolume=27490, lValue=203980, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:01:812   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.17.70.23.05.06.00.00.29.34. 
+23-07-2013 00:41:01:828  CGCI::RollingUpdate 
+23-07-2013 00:41:01:828  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 29340 ,lValue = 217700 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:01:828  Send RollingUpdate - lVolume=29340, lValue=217700, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:05:656   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.30.61.23.05.06.00.00.31.08. 
+23-07-2013 00:41:05:671  CGCI::RollingUpdate 
+23-07-2013 00:41:05:671  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 31080 ,lValue = 230610 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:05:671  Send RollingUpdate - lVolume=31080, lValue=230610, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:09:500   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.42.71.23.05.06.00.00.32.71. 
+23-07-2013 00:41:09:515  CGCI::RollingUpdate 
+23-07-2013 00:41:09:515  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 32710 ,lValue = 242710 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:09:515  Send RollingUpdate - lVolume=32710, lValue=242710, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:13:312   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.54.14.23.05.06.00.00.34.25. 
+23-07-2013 00:41:13:328  CGCI::RollingUpdate 
+23-07-2013 00:41:13:328  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 34250 ,lValue = 254140 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:13:328  Send RollingUpdate - lVolume=34250, lValue=254140, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:17:140   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.67.42.23.05.06.00.00.36.04. 
+23-07-2013 00:41:17:156  CGCI::RollingUpdate 
+23-07-2013 00:41:17:156  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 36040 ,lValue = 267420 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:17:156  Send RollingUpdate - lVolume=36040, lValue=267420, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:20:937   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.79.96.23.05.06.00.00.37.73. 
+23-07-2013 00:41:20:953  CGCI::RollingUpdate 
+23-07-2013 00:41:20:953  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 37730 ,lValue = 279960 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:20:953  Send RollingUpdate - lVolume=37730, lValue=279960, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:24:781   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.86.12.23.05.06.00.00.38.56. 
+23-07-2013 00:41:24:796  CGCI::RollingUpdate 
+23-07-2013 00:41:24:796  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 38560 ,lValue = 286120 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:24:796  Send RollingUpdate - lVolume=38560, lValue=286120, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:28:593   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.86.56.23.05.06.00.00.38.62. 
+23-07-2013 00:41:28:609  CGCI::RollingUpdate 
+23-07-2013 00:41:28:609  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 38620 ,lValue = 286560 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:28:609  Send RollingUpdate - lVolume=38620, lValue=286560, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:32:406   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.88.64.23.05.06.00.00.38.90. 
+23-07-2013 00:41:32:421  CGCI::RollingUpdate 
+23-07-2013 00:41:32:421  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 38900 ,lValue = 288640 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:32:421  Send RollingUpdate - lVolume=38900, lValue=288640, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:36:250   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.89.75.23.05.06.00.00.39.05. 
+23-07-2013 00:41:36:265  CGCI::RollingUpdate 
+23-07-2013 00:41:36:265  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 39050 ,lValue = 289750 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:36:265  Send RollingUpdate - lVolume=39050, lValue=289750, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:40:093   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.91.31.23.05.06.00.00.39.26. 
+23-07-2013 00:41:40:109  CGCI::RollingUpdate 
+23-07-2013 00:41:40:109  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 39260 ,lValue = 291310 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:40:109  Send RollingUpdate - lVolume=39260, lValue=291310, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:43:921   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.91.76.23.05.06.00.00.39.32. 
+23-07-2013 00:41:43:937  CGCI::RollingUpdate 
+23-07-2013 00:41:43:937  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 39320 ,lValue = 291760 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:43:937  Send RollingUpdate - lVolume=39320, lValue=291760, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:47:734   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.93.17.23.05.06.00.00.39.51. 
+23-07-2013 00:41:47:750  CGCI::RollingUpdate 
+23-07-2013 00:41:47:750  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 39510 ,lValue = 293170 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:47:750  Send RollingUpdate - lVolume=39510, lValue=293170, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:51:562   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.10.00.80.00.12.01.21.66.00.22.05.06.00.02.93.17.23.05.06.00.00.39.51. 
+23-07-2013 00:41:51:578  CGCI::RollingUpdate 
+23-07-2013 00:41:51:578  MGR : CGCI::RollingUpdate - lPumpNumber = 16 ,lTrsNumber = 84832 ,lVolume = 39510 ,lValue = 293170 ,lGradePrice = 7420 ,nGrade = 60, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:51:578  Send RollingUpdate - lVolume=39510, lValue=293170, TrsID=84832, nNozzle=1,nGrade=60 
+23-07-2013 00:41:55:312   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.10.00.80.00.0E.01.21.64.00.14.01.03.15.01.00.16.02.02.01. 
+23-07-2013 00:41:55:328  CGCI::SetPumpStatus 
+23-07-2013 00:41:55:375  MGR : CGCI::SetPumpStatus - lPumpNumber = 16 ,lStatus = 1 ,lRes = 0 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:55:375  MGR : Send SetPumpStatus, Pump=16, PumpStatus=READY,PumpReserv=NULL_RES, FP_State=Idle, Nozzle=1  
+23-07-2013 00:41:55:843   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 40 ...02.01.01.10.00.80.00.20.04.21.21.00.30.64.00.01.02.00.30.15.01.02.14.02.00.00.05.05.06.00.02.93.17.06.05.06.00.00.39.51. 
+23-07-2013 00:41:55:859  Transaction: 48, Transaction Status=Payable - PumpID=16 
+23-07-2013 00:41:55:875   10.91.55.67 port 6666: >>SND>> LEN : 20 ...01.10.02.01.00.1E.00.0C.04.21.21.00.30.05.06.07.08.0A.CC.CD. 
+23-07-2013 00:41:56:125   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 60 ...02.01.01.10.00.3E.00.34.04.21.21.00.30.05.05.06.00.02.93.17.06.05.06.00.00.39.51.07.04.04.00.07.42.08.01.01.0A.04.00.00.00.60.CC.07.0A.00.00.83.60.29.87.CD.07.0A.00.00.83.60.69.38. 
+23-07-2013 00:41:56:140  CGCI::PAKReadyTransaction2 
+23-07-2013 00:41:56:187  MGR : CGCI::PAKReadyTransaction2 - lPumpNumber = 16 ,lTrsNumber = 84832 ,nNozzle = 1 ,lVolume = 39510 ,lValue = 293170 ,nLevel = 0 ,lGradePrice = 7420 ,nGrade = 60 ,lFlags = 3 ,lTotalVal = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 00:41:56:187  MGR : Send PAKReadyTransaction2 - PumpID=16, TrsID=84832, SeqId=30, NozzleID=1, lVolume=39510, lValue=293170, Grade=60, Price=7420, SCounter=836029870, ECounter=836069380  
+23-07-2013 00:41:56:218   10.91.55.67 port 6666: >>SND>> LEN : 15 ...01.10.02.01.00.5F.00.07.04.21.21.00.30.1E.00. 
+23-07-2013 00:41:56:593   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 54 ...02.01.01.10.00.FF.00.06.04.21.21.00.30.00.02.01.01.10.00.80.00.20.04.21.21.00.30.64.00.01.02.00.30.15.01.01.14.02.00.00.05.05.06.00.02.93.17.06.05.06.00.00.39.51. 
+23-07-2013 00:41:56:625  Transaction: 48, Transaction Status=Cleared - PumpID=16 
+23-07-2013 01:00:00:125  CGCIEvents::GetWetStockData - lWetStockFlags 2 
+23-07-2013 01:00:00:156  Requested Tank Reading for tank TP=1 
+23-07-2013 01:00:00:156  Requested Tank Reading for tank TP=2 
+23-07-2013 01:00:00:156  Requested Tank Reading for tank TP=3 
+23-07-2013 01:00:00:156  Requested Tank Reading for tank TP=4 
+23-07-2013 01:00:00:156  Requested Tank Reading for tank TP=5 
+23-07-2013 01:00:00:171   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.0A.00.07.01.21.40.41.42.43.44. 
+23-07-2013 01:00:00:296   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.2A.00.25.01.21.40.04.01.00.39.09.41.07.09.00.00.11.96.78.55.42.07.09.00.00.11.96.78.55.43.03.02.21.29.44.04.00.00.00.00. 
+23-07-2013 01:00:00:312  CGCI::TankReading3 
+23-07-2013 01:00:00:312  MGR : CGCI::TankReading3 - lTankNumber = 1 ,lProduct = 1 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1003909 ,lWaterLevel = 0 ,lTemperature = 2129 ,lVolume = 11967855 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:00:00:328   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.0B.00.07.01.22.40.41.42.43.44. 
+23-07-2013 01:00:00:343   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.2B.00.25.01.22.40.04.01.47.58.83.41.07.09.00.00.19.67.52.25.42.07.09.00.00.19.67.52.25.43.03.02.24.80.44.04.00.00.00.00. 
+23-07-2013 01:00:00:359  CGCI::TankReading3 
+23-07-2013 01:00:00:359  MGR : CGCI::TankReading3 - lTankNumber = 2 ,lProduct = 13 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1475883 ,lWaterLevel = 0 ,lTemperature = 2480 ,lVolume = 19675225 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:00:00:375   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.0C.00.07.01.23.40.41.42.43.44. 
+23-07-2013 01:00:00:578   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.2C.00.25.01.23.40.04.00.00.00.00.41.07.00.00.00.00.00.00.00.42.07.00.00.00.00.00.00.00.43.03.00.00.00.44.04.00.00.00.00. 
+23-07-2013 01:00:00:593  CGCI::TankReading3 
+23-07-2013 01:00:00:593  MGR : CGCI::TankReading3 - lTankNumber = 3 ,lProduct = 1 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 0 ,lWaterLevel = 0 ,lTemperature = 0 ,lVolume = 0 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:00:00:609   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.0D.00.07.01.24.40.41.42.43.44. 
+23-07-2013 01:00:00:812   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.2D.00.25.01.24.40.04.01.89.30.47.41.07.09.00.00.25.81.40.76.42.07.09.00.00.25.81.40.76.43.03.02.25.11.44.04.00.00.00.00. 
+23-07-2013 01:00:00:828  CGCI::TankReading3 
+23-07-2013 01:00:00:828  MGR : CGCI::TankReading3 - lTankNumber = 4 ,lProduct = 3 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1893047 ,lWaterLevel = 0 ,lTemperature = 2511 ,lVolume = 25814076 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:00:00:843   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.0E.00.07.01.25.40.41.42.43.44. 
+23-07-2013 01:00:01:046   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.2E.00.25.01.25.40.04.01.82.85.63.41.07.09.00.00.24.92.74.04.42.07.09.00.00.24.92.74.04.43.03.02.24.32.44.04.00.00.00.00. 
+23-07-2013 01:00:01:062  CGCI::TankReading3 
+23-07-2013 01:00:01:078  MGR : CGCI::TankReading3 - lTankNumber = 5 ,lProduct = 3 ,nFlags = 4096 ,lStatus1 = 0 ,lFuelLevel = 1828563 ,lWaterLevel = 0 ,lTemperature = 2432 ,lVolume = 24927404 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:00:05:812  CGCIEvents::GetWetStockData - lWetStockFlags 2 
+23-07-2013 01:00:05:843  Requested Tank Reading for tank TP=1 
+23-07-2013 01:00:05:843  Requested Tank Reading for tank TP=2 
+23-07-2013 01:00:05:843  Requested Tank Reading for tank TP=3 
+23-07-2013 01:00:05:843  Requested Tank Reading for tank TP=4 
+23-07-2013 01:00:05:843  Requested Tank Reading for tank TP=5 
+23-07-2013 01:00:05:859   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.0F.00.07.01.21.40.41.42.43.44. 
+23-07-2013 01:00:05:968   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.2F.00.25.01.21.40.04.01.00.39.12.41.07.09.00.00.11.96.78.96.42.07.09.00.00.11.96.78.96.43.03.02.21.29.44.04.00.00.00.00. 
+23-07-2013 01:00:05:984  CGCI::TankReading3 
+23-07-2013 01:00:06:000  MGR : CGCI::TankReading3 - lTankNumber = 1 ,lProduct = 1 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1003912 ,lWaterLevel = 0 ,lTemperature = 2129 ,lVolume = 11967896 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:00:06:015   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.10.00.07.01.22.40.41.42.43.44. 
+23-07-2013 01:00:06:203   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.30.00.25.01.22.40.04.01.47.58.84.41.07.09.00.00.19.67.52.36.42.07.09.00.00.19.67.52.36.43.03.02.24.80.44.04.00.00.00.00. 
+23-07-2013 01:00:06:218  CGCI::TankReading3 
+23-07-2013 01:00:06:234  MGR : CGCI::TankReading3 - lTankNumber = 2 ,lProduct = 13 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1475884 ,lWaterLevel = 0 ,lTemperature = 2480 ,lVolume = 19675236 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:00:06:250   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.11.00.07.01.23.40.41.42.43.44. 
+23-07-2013 01:00:06:437   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.31.00.25.01.23.40.04.00.00.00.00.41.07.00.00.00.00.00.00.00.42.07.00.00.00.00.00.00.00.43.03.00.00.00.44.04.00.00.00.00. 
+23-07-2013 01:00:06:437  CGCI::TankReading3 
+23-07-2013 01:00:06:437  MGR : CGCI::TankReading3 - lTankNumber = 3 ,lProduct = 1 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 0 ,lWaterLevel = 0 ,lTemperature = 0 ,lVolume = 0 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:00:06:453   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.12.00.07.01.24.40.41.42.43.44. 
+23-07-2013 01:00:06:671   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.32.00.25.01.24.40.04.01.89.30.46.41.07.09.00.00.25.81.40.62.42.07.09.00.00.25.81.40.62.43.03.02.25.11.44.04.00.00.00.00. 
+23-07-2013 01:00:06:687  CGCI::TankReading3 
+23-07-2013 01:00:06:718  MGR : CGCI::TankReading3 - lTankNumber = 4 ,lProduct = 3 ,nFlags = 0 ,lStatus1 = 0 ,lFuelLevel = 1893046 ,lWaterLevel = 0 ,lTemperature = 2511 ,lVolume = 25814062 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:00:06:718   10.91.55.67 port 6666: >>SND>> LEN : 15 ...09.01.02.01.00.13.00.07.01.25.40.41.42.43.44. 
+23-07-2013 01:00:06:906   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 45 ...02.01.09.01.00.33.00.25.01.25.40.04.01.82.85.66.41.07.09.00.00.24.92.74.51.42.07.09.00.00.24.92.74.51.43.03.02.24.32.44.04.00.00.00.00. 
+23-07-2013 01:00:06:921  CGCI::TankReading3 
+23-07-2013 01:00:06:953  MGR : CGCI::TankReading3 - lTankNumber = 5 ,lProduct = 3 ,nFlags = 4096 ,lStatus1 = 0 ,lFuelLevel = 1828566 ,lWaterLevel = 0 ,lTemperature = 2432 ,lVolume = 24927451 ,lWaterVolume = 0 ,lStatus2 = 0,lFuelValue = 0 ,lPricePerLitre = 0 ,lTcVolume = 0 ,lUllage = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:02:58:375   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.01.00.80.00.0E.01.21.64.00.14.01.04.15.01.01.16.02.02.01. 
+23-07-2013 01:02:58:390  CGCI::GetPumpInfo 
+23-07-2013 01:02:58:390  MGR : CGCI::GetPumpInfo lPumpNumber = 1, lFlags = 4, GCI RetCode = 0: GCI OK  
+23-07-2013 01:02:58:390  CGCI::SetPumpStatus 
+23-07-2013 01:02:58:406  CGCIEvents::AuthorizeAndLimit - lPumpNumber 1 , lVolume 0 , lValue 9000000, nFlags 0X00000001 
+23-07-2013 01:02:58:406  MGR : CGCI::SetPumpStatus - lPumpNumber = 1 ,lStatus = 2 ,lRes = 4 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:02:58:406  MGR : Send SetPumpStatus, Pump=1, PumpStatus=REQUESTING,PumpReserv=PAY_AT_KIOSK, FP_State=Calling, Nozzle=1  
+23-07-2013 01:02:58:468  CGCI::GetCurrentTransactionNumber 
+23-07-2013 01:02:58:500  MGR : CGCI::GetCurrentTransactionNumber - lPumpNumber=1, pTrsNumber=84984, GCI RetCode = 0: GCI OK  
+23-07-2013 01:02:58:500  MGR : GetCurrentTransactionNumber(Pump number = 1 , Trs number = 84984), GCI RetCode = 0: GCI OK  
+23-07-2013 01:02:58:515   10.91.55.67 port 6666: >>SND>> LEN : 16 ...01.01.02.01.00.43.00.08.01.21.1E.02.02.01.3E.00. 
+23-07-2013 01:02:58:671   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 11 ...02.01.01.01.00.E3.00.03.01.21.00. 
+23-07-2013 01:02:58:906   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.01.00.80.00.0E.01.21.64.00.14.01.06.15.01.01.16.02.02.01. 
+23-07-2013 01:02:58:921  CGCI::SetPumpStatus 
+23-07-2013 01:02:58:937  MGR : CGCI::SetPumpStatus - lPumpNumber = 1 ,lStatus = 3 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:02:58:937  MGR : Send SetPumpStatus, Pump=1, PumpStatus=AUTHORIZED,PumpReserv=NO CHANGE, FP_State=Started, Nozzle=1  
+23-07-2013 01:03:13:734   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.01.00.80.00.0E.01.21.64.00.14.01.08.15.01.01.16.02.02.01. 
+23-07-2013 01:03:13:750  CGCI::SetPumpStatus 
+23-07-2013 01:03:13:781  MGR : CGCI::SetPumpStatus - lPumpNumber = 1 ,lStatus = 4 ,lRes = 9999 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:13:781  MGR : Send SetPumpStatus, Pump=1, PumpStatus=DISPENSING,PumpReserv=NO CHANGE, FP_State=Fuelling, Nozzle=1  
+23-07-2013 01:03:13:968   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.00.05.15.23.05.06.00.00.00.71. 
+23-07-2013 01:03:13:984  CGCI::RollingUpdate 
+23-07-2013 01:03:13:984  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 710 ,lValue = 5150 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:13:984  Send RollingUpdate - lVolume=710, lValue=5150, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:17:718   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.00.26.68.23.05.06.00.00.03.68. 
+23-07-2013 01:03:17:734  CGCI::RollingUpdate 
+23-07-2013 01:03:17:734  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 3680 ,lValue = 26680 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:17:734  Send RollingUpdate - lVolume=3680, lValue=26680, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:21:546   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.00.48.14.23.05.06.00.00.06.64. 
+23-07-2013 01:03:21:562  CGCI::RollingUpdate 
+23-07-2013 01:03:21:562  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 6640 ,lValue = 48140 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:21:562  Send RollingUpdate - lVolume=6640, lValue=48140, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:25:375   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.00.69.46.23.05.06.00.00.09.58. 
+23-07-2013 01:03:25:390  CGCI::RollingUpdate 
+23-07-2013 01:03:25:390  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 9580 ,lValue = 69460 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:25:390  Send RollingUpdate - lVolume=9580, lValue=69460, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:29:171   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.00.91.28.23.05.06.00.00.12.59. 
+23-07-2013 01:03:29:187  CGCI::RollingUpdate 
+23-07-2013 01:03:29:187  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 12590 ,lValue = 91280 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:29:187  Send RollingUpdate - lVolume=12590, lValue=91280, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:33:156   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.01.12.88.23.05.06.00.00.15.57. 
+23-07-2013 01:03:33:171  CGCI::RollingUpdate 
+23-07-2013 01:03:33:171  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 15570 ,lValue = 112880 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:33:171  Send RollingUpdate - lVolume=15570, lValue=112880, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:36:906   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.01.34.13.23.05.06.00.00.18.50. 
+23-07-2013 01:03:36:921  CGCI::RollingUpdate 
+23-07-2013 01:03:36:921  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 18500 ,lValue = 134130 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:36:921  Send RollingUpdate - lVolume=18500, lValue=134130, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:40:703   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.01.55.44.23.05.06.00.00.21.44. 
+23-07-2013 01:03:40:718  CGCI::RollingUpdate 
+23-07-2013 01:03:40:718  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 21440 ,lValue = 155440 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:40:718  Send RollingUpdate - lVolume=21440, lValue=155440, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:44:453   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.01.77.12.23.05.06.00.00.24.43. 
+23-07-2013 01:03:44:453  CGCI::RollingUpdate 
+23-07-2013 01:03:44:453  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 24430 ,lValue = 177120 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:44:453  Send RollingUpdate - lVolume=24430, lValue=177120, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:48:281   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.01.98.14.23.05.06.00.00.27.33. 
+23-07-2013 01:03:48:296  CGCI::RollingUpdate 
+23-07-2013 01:03:48:296  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 27330 ,lValue = 198140 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:48:296  Send RollingUpdate - lVolume=27330, lValue=198140, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:52:078   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.01.98.43.23.05.06.00.00.27.37. 
+23-07-2013 01:03:52:093  CGCI::RollingUpdate 
+23-07-2013 01:03:52:093  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 27370 ,lValue = 198430 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:52:093  Send RollingUpdate - lVolume=27370, lValue=198430, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:55:906   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.01.99.16.23.05.06.00.00.27.47. 
+23-07-2013 01:03:55:921  CGCI::RollingUpdate 
+23-07-2013 01:03:55:921  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 27470 ,lValue = 199160 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:55:921  Send RollingUpdate - lVolume=27470, lValue=199160, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:03:59:734   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 26 ...02.01.01.01.00.80.00.12.01.21.66.00.22.05.06.00.01.99.88.23.05.06.00.00.27.57. 
+23-07-2013 01:03:59:750  CGCI::RollingUpdate 
+23-07-2013 01:03:59:750  MGR : CGCI::RollingUpdate - lPumpNumber = 1 ,lTrsNumber = 84984 ,lVolume = 27570 ,lValue = 199880 ,lGradePrice = 7250 ,nGrade = 1, GCI RetCode = 0: GCI OK  
+23-07-2013 01:03:59:750  Send RollingUpdate - lVolume=27570, lValue=199880, TrsID=84984, nNozzle=1,nGrade=1 
+23-07-2013 01:04:09:109   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 22 ...02.01.01.01.00.80.00.0E.01.21.64.00.14.01.03.15.01.00.16.02.02.01. 
+23-07-2013 01:04:09:125  CGCI::SetPumpStatus 
+23-07-2013 01:04:09:156  MGR : CGCI::SetPumpStatus - lPumpNumber = 1 ,lStatus = 1 ,lRes = 0 ,lResExt = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:04:09:156  MGR : Send SetPumpStatus, Pump=1, PumpStatus=READY,PumpReserv=NULL_RES, FP_State=Idle, Nozzle=1  
+23-07-2013 01:04:09:812   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 40 ...02.01.01.01.00.80.00.20.04.21.21.00.09.64.00.01.02.00.09.15.01.02.14.02.00.00.05.05.06.00.02.00.00.06.05.06.00.00.27.59. 
+23-07-2013 01:04:09:828  Transaction: 9, Transaction Status=Payable - PumpID=1 
+23-07-2013 01:04:09:828   10.91.55.67 port 6666: >>SND>> LEN : 20 ...01.01.02.01.00.04.00.0C.04.21.21.00.09.05.06.07.08.0A.CC.CD. 
+23-07-2013 01:04:10:046   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 60 ...02.01.01.01.00.24.00.34.04.21.21.00.09.05.05.06.00.02.00.00.06.05.06.00.00.27.59.07.04.04.00.07.25.08.01.01.0A.04.00.00.00.72.CC.07.0A.00.01.56.93.49.10.CD.07.0A.00.01.56.93.76.69. 
+23-07-2013 01:04:10:062  CGCI::PAKReadyTransaction2 
+23-07-2013 01:04:10:140  MGR : CGCI::PAKReadyTransaction2 - lPumpNumber = 1 ,lTrsNumber = 84984 ,nNozzle = 1 ,lVolume = 27590 ,lValue = 200000 ,nLevel = 0 ,lGradePrice = 7250 ,nGrade = 72 ,lFlags = 3 ,lTotalVal = 0, GCI RetCode = 0: GCI OK  
+23-07-2013 01:04:10:140  MGR : Send PAKReadyTransaction2 - PumpID=1, TrsID=84984, SeqId=9, NozzleID=1, lVolume=27590, lValue=200000, Grade=72, Price=7250, SCounter=1569349100, ECounter=1569376690  
+23-07-2013 01:04:10:156   10.91.55.67 port 6666: >>SND>> LEN : 15 ...01.01.02.01.00.45.00.07.04.21.21.00.09.1E.00. 
+23-07-2013 01:04:10:281   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 14 ...02.01.01.01.00.E5.00.06.04.21.21.00.09.00. 
+23-07-2013 01:04:10:515   event in server from 10.91.55.67, port 1450: <<RCV<< LEN : 40 ...02.01.01.01.00.80.00.20.04.21.21.00.09.64.00.01.02.00.09.15.01.01.14.02.00.00.05.05.06.00.02.00.00.06.05.06.00.00.27.59. 
+23-07-2013 01:04:10:531  Transaction: 9, Transaction Status=Cleared - PumpID=1 
+23-07-2013 01:05:09:671  MGR : Error in CManagerThread::GetOfflineTransaction() return=21

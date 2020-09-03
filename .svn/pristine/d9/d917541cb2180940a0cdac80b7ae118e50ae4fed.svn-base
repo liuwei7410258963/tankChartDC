@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.oket.device.dao.Dispenser4DeviceDAO">
+	<insert id="addDispenser">
+		insert into dev_dispenser () values()
+	</insert>
+
+	<insert id="addNozzle">
+		INSERT INTO dev_nozzle (
+		deviceType,
+		deviceId,
+		manufacturerProductID,
+		abbreviation,
+		dealer,
+		productType,
+		deviceVersions,
+		deviceManufacturer,
+		detailInfo, )
+		VALUES
+		<foreach collection="roles" item="item" index="index" separator=",">
+			<trim prefix="(" suffix=")" suffixOverrides=",">
+				<if test="item.deviceType!=null">#{deviceType},</if>
+				<if test="item.deviceId!=null">#{deviceId},</if>
+				<if test="item.manufacturerProductID!=null">#{manufacturerProductID},</if>
+				<if test="item.abbreviation!=null">#{abbreviation},</if>
+				<if test="item.dealer!=null">#{dealer},</if>
+				<if test="item.productType!=null">#{productType},</if>
+				<if test="item.deviceVersions!=null">#{deviceVersions},</if>
+				<if test="item.deviceManufacturer!=null">#{deviceManufacturer},</if>
+				<if test="item.detailInfo!=null">#{detailInfo},</if>
+			</trim>
+		</foreach>
+
+		ON DUPLICATE KEY UPDATE
+		USER_ORG=values(USER_ORG),
+		DATE_STR=values(DATE_STR),
+		TYPE=values(TYPE),
+		NUM=values(NUM)
+	</insert>
+
+
+	<select id="getByStationBizId" resultMap="dispenserDetails">
+		select dd.*,
+			dv.device_id dv_device_id,
+			dv.copyright dv_copy_right,
+			dv.device_soft_version dv_device_soft_version,
+			dv.device_version dv_device_version,
+			dv.id dv_id,
+			dv.version_date dv_version_date,
+			dn.device_id dn_device_id,
+			dn.dispenser_id dn_dispenser_id,
+			dn.manufacturer_product_id dn_manufacturer_product_id,
+			dn.abbreviation dn_abbreviation,
+			dn.dealer dn_dealer,
+			dn.product_type dn_product_type,
+			dn.device_manufacturer dn_device_manufacturer,
+			dn.detail_info dn_detail_info,
+			dv2.device_id dv2_device_id,
+			dv2.copyright dv2_copy_right,
+			dv2.device_soft_version dv2_device_soft_version,
+			dv2.device_version dv2_device_version,
+			dv2.id dv2_id,
+			dv2.version_date dv2_version_date
+
+		from dev_dispenser2 dd
+			     left join dev_version dv on (dv.device_id = dd.device_id and dv.device_type=1)
+			     left join dev_nozzle2 dn on (dn.dispenser_id = dd.device_id)
+			     left join dev_version dv2 on (dv2.device_id = dn.device_id and dv2.device_type=2)
+
+	</select>
+
+	<resultMap id="dispenserDetails" type="com.oket.device.Dispenser4Device">
+		<id column="device_id" property="id"/>
+		<result column="manufacturer_product_id" property="manufacturerProductId"/>
+		<result column="abbreviation" property="abbreviation"/>
+		<result column="dealer" property="dealer"/>
+		<result column="product_type" property="productType"/>
+		<result column="device_manufacturer" property="deviceManufacturer"/>
+		<result column="detail_info" property="detailInfo"/>
+		<collection property="deviceVersions" ofType="com.oket.device.Version">
+			<id column="dv_id" property="id"/>
+			<result column="dv_device_id" property="deviceId"/>
+			<result column="dv_copy_right" property="copyright"/>
+			<result column="dv_device_soft_version" property="deviceSoftVersion"/>
+			<result column="dv_device_version" property="deviceVersion"/>
+			<result column="dv_version_date" property="versionDate"/>
+		</collection>
+
+		<collection property="nozzle4Devices" ofType="com.oket.device.Nozzle4Device">
+			<id column="dn_device_id" property="id"/>
+			<result column="dn_dispenser_id" property="dispenserId"/>
+			<result column="dn_manufacturer_product_id" property="manufacturerProductId"/>
+			<result column="dn_abbreviation" property="abbreviation"/>
+			<result column="dn_dealer" property="dealer"/>
+			<result column="dn_product_type" property="productType"/>
+			<result column="dn_device_manufacturer" property="deviceManufacturer"/>
+			<result column="dn_detail_info" property="detailInfo"/>
+			<collection property="deviceVersions" ofType="com.oket.device.Version">
+				<id column="dv2_id" property="id"/>
+				<result column="dv2_device_id" property="deviceId"/>
+				<result column="dv2_copy_right" property="copyright"/>
+				<result column="dv2_device_soft_version" property="deviceSoftVersion"/>
+				<result column="dv2_device_version" property="deviceVersion"/>
+				<result column="dv2_version_date" property="versionDate"/>
+			</collection>
+		</collection>
+	</resultMap>
+
+
+
+
+	<insert id="batchInsert" parameterType="java.util.List" >
+		insert into dev_dispenser(
+		manufacturer_product_id,
+		detail_info,
+		product_type,
+		maintenance_manager_id,
+		install_time,
+		check_time,
+		device_type,
+		STATUS)
+		values
+		<foreach collection="list" index="index" item="item" separator=",">
+			<trim prefix="(" suffix=")" suffixOverrides=",">
+				<if test="item.manufacturerProductId!=null">#{item.manufacturerProductId},</if>
+				<if test="item.detailInfo!=null">#{item.detailInfo},</if>
+				<if test="item.productType!=null">#{item.productType},</if>
+				<if test="item.maintenanceManagerId!=null">#{item.maintenanceManagerId},</if>
+				<if test="item.installTime!=null">#{item.installTime},</if>
+				<if test="item.deviceType!=null">#{item.deviceType},</if>
+				<if test="item.STATUS!=null">#{item.STATUS},</if>
+				<if test="item.values!=null">#{item.values},</if>
+			</trim>
+		</foreach>
+	</insert>
+
+
+</mapper>

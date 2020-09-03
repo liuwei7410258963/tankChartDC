@@ -1,0 +1,105 @@
+package com.oket.tank4station.service;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.oket.TankChartDCApplication;
+import com.oket.tank4station.Inventory;
+import com.oket.tank4station.InventoryException;
+import com.oket.tank4station.TankInventory;
+import com.oket.tank4station.dao.DbInventoryDAO;
+import com.oket.tank4station.dao.DbInventoryTraceDAO;
+import com.oket.tank4station.entity.DbInventory;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.tank4station.service.impl.DbInventoryServiceImpl;
+import com.oket.util.TimeUtils;
+import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+@RunWith(SpringRunner.class)
+@SpringBootTest(classes = TankChartDCApplication.class, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+class DbInventoryServiceTest {
+    @Autowired(required = false)
+    private DbInventoryServiceImpl dbInventoryServiceImpl;
+    @Resource
+    private DbInventoryDAO dbInventoryDAO;
+    @Resource
+    private DbInventoryTraceDAO dbInventoryTraceDAO;
+    @Test
+    void saveInventory() {
+        Date now = new Date();
+        DbInventoryTrace trace = new DbInventoryTrace();
+        trace.setEndLevel(66.66);
+        trace.setStartLevel(66.66);
+        trace.setStartVolume(66.66);
+        trace.setEndVolume(66.66);
+        trace.setStartTime(now);
+        trace.setEndTime(now);
+        System.out.println(trace.getId());
+        dbInventoryTraceDAO.insert(trace);
+        System.out.println(trace.getId());
+
+        Inventory inventory21 = new Inventory( 1, new Date(),
+                1230.1, 0.0, 23.5, 4500.23, 4300.2);
+        Inventory inventory = new Inventory( 1, new Date(),
+                1230.1, 0.0, 23.5, 4500.23, 4300.2);
+        List<TankInventory> list = new ArrayList<>();;
+        list.add(inventory21);
+        list.add(inventory);
+        trace.setInventories(list);
+
+        //for循环插入
+        boolean insert = dbInventoryServiceImpl.insert(trace);
+        System.out.println("****************************************");
+        System.out.println(insert);
+        System.out.println("****************************************");
+
+
+    }
+
+    /**
+     * 测试分表保存
+     */
+    @Test
+    public void testInventory() throws Exception {
+        DbInventory dbInventory = new DbInventory();
+        dbInventory.setVolume(123);
+        dbInventory.setLevel(23);
+        dbInventory.setTemperature(23.5);
+        dbInventory.setTankNo(1);
+        dbInventory.setMaxVolume(5);
+        dbInventory.setTime(new Date());
+        dbInventory.setTime(TimeUtils.parseToMonth("2020-05"));
+        dbInventoryServiceImpl.saveInventory(dbInventory);
+        System.out.println(dbInventory);
+    }
+
+    @Test
+    public void testBatchInventory() throws Exception {
+        DbInventory dbInventory = new DbInventory();
+        dbInventory.setVolume(123);
+        dbInventory.setLevel(23);
+        dbInventory.setTemperature(23.5);
+        dbInventory.setTankNo(1);
+        dbInventory.setMaxVolume(5);
+        dbInventory.setTime(new Date());
+        DbInventory dbInventory2 = new DbInventory();
+        dbInventory2.setVolume(123);
+        dbInventory2.setLevel(232);
+        dbInventory2.setTemperature(223.5);
+        dbInventory2.setTankNo(21);
+        dbInventory2.setMaxVolume(25);
+        dbInventory2.setTime(new Date());
+        dbInventoryServiceImpl.batchSaveInventory(Arrays.asList(dbInventory,dbInventory2));
+        System.out.println(dbInventory);
+        System.out.println(dbInventory2);
+    }
+
+}

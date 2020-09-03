@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.tank4station.dao.DbInventoryTraceDAO">
+    <resultMap id="all" type="com.oket.tank4station.entity.DbInventoryTrace">
+        <result property="id" column="id"/>
+        <result property="startVolume" column="start_volume"/>
+        <collection property="inventories" ofType="com.oket.tank4station.entity.DbInventory">
+            <result property="id" column="tank_inventory_trace_id"/>
+            <result property="volume" column="volume"/>
+        </collection>
+    </resultMap>
+    <select id="batchSelectList" parameterType="Object" resultMap="all">
+        select *
+        from  db_tank_inventory_trace  trace  left JOIN db_inventory inv on trace
+
+
+    </select>
+
+</mapper>

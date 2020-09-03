@@ -1,0 +1,36 @@
+package com.oket.tankchartdc.service;
+
+import com.alibaba.fastjson.JSONObject;
+import com.oket.tank4station.InventoryException;
+import com.oket.tank4station.service.vo.InventoryTraceMergeVO;
+import com.oket.tankchartdc.entity.CorrectSamples;
+import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
+
+/**
+ * <p>
+ *  服务类
+ * </p>
+ *
+ * @author lw
+ * @since 2020-07-22
+ */
+public interface CorrectSamplesService extends IService<CorrectSamples> {
+    /*
+     * 查询改罐的周期
+     */
+    JSONObject back(JSONObject jsonObject);
+    /*
+     * 查询图
+     */
+    JSONObject select(JSONObject jsonObject);
+    /*
+     * 查询表
+     */
+    JSONObject selectTable(JSONObject jsonObject);
+    /*
+     * 生成数据
+     */
+    void generateSamples(JSONObject jsonObject) ;
+}

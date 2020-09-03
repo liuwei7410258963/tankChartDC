@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.tankchartdc.dao.BackToTankDAO">
+    <select id="count" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM(SELECT a.id
+        FROM back_to_tank a
+        LEFT JOIN db_inventory_trace c ON a.trace_id = c.id
+        where 1=1
+        <if test="startTime!=null">
+            and a.start_time <![CDATA[ >= ]]> #{startTime}
+        </if>
+        <if test="endTime!=null">
+            AND a.end_time <![CDATA[ <= ]]> #{endTime}
+        </if>
+        <if test="tankNo!=null">
+            AND a.tank_no = #{tankNo}
+        </if>
+        <if test="type!=null">
+            AND a.reserved_field = #{type}
+        </if>
+        GROUP BY a.id) c
+    </select>
+    <select id="select" resultType="com.alibaba.fastjson.JSONObject">
+        SELECT a.*,DATE_FORMAT(a.start_time, '%Y-%m-%d %T') startTime,
+        DATE_FORMAT(a.end_time, '%Y-%m-%d %T') endTime,
+        c.*,c.volume as changeVolume
+        FROM back_to_tank a
+        LEFT JOIN db_inventory_trace c ON a.trace_id = c.id
+        where 1=1
+        <if test="startTime!=null">
+            and a.start_time <![CDATA[ >= ]]> #{startTime}
+        </if>
+        <if test="endTime!=null">
+            AND a.end_time <![CDATA[ <= ]]> #{endTime}
+        </if>
+        <if test="tankNo!=null">
+            AND a.tank_no = #{tankNo}
+        </if>
+        <if test="type!=null">
+            AND a.reserved_field = #{type}
+        </if>
+        GROUP BY a.id
+        order by a.start_time desc
+        <if test="offSet!=null and pageRow!=null ">
+            LIMIT #{offSet}, #{pageRow}
+        </if>
+    </select>
+    <select id="selectNoPage" resultType="com.alibaba.fastjson.JSONObject">
+        SELECT a.*,DATE_FORMAT(a.start_time, '%Y-%m-%d %T') startTime,
+        DATE_FORMAT(a.end_time, '%Y-%m-%d %T') endTime,
+        c.*,c.volume as changeVolume
+        FROM back_to_tank a
+        LEFT JOIN db_inventory_trace c ON a.trace_id = c.id
+        where 1=1
+        <if test="startTime!=null">
+            and a.start_time <![CDATA[ >= ]]> #{startTime}
+        </if>
+        <if test="endTime!=null">
+            AND (a.end_time <![CDATA[ <= ]]> #{endTime} or a.end_time is null)
+        </if>
+        GROUP BY a.id
+        order by a.start_time
+    </select>
+    <select id="selectHomePage" resultType="com.alibaba.fastjson.JSONObject">
+        SELECT a.*,DATE_FORMAT(a.start_time, '%Y-%m-%d %T') startTime,
+        DATE_FORMAT(a.end_time, '%Y-%m-%d %T') endTime,
+        c.*,c.volume as changeVolume
+        FROM back_to_tank a
+        LEFT JOIN db_inventory_trace c ON a.trace_id = c.id
+        where
+            (a.start_time <![CDATA[ >= ]]> #{startTime}
+            AND a.end_time <![CDATA[ <= ]]> #{endTime} ) or a.end_time is null
+        GROUP BY a.id
+        order by a.start_time desc
+    </select>
+</mapper>

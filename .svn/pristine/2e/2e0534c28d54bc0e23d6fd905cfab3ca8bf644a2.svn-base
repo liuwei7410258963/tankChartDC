@@ -1,0 +1,83 @@
+package com.oket.tankchartdc.mina.json.bean;
+
+import org.apache.commons.lang3.StringUtils;
+
+/**
+ * @description: dit json 协议数据类型定义
+ * @author: Longer
+ * @create: 2019-11-08 22:11
+ **/
+public enum DITApiEnum {
+	TANK_REL_GUN("P91_10017", "枪罐关系", TankRelNozzle.class),
+	TANK("P91_10024", "油罐基本信息", Tank.class),
+	OFFLINE_RECORD("P91_10004", "离线交易", OfflineRecord.class),
+	OIL_TRANSACTION("P91_10002", "交易数据", OilTransaction.class),
+	TANK_INVENTORY("P91_10006", "罐存数据", Inventory.class),
+	HOSE_REL_DISPENSER("P91_10001", "加油机油枪对应关系", NozzleRelDispenser.class),
+	DELIVERY("P91_10025", "配送数据", Delivery.class),
+	DELIVERY_LOSS_ALARM("P91_10013", "配送报警", DeliveryLossAlarm.class),
+	NOZZLE_OUT_WHEN_DELIVERY("P91_10035", "卸油期间付出数", NozzleOutWhenDelivery.class),
+	BACK_TO_TANK("P91_10012", "回罐自用油", DitBackToTank.class);
+
+	/**
+	 * 根据pid获取enum
+	 *
+	 * @param type pid类型
+	 * @return
+	 */
+	public static DITApiEnum getEnum(String type) {
+		if (StringUtils.isBlank(type)) {
+			return null;
+		}
+		DITApiEnum[] values = DITApiEnum.values();
+		for (DITApiEnum value : values) {
+			if (value.getType().equals(type)) {
+				return value;
+			}
+		}
+		return null;
+	}
+
+	DITApiEnum(String type, String desc, Class clazz) {
+		this.type = type;
+		this.clazz = clazz;
+		this.desc = desc;
+	}
+
+	/**
+	 * dit json协议中的pid
+	 */
+	private String type;
+	/**
+	 * 类型对应的实体类
+	 */
+	private Class clazz;
+	/**
+	 * 类型描述
+	 */
+	private String desc;
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public Class getClazz() {
+		return clazz;
+	}
+
+	public void setClazz(Class clazz) {
+		this.clazz = clazz;
+	}
+
+	public String getDesc() {
+		return desc;
+	}
+
+	public void setDesc(String desc) {
+		this.desc = desc;
+	}
+}

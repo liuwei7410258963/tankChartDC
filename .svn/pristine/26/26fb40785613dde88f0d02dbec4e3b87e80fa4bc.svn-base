@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.tankchartdc.dao.CorrectingDAO">
+	<resultMap id="correct" type="com.oket.tankchartdc.entity.CorrectingDTO">
+		<id property="cycleId" column="cycleid"/>
+		<id property="deliveryId" column="delivery_id"/>
+		<collection property="innerCorrectingDTOs" ofType="com.oket.tankchartdc.entity.InnerCorrectingDTO">
+			<association property="dbInventoryTrace" resultMap="trace"
+			             javaType="com.oket.tank4station.entity.DbInventoryTrace">
+			</association>
+			<association property="group" resultMap="group" javaType="com.oket.dispenser.BzNozzleOutGroup">
+			</association>
+			<association property="backToTank" resultMap="back" javaType="com.oket.tankchartdc.BackToTank">
+			</association>
+		</collection>
+	</resultMap>
+	<resultMap id="group" type="com.oket.dispenser.BzNozzleOutGroup">
+		<result property="id" column="group_id"/>
+		<result property="tankNo" column="group_tankno"/>
+		<result property="startTime" column="group_startime"/>
+		<result property="endTime" column="group_endtime"/>
+		<result property="count" column="group_count"/>
+		<result property="volume" column="group_volume"/>
+		<result property="closed" column="group_closed"/>
+		<result property="needConfirm" column="group_needconfirm"/>
+		<result property="closed" column="group_closed"/>
+		<result property="confirmTime" column="group_confirmtime"/>
+		<result property="status" column="group_status"/>
+		<result property="outGroupId" column="group_id"/>
+		<result property="traceId" column="trace_id"/>
+		<result property="outRelTraceId" column="relId"/>
+	</resultMap>
+	<resultMap id="trace" type="com.oket.tank4station.entity.DbInventoryTrace">
+		<result property="id" column="trace_id"/>
+		<result property="tankNo" column="trace_tankno"/>
+		<result property="startTime" column="trace_startime"/>
+		<result property="endTime" column="trace_endtime"/>
+		<result property="cycleId" column="trace_cycleid"/>
+		<result property="oilCode" column="trace_oilcode"/>
+		<result property="oilName" column="trace_oilname"/>
+		<result property="startId" column="trace_startid"/>
+		<result property="startLevel" column="trace_startlevel"/>
+		<result property="startVolume" column="trace_startvolume"/>
+		<result property="startWaterLevel" column="trace_startwaterlevel"/>
+		<result property="startTemperature" column="trace_starttem"/>
+		<result property="endId" column="trace_endid"/>
+		<result property="endLevel" column="trace_endlevel"/>
+		<result property="endWaterLevel" column="trace_endwater"/>
+		<result property="endVolume" column="trace_endvolume"/>
+		<result property="endTemperature" column="trace_endtem"/>
+		<result property="detailInfo" column="trace_detail"/>
+		<result property="volume" column="trace_volume"/>
+		<result property="levelState" column="trace_levelstate"/>
+		<result property="minutes" column="trace_minutes"/>
+		<result property="closed" column="trace_closed"/>
+		<result property="status" column="trace_status"/>
+	</resultMap>
+	<resultMap id="back" type="com.oket.tankchartdc.BackToTank">
+		<result property="id" column="back_id"/>
+		<result property="tankNo" column="back_tankno"/>
+		<result property="startTime" column="back_start_time"/>
+		<result property="endTime" column="back_end_time"/>
+		<result property="backTank" column="back_backTank"/>
+		<result property="volume" column="back_volume"/>
+		<result property="trueVolume" column="back_true_volume"/>
+		<result property="traceId" column="back_trace_id"/>
+		<result property="groupId" column="back_group_id"/>
+		<result property="status" column="back_status"/>
+	</resultMap>
+	<select id="count" resultType="java.lang.Integer">
+		SELECT count(*)
+		FROM db_inventory_cycle a
+		WHERE a.id IN (SELECT t.id FROM (SELECT id FROM db_inventory_cycle where 1=1
+		<if test="tankNo!=null">
+			AND tank_no = #{tankNo}
+		</if>
+		)AS t)
+	</select>
+	<select id="select" resultMap="correct">
+		SELECT a.id as cycleid,a.delivery_id,b.id as trace_id,b.tank_no as trace_tankno,DATE_FORMAT(b.start_time, '%Y-%m-%d %T')
+		trace_startime,DATE_FORMAT(b.end_time, '%Y-%m-%d %T') trace_endtime,
+		b.cycle_id as trace_cycleid ,b.oil_code as trace_oilcode,b.oil_name as trace_oilname,b.start_id as
+		trace_startid,b.start_level as trace_startlevel,
+		b.start_volume as trace_startvolume,b.start_water_level as trace_startwaterlevel,b.start_temperature as
+		trace_starttem,b.end_id as trace_endid,b.end_level as trace_endlevel,
+		b.end_water_level as trace_endwater,b.end_temperature as trace_endtem, b.end_volume as
+		trace_endvolume,b.detail_info as trace_detail,b.volume as trace_volume,
+		b.level_state as trace_levelstate,b.points as trace_points,b.minutes as trace_minutes,b.closed as
+		trace_closed,b.max_sec_gap as trace_maxsecgap,b.max_level_gap as trace_maxlevelgap,b.status as trace_status,c.id
+		as relId,
+		d.id as group_id,d.tank_no as group_tankno,DATE_FORMAT(d.start_time, '%Y-%m-%d %T')
+		group_startime,DATE_FORMAT(d.end_time, '%Y-%m-%d %T') group_endtime,d.count as group_count,d.volume as
+		group_volume,d.closed as group_closed,
+		d.need_confirm as group_needconfirm,DATE_FORMAT(d.confirm_time, '%Y-%m-%d %T') group_confirmtime,d.status as group_status
+-- 		e.id as back_id,e.tank_no as back_tankno,
+-- 		e.start_time as back_start_time,e.end_time as back_end_time,e.back_tank as back_backTank,e.volume as
+-- 		back_volume,e.true_volume as back_true_volume,e.trace_id as back_trace_id,e.group_id as back_group_id,e.status as back_status
+		FROM db_inventory_cycle a
+		LEFT JOIN db_inventory_trace b ON (a.id=b.cycle_id)
+		LEFT JOIN bz_trace_rel_out_group c ON (b.id=c.trace_id)
+		LEFT JOIN bz_nozzle_out_group d ON( c.out_group_id = d.id )
+-- 		LEFT JOIN back_to_tank e ON (b.id=e.trace_id and e.back_tank=1)
+		WHERE a.id IN (SELECT t.id FROM (SELECT id FROM db_inventory_cycle where 1=1
+		<if test="tankNo!=null">
+			AND tank_no = #{tankNo}
+		</if>
+		order by id desc
+		<if test="offSet!=null and pageRow!=null ">
+			LIMIT #{offSet}, #{pageRow}
+		</if>
+		)AS t)
+		and b.status = 1
+		and c.status = 1
+		and d.status = 1
+		order by b.start_time
+	</select>
+
+	<select id="countTable" resultType="java.lang.Integer">
+		SELECT count(*)
+		FROM db_inventory_cycle a
+		WHERE a.id IN (SELECT t.id FROM (SELECT id FROM db_inventory_cycle
+		WHERE 1=1
+		<if test="tankNo!=null">
+			AND tank_no = #{tankNo}
+		</if>) AS t)
+	</select>
+	<select id="selectTable" resultType="com.alibaba.fastjson.JSONObject">
+		SELECT a.id as cycleid,
+		a.delivery_id as deliveryId,
+		b.id as trace_id,
+		b.tank_no as trace_tankno,
+		DATE_FORMAT(b.start_time,'%Y-%m-%d %T') trace_startime,
+		DATE_FORMAT(b.end_time,'%Y-%m-%d %T') trace_endtime,
+		b.cycle_id as trace_cycleid ,
+		b.oil_code as trace_oilcode,
+		b.oil_name as trace_oilname,
+		b.start_id as
+		trace_startid,
+		b.start_level as trace_startlevel,
+		b.start_volume as trace_startvolume,
+		b.start_water_level as trace_startwaterlevel,
+		b.start_temperature as
+		trace_starttem,
+		b.end_id as trace_endid,
+		b.end_level as trace_endlevel,
+
+		b.end_water_level as trace_endwater,
+		b.end_temperature as trace_endtem,
+		b.end_volume as
+		trace_endvolume,
+		b.detail_info as trace_detail,
+		b.volume as trace_volume,
+
+		b.level_state as trace_levelstate,
+		b.points as trace_points,
+		b.minutes as trace_minutes,
+		b.closed as
+		trace_closed,
+		b.max_sec_gap as trace_maxsecgap,
+		b.max_level_gap as trace_maxlevelgap,
+		b.status as trace_status,
+		d.id as group_id,
+		d.tank_no as group_tankno,
+		DATE_FORMAT(d.start_time,'%Y-%m-%d %T') group_startime,
+		DATE_FORMAT(d.end_time,'%Y-%m-%d %T') group_endtime,
+		d.count as group_count,
+		d.volume as
+		group_volume,
+		d.closed as group_closed,
+		d.need_confirm as group_needconfirm,
+		DATE_FORMAT(d.confirm_time,'%Y-%m-%d %T') group_confirmtime,
+		d.status as
+		group_status
+		FROM db_inventory_cycle a
+		LEFT JOIN db_inventory_trace b ON (a.id=b.cycle_id )
+		LEFT JOIN bz_trace_rel_out_group c ON( b.id=c.trace_id )
+		LEFT JOIN bz_nozzle_out_group d ON (c.out_group_id = d.id )
+		WHERE a.id IN
+		(SELECT t.id FROM (SELECT id FROM db_inventory_cycle
+		WHERE status=1
+		<if test="tankNo!=null">
+			AND tank_no = #{tankNo}
+		</if>
+		<if test="deliveryIds!=null">
+			and delivery_id in
+			<foreach item="item" collection="deliveryIds.split(',')" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		order by id desc
+		<if test="offSet!=null and pageRow!=null ">
+			LIMIT #{offSet},
+			#{pageRow}
+		</if>)AS t)
+		and b.status = 1
+		and c.status = 1
+		and d.status = 1
+		ORDER BY b.start_time DESC
+	</select>
+</mapper>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.oket.tank4station.dao.UpdateTableInfoDAO">
+    <insert id="addTable" parameterType="com.oket.tank4station.entity.UpdateTableInfo">
+        insert into ${tableName}(
+        H_V,
+        STATION_ID,
+        IMPORT_TIME,
+        IMPORT_USER,
+        REMARK,
+        POINT_COUNT,
+        MAX_HEIGHT,
+        MAX_VOLUME,
+        tank_code,
+        <if test="table.version!=null">version,</if>
+        VALIDITY,
+        TANK_ID)
+        values(
+        #{table.hV},
+        #{table.stationId},
+        #{table.importTime},
+        #{table.importUser},
+        #{table.remark},
+        #{table.pointCount},
+        #{table.maxHeight},
+        #{table.maxVolume},
+        #{table.tankCode},
+        <if test="table.version!=null">#{table.version},</if>
+        #{table.validity},
+        #{table.tankId})
+        ON DUPLICATE KEY UPDATE
+        IMPORT_TIME= VALUES(IMPORT_TIME),
+        IMPORT_USER= VALUES(IMPORT_USER),
+        POINT_COUNT= VALUES(POINT_COUNT),
+        MAX_HEIGHT= VALUES(MAX_HEIGHT),
+        MAX_VOLUME= VALUES(MAX_VOLUME),
+        tank_code= VALUES(tank_code),
+        <if test="table.version!=null">version= VALUES(version),</if>
+        VALIDITY= VALUES(VALIDITY),
+        H_V= VALUES(H_V),
+        REMARK= VALUES(REMARK)
+    </insert>
+
+    <select id="getMaxTableInfoByTankId" resultType="com.alibaba.fastjson.JSONObject">
+        SELECT version,H_V hv FROM ${tableName}
+          WHERE tank_code=#{tankCode}
+          and version = (SELECT MAX(VERSION) FROM ${tableName} WHERE tank_code=#{tankCode})
+    </select>
+</mapper>

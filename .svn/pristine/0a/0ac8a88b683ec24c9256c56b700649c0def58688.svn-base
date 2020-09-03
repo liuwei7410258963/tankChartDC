@@ -1,0 +1,772 @@
+package com.oket.tankchartdc;
+
+import com.oket.common.base.Status;
+import com.oket.config.exception.CommonJsonException;
+import com.oket.dispenser.BzNozzleOut;
+import com.oket.dispenser.BzNozzleOutGroup;
+import com.oket.dispenser.NozzleOutType;
+import com.oket.dispenser.TransientOut;
+import com.oket.dispenser.service.BzNozzleOutGroupService;
+import com.oket.dispenser.service.NozzleOutService;
+import com.oket.tank4station.AbstractLevelTrace;
+import com.oket.tank4station.InventoryException;
+import com.oket.tank4station.InventoryTraceFactory;
+import com.oket.tank4station.LevelState;
+import com.oket.tank4station.entity.DbInventoryAlarm;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.tank4station.service.DbInventoryAlarmService;
+import com.oket.tank4station.service.InventoryPersistenceProcessor;
+import com.oket.tank4station.trace.DescendingTraceProcessor;
+import com.oket.tankchartdc.service.BackToTankService;
+import com.oket.tankchartdc.service.BzTraceRelOutGroupService;
+import com.oket.tankchartdc.service.MatchAlarmService;
+import com.oket.util.constants.ErrorEnum;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
+
+/**
+ * @description: 付油组处理器
+ * @author: SunBiaoLong
+ * @create: 2020-04-14 15:44
+ **/
+@Service
+@Slf4j
+@Scope(value = "singleton")
+public class NozzleOutGroupProcessor implements Observer {
+	private static final Map<Integer, List<BzNozzleOut>> NOZZLE_OUT_MAP = new ConcurrentHashMap<>();
+	private static final Map<Integer, List<AbstractLevelTrace>> LEVEL_TRACE_MAP = new ConcurrentHashMap<>();
+	@Autowired
+	private BzTraceRelOutGroupService bzTraceRelOutGroupService;
+	@Autowired
+	private InventoryPersistenceProcessor inventoryQueryProcessor;
+	@Autowired
+	private BzNozzleOutGroupService bzNozzleOutGroupService;
+
+	/**
+	 * 液位轨迹没有匹配完成的最长时间（分钟数）
+	 */
+	private static final int TRACE_MAX_NOT_MATCHED_MIN = 15;
+	/**
+	 * 液位轨迹没有匹配完成的最长时间.
+	 */
+	private static int NOZZLE_OUT_MAX_NOT_MATCHED_MILL;
+	@Autowired
+	private BackToTankService backToTankService;
+
+	@Value(value = "${nozzleOutMaxNotMatchedDay}")
+	public void setNozzleOutMaxNotMatchedMill(int nozzleOutMaxNotMatchedDay) {
+		log.info("nozzleOutMaxNotMatchedDay:{}", nozzleOutMaxNotMatchedDay);
+		NOZZLE_OUT_MAX_NOT_MATCHED_MILL = nozzleOutMaxNotMatchedDay * 24 * 60 * 60 * 1000;
+	}
+
+	@Autowired
+	private MatchAlarmService matchAlarmService;
+
+	@Autowired
+	private DbInventoryAlarmService dbInventoryAlarmService;
+	@Autowired
+	private NozzleOutService nozzleOutService;
+
+	public static Map<Integer, List<AbstractLevelTrace>> getLevelTraceMap() {
+		return LEVEL_TRACE_MAP;
+	}
+
+	/**
+	 * 检查经否能够合并
+	 */
+	public static void checkMerge(Long id) {
+		Collection<List<AbstractLevelTrace>> values = NozzleOutGroupProcessor.getLevelTraceMap().values();
+		if (!values.isEmpty()) {
+			for (List<AbstractLevelTrace> value : values) {
+				if (value != null && !value.isEmpty()) {
+					for (AbstractLevelTrace abstractLevelTrace : value) {
+						if (abstractLevelTrace.getId().equals(id)) {
+							throw new CommonJsonException(ErrorEnum.E_100001);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * 观察者模式.
+	 * 当收到信息的液位组数据的时候,查看付油组是否能够匹配
+	 *
+	 * @param o
+	 * @param arg
+	 */
+	@Override
+	public void update(Observable o, Object arg) {
+		if (o instanceof LevelTraceProcessor
+				&& arg instanceof AbstractLevelTrace) {
+			AbstractLevelTrace levelTrace = (AbstractLevelTrace) arg;
+			log.info("收到轨迹信息:" + levelTrace);
+			processTrace(levelTrace);
+		}
+	}
+
+	/**
+	 * 处理轨迹
+	 *
+	 * @param levelTrace
+	 */
+	private synchronized void processTrace(AbstractLevelTrace levelTrace) {
+		List<AbstractLevelTrace> abstractLevelTraces = getLevelTraceMap().get(levelTrace.getTankNo());
+		if (abstractLevelTraces == null) {
+			abstractLevelTraces = new CopyOnWriteArrayList<>();
+			getLevelTraceMap().put(levelTrace.getTankNo(), abstractLevelTraces);
+		}
+		abstractLevelTraces.add(levelTrace);
+		final List<BzNozzleOut> bzNozzleOuts = NOZZLE_OUT_MAP.get(levelTrace.getTankNo());
+		if (bzNozzleOuts != null && !bzNozzleOuts.isEmpty()) {
+			processNozzleOutMatch(bzNozzleOuts);
+		}
+	}
+
+	/**
+	 * 处理付油匹配
+	 *
+	 * @param bzNozzleOuts
+	 */
+	private void processNozzleOutMatch(List<BzNozzleOut> bzNozzleOuts) {
+		for (BzNozzleOut bzNozzleOut : bzNozzleOuts) {
+			final boolean processed = processNozzleOut(bzNozzleOut);
+			if (processed) {
+				bzNozzleOuts.remove(bzNozzleOut);
+			} else {
+				//判断是否超过24小时。超过了必须删除
+				long timeDiff = System.currentTimeMillis() - bzNozzleOut.getEndTime().getTime();
+				if (timeDiff > NOZZLE_OUT_MAX_NOT_MATCHED_MILL) {
+					MatchAlarm matchAlarm = new MatchAlarm();
+					matchAlarm.setTankNo(bzNozzleOut.getTankNo());
+					matchAlarm.setType(MatchAlarm.NOT_FOUND_INVENTORY_TRACE);
+					matchAlarm.setNozzleOutId(bzNozzleOut.getId());
+					matchAlarm.setStartTime(bzNozzleOut.getStartTime());
+					matchAlarm.setEndTime(bzNozzleOut.getEndTime());
+					matchAlarmService.save(matchAlarm);
+					bzNozzleOuts.remove(bzNozzleOut);
+					log.error("付油信息无法匹配:{}", bzNozzleOut);
+				}
+			}
+		}
+
+	}
+
+
+	/**
+	 * 添加付油信息到缓存中
+	 *
+	 * @param bzNozzleOut
+	 * @param bzNozzleOuts
+	 */
+	public void addOutToCache(BzNozzleOut bzNozzleOut, List<BzNozzleOut> bzNozzleOuts) {
+		bzNozzleOuts.add(bzNozzleOut);
+		bzNozzleOuts.sort((a, b) -> {
+			long gap = ((b.getStartTime().getTime() - a.getStartTime().getTime()));
+			if (gap > 0) {
+				return -1;
+			} else if (gap < 0) {
+				return 1;
+			} else {
+				return 0;
+			}
+		});
+	}
+
+
+	/**
+	 * 处理付油
+	 * 1.根据时间获取对应的液位组
+	 * 2.判断是否是需要等待(液位组可能正在执行,没有结束).
+	 * 3.匹配关系
+	 *
+	 * @param bzNozzleOut
+	 * @return
+	 */
+	public synchronized boolean processNozzleOut(BzNozzleOut bzNozzleOut) {
+		final List<AbstractLevelTrace> traceList = getLevelTraceMap().get(bzNozzleOut.getTankNo());
+		if (traceList == null || traceList.isEmpty()) {
+			return false;
+		} else {
+			log.info("循环的去匹配液位");
+			//遍历液位组去匹配
+			for (AbstractLevelTrace levelTrace : traceList) {
+				final Map<Integer, List<TransientOut>> outsMap = levelTrace.getNotMatched();
+				final List<TransientOut> transientOuts = outsMap.get(Integer.parseInt(bzNozzleOut.getNozzleNo()));
+				if (transientOuts != null && !transientOuts.isEmpty()) {
+					final Iterator<TransientOut> iterator = transientOuts.iterator();
+					boolean match = false;
+					while (iterator.hasNext()) {
+						TransientOut transientOut = iterator.next();
+						if (bzNozzleOut.getStartTime().getTime() < transientOut.getStartTime()
+								&& bzNozzleOut.getEndTime().getTime() > transientOut.getStartTime()) {
+							double diff = Math.abs(bzNozzleOut.getVolume() - transientOut.getOut());
+							double startDiff = Math.abs(bzNozzleOut.getStartTime().getTime()
+									- transientOut.getStartTime() / 1000 / 60);
+							double endDiff = Math.abs(bzNozzleOut.getEndTime().getTime()
+									- transientOut.getEndTime() / 1000 / 60);
+							match = true;
+							log.info("匹配到了:" + transientOut + ";volumeDiff:" + diff + ";startDiff:" + startDiff + ";endDiff:" + endDiff);
+							if (transientOut.isOnFueling()) {
+								log.error("加油未结束：" + transientOut);
+								List<AbstractLevelTrace> traces = null;
+								try {
+									traces = getNextTrace(bzNozzleOut, levelTrace);
+									if (traces == null) {
+										//需要继续等待
+										return false;
+									} else {
+										//多组合并
+										levelTrace.addMatchOut(bzNozzleOut);
+										traces.add(0, levelTrace);
+										for (AbstractLevelTrace trace : traces) {
+											final List<TransientOut> temp = trace.getNotMatched().get(Integer.parseInt(bzNozzleOut.getNozzleNo()));
+											//剔除匹配到付油信息
+											temp.removeIf(transientOutTemp ->
+													bzNozzleOut.getStartTime().getTime() < transientOutTemp.getStartTime()
+															&& bzNozzleOut.getEndTime().getTime() > transientOutTemp.getStartTime());
+											if (temp.isEmpty()) {
+												trace.getNotMatched().remove(Integer.parseInt(bzNozzleOut.getNozzleNo()));
+											}
+										}
+										mergeInventoryTraceInCache(traces);
+										return true;
+									}
+								} catch (Exception e) {
+									log.error(e.getMessage(), e);
+								}
+
+							}
+							levelTrace.addMatchOut(bzNozzleOut);
+							//剔除
+							iterator.remove();
+							break;
+						}
+					}
+					//判断是否匹配完成
+					if (match) {
+						if (transientOuts.isEmpty()) {
+							outsMap.remove(Integer.parseInt(bzNozzleOut.getNozzleNo()));
+							if (outsMap.isEmpty()) {
+								buildNozzleOutGroup(levelTrace);
+
+							}
+						}
+						return true;
+					}
+				}
+			}
+//			数据库处理
+			final AbstractLevelTrace lastTrace = traceList.get(traceList.size() - 1);
+			long minutes = (bzNozzleOut.getEndTime().getTime() - lastTrace.getLastLevel().getTime().getTime()) / 1000 / 60;
+			log.info("minutes1:" + minutes);
+			if (minutes > -2) {
+				//此时下一液位组可能还没有进来，bzNozzleOut存入缓存中等待。
+				return false;
+			}
+			final AbstractLevelTrace firstTrace = traceList.get(0);
+			minutes = (firstTrace.getFirstLevel().getTime().getTime() - bzNozzleOut.getEndTime().getTime()) / 1000 / 60;
+			log.info("minutes2:" + minutes);
+			if (minutes >= 0) {
+				log.info("去数据库中匹配");
+				//这样保存查询到轨迹都是来源于数据库和缓存中的轨迹数据没有冲突
+				return matchTraceFromDb(bzNozzleOut);
+			} else {
+				log.error("匹配失败，直接添加到匹配的液位组中");
+				for (AbstractLevelTrace levelTrace : traceList) {
+					if (bzNozzleOut.getEndTime().getTime() >= levelTrace.getFirstLevel().getTime().getTime()
+							&& bzNozzleOut.getStartTime().getTime() <= levelTrace.getLastLevel().getTime().getTime()) {
+						levelTrace.addMatchOut(bzNozzleOut);
+						return true;
+					}
+				}
+				//匹配失败，继续等待
+				return false;
+			}
+		}
+	}
+
+	/**
+	 * 放入缓存
+	 *
+	 * @param bzNozzleOut
+	 */
+	public void addNozzleOutToCache(BzNozzleOut bzNozzleOut) {
+		List<BzNozzleOut> bzNozzleOuts
+				= NOZZLE_OUT_MAP.computeIfAbsent(bzNozzleOut.getTankNo(), k -> new CopyOnWriteArrayList<>());
+		if (!bzNozzleOuts.isEmpty()) {
+			for (BzNozzleOut nozzleOut : bzNozzleOuts) {
+				if (nozzleOut.getId().equals(bzNozzleOut.getId())) {
+					//已经存在的不用添加到缓存
+					return;
+				}
+			}
+		}
+		addOutToCache(bzNozzleOut, bzNozzleOuts);
+	}
+
+	/**
+	 * 与数据库中的液位轨迹匹配
+	 *
+	 * @param bzNozzleOut
+	 * @return
+	 */
+	private boolean matchTraceFromDb(BzNozzleOut bzNozzleOut) {
+		final List<AbstractLevelTrace> traceFromDb = getTraceFromDb(bzNozzleOut.getTankNo(), bzNozzleOut.getStartTime(), bzNozzleOut.getEndTime());
+		if (traceFromDb == null) {
+			log.error("无法匹配，数据库中找不到对应的轨迹信息有，可能刚初始化:" + bzNozzleOut);
+			return false;
+		} else {
+			if (traceFromDb.size() == 1) {
+				final AbstractLevelTrace levelTrace = traceFromDb.get(0);
+				final BzTraceRelOutGroup byTraceId = bzTraceRelOutGroupService.getByTraceId(levelTrace.getId());
+				BzNozzleOutGroup bzNozzleOutGroup = null;
+				if (byTraceId != null) {
+					//匹配到液位组.此时的应该是付油应该是离线记录,查询关联的付油组,并进行增加付油记录
+					bzNozzleOutGroup = bzNozzleOutGroupService.getById(byTraceId.getOutGroupId());
+					bzNozzleOutGroupService.oneGroupMerge(bzNozzleOut, bzNozzleOutGroup);
+				} else {
+					//新建一个付油组
+					bzNozzleOutGroup = bzNozzleOutGroupService.buildOutGroup(Collections.singletonList(bzNozzleOut));
+					//建立关联关系
+					BzTraceRelOutGroup bzTraceRelOutGroup = new BzTraceRelOutGroup(levelTrace.toDbTrace(), bzNozzleOutGroup);
+					bzTraceRelOutGroupService.save(bzTraceRelOutGroup);
+				}
+				return true;
+			} else {
+
+				log.info("液位组来自数据库");
+				final List<Long> traceIds = traceFromDb.parallelStream().map(AbstractLevelTrace::getId).collect(Collectors.toList());
+
+				//找到对应付油组关联关系
+				final List<BzTraceRelOutGroup> byTraceIds = bzTraceRelOutGroupService.getByTraceIds(traceIds);
+				if (!byTraceIds.isEmpty()) {
+					final List<Long> outGroupIds = byTraceIds.parallelStream().map(BzTraceRelOutGroup::getOutGroupId).collect(Collectors.toList());
+					final List<BzNozzleOutGroup> bzNozzleOutGroups = new ArrayList<>(bzNozzleOutGroupService.listByIds(outGroupIds));
+					if (!bzNozzleOutGroups.isEmpty()) {
+						final BzNozzleOutGroup bzNozzleOutGroup = bzNozzleOutGroups.get(0);
+						if (bzNozzleOutGroups.size() == 1) {
+							bzNozzleOutGroupService.oneGroupMerge(bzNozzleOut, bzNozzleOutGroup);
+							//合并液位组,合并到第一个液位组
+							final List<DbInventoryTrace> dbInventoryTraces = traceFromDb.stream()
+									.map(AbstractLevelTrace::toDbTrace)
+									.collect(Collectors.toList());
+							inventoryQueryProcessor.mergeTrace(dbInventoryTraces);
+							final DbInventoryTrace dbInventoryTrace = dbInventoryTraces.get(0);
+							boolean modified = false;
+							//关联关系校验是否发生变化
+							for (BzTraceRelOutGroup byTraceId : byTraceIds) {
+								if (byTraceId.getOutGroupId().equals(bzNozzleOutGroup.getId())) {
+									if (byTraceId.getTraceId() == null || !byTraceId.getTraceId().equals(dbInventoryTrace.getId())) {
+										modified = true;
+										byTraceId.setTraceId(dbInventoryTrace.getId());
+									}
+								} else {
+									modified = true;
+									byTraceId.setStatus(Status.DISABLE);
+								}
+							}
+							if (modified) {
+								bzTraceRelOutGroupService.saveOrUpdateBatch(byTraceIds);
+							}
+						} else {
+							//合并液位组和付油组
+							//合并液位组
+							final List<DbInventoryTrace> dbInventoryTraces = traceFromDb.stream()
+									.map(AbstractLevelTrace::toDbTrace)
+									.collect(Collectors.toList());
+							inventoryQueryProcessor.mergeTrace(dbInventoryTraces);
+							final DbInventoryTrace dbInventoryTrace = dbInventoryTraces.get(0);
+
+							//合并付油组
+							bzNozzleOutGroupService.manyGroupMerge(bzNozzleOut, bzNozzleOutGroups);
+							for (BzTraceRelOutGroup next : byTraceIds) {
+								if (next.getOutGroupId().equals(bzNozzleOutGroup.getId())) {
+									next.setTraceId(dbInventoryTrace.getId());
+								} else {
+									next.setStatus(Status.DISABLE);
+								}
+							}
+							//禁用无效的关联关系
+							bzTraceRelOutGroupService.saveOrUpdateBatch(byTraceIds);
+						}
+
+					} else {
+						log.error("通过关联关系找不到对应的液位组,付油组id:" + outGroupIds);
+						return false;
+					}
+					return true;
+
+				} else {
+					//合并液位组
+					final List<DbInventoryTrace> dbInventoryTraces = traceFromDb.stream()
+							.map(AbstractLevelTrace::toDbTrace)
+							.collect(Collectors.toList());
+					inventoryQueryProcessor.mergeTrace(dbInventoryTraces);
+					final DbInventoryTrace dbInventoryTrace = dbInventoryTraces.get(0);
+					//新建一个付油组
+					final BzNozzleOutGroup bzNozzleOutGroup = bzNozzleOutGroupService.buildOutGroup(Collections.singletonList(bzNozzleOut));
+					//建立关联关系
+					BzTraceRelOutGroup bzTraceRelOutGroup = new BzTraceRelOutGroup(dbInventoryTrace, bzNozzleOutGroup);
+					bzTraceRelOutGroupService.save(bzTraceRelOutGroup);
+					return true;
+				}
+			}
+		}
+	}
+
+	/**
+	 * 长时间没有匹配处理
+	 * 1.液位组处理.结束时间距离当前时间超过24小时的,如果有已经匹配到付油,但是所有都匹配,自成一个付油组
+	 * 2.付油信息.如果液位组已经处理完成,那么付油信息在随后的处理中会自动匹配
+	 */
+	public synchronized void longTimeNoMatchProcess() {
+		//
+		log.info("定时清理数据");
+		log.info("清理前液位轨迹:" + LEVEL_TRACE_MAP);
+		if (!LEVEL_TRACE_MAP.isEmpty()) {
+			final Collection<List<AbstractLevelTrace>> values = LEVEL_TRACE_MAP.values();
+			for (List<AbstractLevelTrace> traces : values) {
+				if (!traces.isEmpty()) {
+					for (AbstractLevelTrace trace : traces) {
+						long minutes = System.currentTimeMillis() - trace.getEndLevelTime();
+						minutes = minutes / 1000 / 60;
+						if (minutes > TRACE_MAX_NOT_MATCHED_MIN) {
+							log.error("清理时间过长没有匹配的：" + trace);
+							log.error("notmatch：" + trace.getNotMatched());
+							trace.getNotMatched().forEach((a, b) -> {
+								if (!b.isEmpty()) {
+									for (TransientOut transientOut : b) {
+										//加油已经完成才可以进行匹配
+										if (!transientOut.isOnFueling()) {
+											BzNozzleOut systemAdditionNozzleOut = new BzNozzleOut();
+											systemAdditionNozzleOut.setType(NozzleOutType.SYSTEM_ADDITION);
+											systemAdditionNozzleOut.setVolume(transientOut.getOut());
+											//开始时间和结束时间向前后进行延伸
+											systemAdditionNozzleOut.setStartTime(new Date(transientOut.getStartTime() - 15 * 1000));
+											systemAdditionNozzleOut.setEndTime(new Date(transientOut.getEndTime() + 5 * 1000));
+											systemAdditionNozzleOut.setNozzleNo(transientOut.getNozzleNo() + "");
+											systemAdditionNozzleOut.setTankNo(trace.getTankNo());
+											systemAdditionNozzleOut.setPumpSum(0.0);
+											systemAdditionNozzleOut.setOilCode(trace.getFirstLevel().getOilCode());
+											systemAdditionNozzleOut.setOilName(trace.getFirstLevel().getOilName());
+											if (needAdd(systemAdditionNozzleOut)) {
+												continue;
+											}
+											nozzleOutService.save(systemAdditionNozzleOut);
+											trace.addMatchOut(systemAdditionNozzleOut);
+											log.info("系统追加付油数据:{}", systemAdditionNozzleOut);
+										}
+									}
+								}
+							});
+							final List<BzNozzleOut> matchOuts = trace.getMatchOuts();
+							if (matchOuts != null && !matchOuts.isEmpty()) {
+								buildNozzleOutGroup(trace);
+							}
+							traces.remove(trace);
+						} else {
+							break;
+						}
+					}
+				}
+			}
+		}
+		log.info("清理后液位轨迹:" + LEVEL_TRACE_MAP);
+		log.info("清理前付油信息:" + NOZZLE_OUT_MAP);
+		if (!NOZZLE_OUT_MAP.isEmpty()) {
+			processOutMap();
+		}
+		log.info("清理后付油信息:" + NOZZLE_OUT_MAP);
+		log.info("定时清理数据");
+	}
+
+	private boolean needAdd(BzNozzleOut systemAdditionNozzleOut) {
+		final List<BzNozzleOut> byTimeAndNozzleNo = nozzleOutService.getByTimeAndNozzleNo(systemAdditionNozzleOut.getNozzleNo()
+				, systemAdditionNozzleOut.getStartTime(), systemAdditionNozzleOut.getEndTime());
+		if (!byTimeAndNozzleNo.isEmpty()) {
+			for (BzNozzleOut bzNozzleOut : byTimeAndNozzleNo) {
+				double vDiff = systemAdditionNozzleOut.getVolume() - bzNozzleOut.getVolume();
+				//差异小于两升的时候
+				if (Math.abs(vDiff) < 2) {
+					//相同的付油信息,实时状态传了两笔相同的数据
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * 付油数据缓存处理
+	 */
+	private void processOutMap() {
+		final Collection<List<BzNozzleOut>> values = NOZZLE_OUT_MAP.values();
+		for (List<BzNozzleOut> bzNozzleOuts : values) {
+			if (!bzNozzleOuts.isEmpty()) {
+				processNozzleOutMatch(bzNozzleOuts);
+			}
+		}
+
+	}
+
+	/**
+	 * 获取下一个液位组
+	 *
+	 * @param bzNozzleOut
+	 * @param levelTrace
+	 * @return
+	 */
+	private List<AbstractLevelTrace> getNextTrace(BzNozzleOut bzNozzleOut,
+	                                              AbstractLevelTrace levelTrace) throws Exception {
+		AbstractLevelTrace nextTrace = null;
+		final List<AbstractLevelTrace> traceList = getLevelTraceMap().get(levelTrace.getTankNo());
+		if (traceList != null && !traceList.isEmpty()) {
+			for (AbstractLevelTrace abstractLevelTrace : traceList) {
+				if (levelTrace.getFirstLevel().getTime().getTime()
+						< abstractLevelTrace.getFirstLevel().getTime().getTime()) {
+					nextTrace = abstractLevelTrace;
+					break;
+				}
+			}
+		}
+		List<AbstractLevelTrace> target = new ArrayList<>();
+		if (nextTrace != null) {
+			//合并两个液位组
+			final Map<Integer, List<TransientOut>> notMatched = nextTrace.getNotMatched();
+			final List<TransientOut> transientOuts1 = notMatched.get(Integer.parseInt(bzNozzleOut.getNozzleNo()));
+			if (transientOuts1 == null || transientOuts1.isEmpty()) {
+				throw new Exception("下一液位组没有未匹配的付油记录1");
+			} else {
+				for (TransientOut transientOut2 : transientOuts1) {
+					if (bzNozzleOut.getStartTime().getTime() < transientOut2.getStartTime()
+							&& bzNozzleOut.getEndTime().getTime() > transientOut2.getStartTime()) {
+						if (transientOut2.isOnFueling()) {
+							List<AbstractLevelTrace> traces = null;
+							try {
+								traces = getNextTrace(bzNozzleOut, nextTrace);
+								if (traces == null) {
+									return null;
+								} else {
+									target.add(nextTrace);
+									target.addAll(traces);
+								}
+							} catch (Exception e) {
+								log.error(e.getMessage(), e);
+								target.add(nextTrace);
+							}
+						} else {
+							target.add(nextTrace);
+						}
+						return target;
+					}
+				}
+				throw new Exception("下一液位组没有未匹配的付油记录2");
+			}
+		}
+		return null;
+	}
+
+
+	/**
+	 * 构建付油组
+	 * 1.形成付油组
+	 * 2.付油组和付油建立关联关系
+	 * 3.付油组和液位组建立关联关系
+	 *
+	 * @param levelTrace
+	 */
+	private void buildNozzleOutGroup(AbstractLevelTrace levelTrace) {
+		removeTraceInCache(levelTrace);
+		final List<BzNozzleOut> matchOuts = levelTrace.getMatchOuts();
+		final BzNozzleOutGroup bzNozzleOutGroup = bzNozzleOutGroupService.buildOutGroup(matchOuts);
+		BzTraceRelOutGroup bzTraceRelOutGroup = new BzTraceRelOutGroup(levelTrace.toDbTrace(), bzNozzleOutGroup);
+		bzTraceRelOutGroupService.save(bzTraceRelOutGroup);
+		processDescAlarm(levelTrace);
+		backToTankService.process(levelTrace);
+	}
+
+	/**
+	 *
+	 * @param levelTrace
+	 */
+	private void processDescAlarm(AbstractLevelTrace levelTrace) {
+		if (levelTrace.getLevelState().equals(LevelState.LEVEL_DESCENDING)
+				&& levelTrace.getSumOut() > 0) {
+			final boolean b = DescendingTraceProcessor.checkAlarm(levelTrace);
+			if (b) {
+				final DbInventoryAlarm dbInventoryAlarm = DescendingTraceProcessor.getDbInventoryAlarm(levelTrace);
+				dbInventoryAlarmService.save(dbInventoryAlarm);
+			}
+		}
+	}
+
+	/**
+	 * 从液位组缓存中删除液位组
+	 *
+	 * @param levelTrace
+	 */
+	private void removeTraceInCache(AbstractLevelTrace levelTrace) {
+		final List<AbstractLevelTrace> abstractLevelTraces = LEVEL_TRACE_MAP.get(levelTrace.getTankNo());
+		if (abstractLevelTraces != null && !abstractLevelTraces.isEmpty()) {
+			abstractLevelTraces.removeIf(trace -> trace.getId().equals(levelTrace.getId()));
+		}
+	}
+
+
+	/**
+	 * 合并缓存中的多个液位组
+	 *
+	 * @param levelTraces
+	 */
+	private void mergeInventoryTraceInCache(List<AbstractLevelTrace> levelTraces) {
+		final AbstractLevelTrace levelTrace = levelTraces.get(0);
+		for (int i = 1; i < levelTraces.size(); i++) {
+			AbstractLevelTrace nextTrace = levelTraces.get(i);
+			//禁用轨迹
+			nextTrace.setStatus(Status.DISABLE);
+			if (!nextTrace.getNotMatched().isEmpty()) {
+				//将没有匹配到付油信息全部保存在levelTrace.getNotMatched()中
+				final Set<Map.Entry<Integer, List<TransientOut>>> entries = nextTrace.getNotMatched().entrySet();
+				final Map<Integer, List<TransientOut>> notMatched = levelTrace.getNotMatched();
+				for (Map.Entry<Integer, List<TransientOut>> entry : entries) {
+					final List<TransientOut> transientOuts = notMatched.get(entry.getKey());
+					if (transientOuts == null) {
+						//存入缓存
+						notMatched.put(entry.getKey(), entry.getValue());
+					} else {
+						transientOuts.addAll(entry.getValue());
+					}
+				}
+			}
+			if (nextTrace.getMatchOuts() != null && !nextTrace.getMatchOuts().isEmpty()) {
+				levelTrace.getMatchOuts().addAll(nextTrace.getMatchOuts());
+			}
+			levelTrace.setSumOut(levelTrace.getSumOut()+nextTrace.getSumOut());
+			//不同周期进行合并的,归属于下一周期
+			if (nextTrace.getDeliveryId() > levelTrace.getDeliveryId()) {
+				levelTrace.setDeliveryId(nextTrace.getDeliveryId());
+			}
+			levelTrace.getItemCount().addAndGet(nextTrace.getItemCount().get());
+			removeTraceInCache(nextTrace);
+			levelTrace.setLastLevel(nextTrace.getLastLevel());
+		}
+		double levelGap = levelTrace.getLastLevel().getLevel() - levelTrace.getFirstLevel().getLevel();
+		levelTrace.setLevelState(levelGap <= 0.1 ? LevelState.LEVEL_DESCENDING : LevelState.LEVEL_ASCENDING);
+		//轨迹的更新
+		inventoryQueryProcessor.saveOrUpdateTraces(levelTraces.parallelStream()
+				.map(AbstractLevelTrace::toDbTrace).collect(Collectors.toList()));
+		if (levelTrace.getNotMatched().isEmpty()) {
+			buildNozzleOutGroup(levelTrace);
+		}
+	}
+
+
+	public List<AbstractLevelTrace> getTraceFromDb(int tankNo, Date startTime, Date endTime) {
+		final List<DbInventoryTrace> traceList = inventoryQueryProcessor.getTrace(tankNo, startTime, endTime, false);
+		if (traceList == null || traceList.isEmpty()) {
+			return null;
+		} else {
+
+			List<AbstractLevelTrace> traces = new ArrayList<>();
+			final DbInventoryTrace lastTrace = traceList.get(traceList.size() - 1);
+			if (traceList.size() == 1) {
+				try {
+					AbstractLevelTrace trace = InventoryTraceFactory.getTrace(lastTrace);
+
+					trace.setInitFromDataBase(true);
+					traces.add(trace);
+				} catch (InventoryException e) {
+					log.error(e.getMessage(), e);
+				}
+				return traces;
+			}
+			for (final DbInventoryTrace dbInventoryTrace : traceList) {
+				if (traces.isEmpty()) {
+					//稳定不需要加入
+					if (!dbInventoryTrace.getLevelState().equals(LevelState.LEVEL_STABLE)) {
+						try {
+							AbstractLevelTrace trace = InventoryTraceFactory.getTrace(dbInventoryTrace);
+
+							trace.setInitFromDataBase(true);
+							traces.add(trace);
+						} catch (InventoryException e) {
+							log.error(e.getMessage(), e);
+						}
+
+					}
+				} else {
+					try {
+						AbstractLevelTrace trace = InventoryTraceFactory.getTrace(dbInventoryTrace);
+
+						trace.setInitFromDataBase(true);
+						traces.add(trace);
+					} catch (InventoryException e) {
+						log.error(e.getMessage(), e);
+					}
+				}
+			}
+			if (traces.isEmpty()) {
+				//轨迹list是空，说明全是稳定液位，直接返回最后一条液位
+				try {
+					AbstractLevelTrace trace = InventoryTraceFactory.getTrace(lastTrace);
+
+					trace.setInitFromDataBase(true);
+					traces.add(trace);
+				} catch (InventoryException e) {
+					log.error(e.getMessage(), e);
+				}
+			} else {
+				AbstractLevelTrace trace = traces.get(traces.size() - 1);
+				//删除结束为稳定的液位轨迹
+				//需要保留一个轨迹
+				while (traces.size() > 1
+						&& trace.getLevelState().equals(LevelState.LEVEL_STABLE)) {
+					traces.remove(traces.size() - 1);
+					if (traces.isEmpty()) {
+						break;
+					} else {
+						trace = traces.get(traces.size() - 1);
+					}
+				}
+
+			}
+			return traces;
+		}
+	}
+
+
+	/**
+	 * 项目初始化运行
+	 * 将未匹配的付油数据加入到缓存中
+	 */
+	@PostConstruct
+	private synchronized void init() {
+		try {
+			final List<BzNozzleOut> notMatched = nozzleOutService.getNotMatched();
+			if (notMatched != null && !notMatched.isEmpty()) {
+				log.info("未匹配的付油数据存入缓存.....:"+notMatched);
+				for (BzNozzleOut bzNozzleOut : notMatched) {
+					List<BzNozzleOut> bzNozzleOuts
+							= NOZZLE_OUT_MAP.computeIfAbsent(bzNozzleOut.getTankNo(), k -> new CopyOnWriteArrayList<>());
+					//排序
+					addOutToCache(bzNozzleOut, bzNozzleOuts);
+				}
+				log.info("未匹配的付油数据存入缓存---成功");
+			}
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+		}
+	}
+
+}

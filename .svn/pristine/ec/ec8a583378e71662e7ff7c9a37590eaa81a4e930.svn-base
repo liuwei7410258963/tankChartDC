@@ -1,0 +1,213 @@
+package com.oket.tank4station.trace;
+
+import com.oket.tank4station.*;
+import com.oket.tank4station.entity.DbInventoryAlarm;
+import com.oket.tank4station.service.DbInventoryAlarmService;
+import com.oket.tank4station.tankchart.TankChartManager;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+
+/**
+ * @description: 抽象轨迹处理器
+ * @author: SunBiaoLong
+ * @create: 2020-04-10 10:19
+ **/
+@Data
+@Slf4j
+public abstract class AbstractTraceProcessor {
+
+    /**
+     * 液位差阈值--单位毫米
+     */
+    public final static double LEVEL_UP_THRESHOLD = 0.25;
+    /**
+     * 下降的液位阈值差-单位毫米
+     */
+    public final static double LEVEL_DOWN_THRESHOLD = -0.25;
+    /**
+     * 连续性阈值。多少倍的毫米变化率
+     */
+    public final static double MAX_CONTINUITY = 1.0D;
+
+
+    /**
+     * 液位上传间隔，小于这个值不用做异常检查
+     */
+    public final static int INVENTORY_UPLOAD_SECONDS = 30;
+    /**
+     * 夜晚上传分钟间隔，超过和不超过的异常检查不同
+     */
+    public final static int INVENTORY_UPLOAD_MINUTE = 45;
+
+
+    protected TankSession tankSession;
+    /**
+     * 液位轨迹
+     */
+    protected AbstractLevelTrace trace;
+    /**
+     * 临时变量--临界点使用
+     */
+    protected AbstractLevelTrace temp;
+    /**
+     * 处理器是否启动
+     */
+    protected boolean started = false;
+    @Autowired
+    DbInventoryAlarmService dbInventoryAlarmService;
+
+    public AbstractTraceProcessor(AbstractLevelTrace trace, TankSession tankSession) {
+        this.trace = trace;
+        this.tankSession = tankSession;
+    }
+
+    /**
+     * 获取液位状态
+     *
+     * @param inventory
+     * @return
+     */
+    public abstract LevelState checkLevelState(Inventory inventory);
+
+    /**
+     * 检查时间
+     *
+     * @param inventory
+     * @return
+     * @throws InventoryException
+     */
+    public boolean checkTime(Inventory inventory) throws InventoryException {
+        if (inventory != null && inventory.getTime() != null) {
+            if (trace.getLastLevel() != null) {
+//                毫秒不计入
+                if (trace.getLastLevel().getTime().getTime()/1000>= inventory.getTime().getTime()/1000) {
+                    throw new InventoryException("无效的液位时间，小于等于前一笔液位时间，last：" + trace.getLastLevel().getTime().toLocaleString()
+                            + ";inv:" + inventory.getTime().toLocaleString());
+                }
+            } else {
+                //                毫秒不计入
+                if (trace.getFirstLevel().getTime().getTime()/1000 >= inventory.getTime().getTime()/1000) {
+                    throw new InventoryException("无效的液位时间，小于等于第一笔液位时间,first：" + trace.getFirstLevel().getTime().toLocaleString()
+                            + ";inv:" + inventory.getTime().toLocaleString());
+                }
+            }
+        } else {
+            throw new InventoryException("无效的罐存:" + inventory);
+        }
+        return true;
+    }
+
+    /**
+     * 检查连续性
+     * |SumFV-sumV|<=3Δmv
+     *
+     * @param lastTankInventory
+     * @param currentTankInventory
+     * @return
+     */
+    public boolean checkContinuity(TankInventory lastTankInventory, TankInventory currentTankInventory) {
+        if (lastTankInventory != null && currentTankInventory != null) {
+            double diff = Math.abs(trace.getSumNozzleOut()
+                    - Math.abs(currentTankInventory.getVolume() - currentTankInventory.getVolume()));
+            double mmChangeRate =
+                    TankChartManager.mmChangeRate(
+                            lastTankInventory
+                            , currentTankInventory);
+            if (diff <= MAX_CONTINUITY * mmChangeRate) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean check(TankInventory currentTankInventory) {
+        if (trace.getLevelState().equals(LevelState.NEW)) {
+            return false;
+        }
+
+        TankInventory lastTankInventory = trace.getLastLevel();
+
+        long min = currentTankInventory.getTime().getTime() - lastTankInventory.getTime().getTime();
+        min = min / 1000 / 60;
+        if (min < 45) {
+            final boolean continuity = checkContinuity(trace.getFirstLevel(), currentTankInventory);
+            if (!continuity) {
+                //保存上一笔异常记录
+                saveInventoryAlarm(lastTankInventory, currentTankInventory);
+                //创建新的轨迹
+                return true;
+            }
+        } else {
+            if (currentTankInventory.getLevel() < lastTankInventory.getLevel()) {
+                checkContinuity(lastTankInventory, currentTankInventory);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 保存上一笔异常记录
+     */
+    public void saveInventoryAlarm(TankInventory lastTankInventory, TankInventory currentTankInventory) {
+        log.error("不连续");
+        DbInventoryAlarm dbInventoryAlarm = new DbInventoryAlarm();
+        dbInventoryAlarm.init((Inventory) lastTankInventory);
+        dbInventoryAlarm.setType(DbInventoryAlarm.NOT_CONTINUITY);
+        dbInventoryAlarm.setEndAlarm((Inventory) currentTankInventory);
+        tankSession.addAlarmToNeedPersistence(dbInventoryAlarm);
+    }
+
+    /**
+     * 获取液位状态
+     *
+     * @param levelGap
+     * @return
+     */
+    public static LevelState checkLevelState(double levelGap) {
+        log.debug("变化量：" + levelGap);
+        if (levelGap < LEVEL_DOWN_THRESHOLD) {
+            //
+            return LevelState.LEVEL_DESCENDING;
+        } else if (levelGap > LEVEL_UP_THRESHOLD) {
+            return LevelState.LEVEL_ASCENDING;
+        } else {
+            return LevelState.LEVEL_STABLE;
+        }
+    }
+
+    /**
+     * 开始新的轨迹
+     *
+     * @param inventory
+     * @throws InventoryException
+     */
+    public void start(Inventory inventory) throws InventoryException {
+        trace.addInventory(inventory);
+        started = true;
+        tankSession.addInventoryToNeedPersistence(inventory, true);
+        tankSession.addTraceToNeedPersistence(trace);
+    }
+
+    /**
+     * 正在进行中处理
+     */
+    public void processing(Inventory inventory) throws InventoryException {
+        trace.addInventory(inventory);
+        tankSession.addInventoryToNeedPersistence(inventory, false);
+    }
+
+    /**
+     * 结束轨迹处理
+     *
+     * @throws InventoryException
+     */
+    public void closed() throws InventoryException {
+        trace.end();
+        tankSession.addTraceToNeedPersistence(trace);
+    }
+
+}

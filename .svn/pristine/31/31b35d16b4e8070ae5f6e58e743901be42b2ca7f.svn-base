@@ -1,0 +1,145 @@
+package com.oket.tankchartdc;
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.oket.common.base.BaseEntity;
+import com.oket.common.base.Status;
+import com.oket.dispenser.BzNozzleOutGroup;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.util.DoubleUtils;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+
+import javax.validation.constraints.NotNull;
+
+/**
+ * @description: 液位轨迹和付油组合
+ * @author: SunBiaoLong
+ * @create: 2020-04-14 13:51
+ **/
+@EqualsAndHashCode(callSuper = true)
+@TableName(value = "bz_trace_rel_out_group")
+@Data
+@NoArgsConstructor
+public class BzTraceRelOutGroup extends BaseEntity {
+	private Integer tankNo;
+	/**
+	 * 液位轨迹id
+	 */
+	private Long traceId;
+	/**
+	 * 付油组id
+	 */
+	private Long outGroupId;
+	/**
+	 * 是否需要确认
+	 */
+	private boolean needConfirm = false;
+	@TableField(exist = false)
+	private String needConfirmDesc;
+	/**
+	 * 体积差值--付油组减去液位轨迹
+	 */
+	@TableField(exist = false)
+	private double volumeDiff = 0.0D;
+	/**
+	 * 开始时间差值--付油组减去液位轨迹
+	 */
+	@TableField(exist = false)
+	private long startDiff = 0;
+	/**
+	 * 结束时间差值--付油组减去液位轨迹
+	 */
+	@TableField(exist = false)
+	private long endDiff = 0;
+	private Status status = Status.ENABLE;
+	@TableField(exist = false)
+	private DbInventoryTrace trace;
+	@TableField(exist = false)
+	private BzNozzleOutGroup outGroup;
+	/**
+	 * 油品膨胀率
+	 */
+	@TableField(exist = false)
+	private double oilExpansionRate;
+
+	public BzTraceRelOutGroup(DbInventoryTrace trace, @NotNull BzNozzleOutGroup outGroup) {
+		this.trace = trace;
+		this.outGroup = outGroup;
+		this.outGroupId = outGroup.getId();
+		this.tankNo = outGroup.getTankNo();
+		if (trace != null) {
+			this.traceId = trace.getId();
+			this.volumeDiff = trace.getVolume() - outGroup.getVolume();
+			this.startDiff = (trace.getStartTime().getTime() - outGroup.getStartTime().getTime()) / 1000 / 60;
+			this.endDiff = (trace.getEndTime().getTime() - outGroup.getEndTime().getTime()) / 1000 / 60;
+		}
+	}
+
+	/**
+	 * 获取体积差值
+	 *
+	 * @return
+	 */
+	public double getVolumeDiff() {
+		if (trace != null && outGroup != null) {
+			return DoubleUtils.round(trace.getVolume() - outGroup.getVolume(),3);
+		}
+		return volumeDiff;
+	}
+
+	/**
+	 * 获取开始差值
+	 *
+	 * @return
+	 */
+	public long getStartDiff() {
+		if (trace != null && outGroup != null) {
+			return (trace.getStartTime().getTime() - outGroup.getStartTime().getTime()) / 1000 / 60;
+		}
+		return startDiff;
+	}
+
+	/**
+	 * 获取结束差值
+	 *
+	 * @return
+	 */
+	public long getEndDiff() {
+		if (trace != null && outGroup != null) {
+			return (trace.getEndTime().getTime() - outGroup.getEndTime().getTime()) / 1000 / 60;
+		}
+		return endDiff;
+	}
+
+	public String getNeedConfirmDesc() {
+		if (needConfirm) {
+			return "是";
+		} else {
+			return "否";
+		}
+	}
+
+	/**
+	 * 液位变化量
+	 */
+	@TableField(exist = false)
+	private Double leaveReduce;
+
+	/**
+	 *体积变化率
+	 */
+	@TableField(exist = false)
+	private Double volumeReduce;
+
+	public Double getLeaveReduce() {
+		return DoubleUtils.sub(trace.getEndLevel(),trace.getStartLevel(),2);
+
+	}
+
+	public Double getVolumeReduce() {
+		return DoubleUtils.sub(trace.getEndVolume(),trace.getStartVolume(),2);
+	}
+
+}

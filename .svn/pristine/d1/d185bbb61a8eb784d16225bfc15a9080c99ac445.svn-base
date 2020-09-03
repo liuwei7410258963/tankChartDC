@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.station.dao.LocationDao">
+    <insert id="saveOrUpdate">
+        insert into address_location
+        (station_id, detail_info, version, update_time, location)
+        values (#{stationId},#{detailInfo},#{version},#{updateTime},#{location})
+        ON DUPLICATE KEY
+        UPDATE update_time=#{updateTime},location = #{location}
+    </insert>
+</mapper>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.delivery.dao.DeliveryConfirmDao">
+	<resultMap id="confirm" type="com.oket.delivery.VoConfirm">
+		<result property="id" column="id"/>
+		<result property="flag" column="flag"/>
+		<collection property="bzDelivery" ofType="com.oket.delivery.BzDelivery">
+			<result property="tankNo" column="tank_no"/>
+			<result property="volume" column="volume"/>
+			<result property="deliveryNo" column="DELIVERY_NO"/>
+			<result property="oilCode" column="OIL_CODE"/>
+			<result property="oilName" column="OIL_NAME"/>
+			<result property="reportStartTime" column="REPORT_START_TIME"/>
+			<result property="reportEndTime" column="REPORT_END_TIME"/>
+			<result property="auditorTime" column="auditor_time"/>
+			<result property="loss" column="LOSS"/>
+			<result property="auditor" column="AUDITOR"/>
+			<result property="deliveryType" column="DELIVERY_TYPE"/>
+			<result property="nozzleOut" column="NOZZLE_OUT"/>
+			<result property="stockVolume" column="STOCK_VOLUME"/>
+			<association property="startInventory" resultMap="inventoryS" javaType="com.oket.tank4station.Inventory">
+			</association>
+			<association property="endInventory" resultMap="inventoryE" javaType="com.oket.tank4station.Inventory">
+			</association>
+		</collection>
+
+		<collection property="dbInventoryCycle" ofType="com.oket.tankchartdc.DbInventoryCycle">
+			<result property="startTime" column="cycleStartTime"/>
+			<result property="oilCode" column="OIL_CODE"/>
+			<result property="unloadFinishedTime" column="unload_finished_time"/>
+			<result property="startVolume" column="start_volume"/>
+			<result property="unloadFinishedVolume" column="unload_finished_volume"/>
+			<result property="startLevel" column="start_level"/>
+			<result property="startTemperature" column="start_temperature"/>
+			<result property="unloadFinishedTemperature" column="unload_finished_temperature"/>
+			<result property="unloadFinishedLevel" column="unload_finished_level"/>
+			<result property="startWaterLevel" column="start_water_level"/>
+			<result property="startWaterVolume" column="start_water_volume"/>
+			<result property="unloadFinishedWaterLevel" column="unload_finished_water_level"/>
+			<result property="unloadFinishedWaterVolume" column="unload_finished_water_volume"/>
+			<result property="unloadVolume" column="unload_volume"/>
+			<result property="nozzleOutWhenDelivery" column="nozzle_out_when_delivery"/>
+			<result property="cycleState" column="cycle_state"/>
+		</collection>
+	</resultMap>
+	<resultMap id="inventoryS" type="com.oket.tank4station.Inventory">
+		<result property="level" column="inventory_start_level"/>
+		<result property="oilCode" column="OIL_CODE"/>
+		<result property="volume" column="inventory_start_volume"/>
+		<result property="temperature" column="inventory_start_temperature"/>
+		<result property="waterLevel" column="inventory_start_water_level"/>
+		<result property="waterVolume" column="inventory_start_water_volume"/>
+	</resultMap>
+	<resultMap id="inventoryE" type="com.oket.tank4station.Inventory">
+		<result property="level" column="inventory_end_level"/>
+		<result property="oilCode" column="OIL_CODE"/>
+		<result property="volume" column="inventory_end_volume"/>
+		<result property="temperature" column="inventory_end_temperature"/>
+		<result property="waterLevel" column="inventory_end_water_level"/>
+		<result property="waterVolume" column="inventory_end_water_volume"/>
+	</resultMap>
+	<select id="selectDeliveryConfirm" resultMap="confirm">
+		SELECT
+		c.id,
+		c.tank_no,
+		max( a.id) as id,
+		max( a.flag) as flag,
+		max( b.AUDITOR_TIME) as AUDITOR_TIME,
+		sum( b.volume) as volume,
+		max( b.DELIVERY_NO) as DELIVERY_NO,
+		max( b.OIL_CODE) as OIL_CODE,
+		max( b.OIL_NAME) as OIL_NAME,
+		min( b.REPORT_START_TIME) as REPORT_START_TIME,
+		max( b.REPORT_END_TIME) as REPORT_END_TIME,
+		sum( b.LOSS) as LOSS,
+		max( b.AUDITOR) as AUDITOR,
+		max( b.DELIVERY_TYPE) as DELIVERY_TYPE,
+		sum( b.NOZZLE_OUT) as NOZZLE_OUT,
+		sum( b.STOCK_VOLUME) as STOCK_VOLUME,
+		min( c.start_time )AS cycleStartTime,
+		min( c.start_volume) as start_volume,
+		min( c.start_level) as start_level,
+		min( c.start_water_level) as start_water_level,
+		min( c.start_water_volume) as start_water_volume,
+		min( c.start_temperature) as start_temperature,
+		max( c.unload_state) as unload_state,
+		max( c.unload_volume) as unload_volume,
+		max( c.unload_finished_time) as unload_finished_time,
+		max( c.unload_finished_level) as unload_finished_level,
+		max( c.unload_finished_volume) as unload_finished_volume,
+		max( c.unload_finished_temperature) as unload_finished_temperature,
+		max( c.nozzle_out_when_delivery) as nozzle_out_when_delivery,
+		max( c.unload_finished_water_level) as unload_finished_water_level,
+		max( c.unload_finished_water_volume) as unload_finished_water_volume,
+		min( d.level )as inventory_start_level,
+		min( d.volume )as inventory_start_volume,
+		min( d.temperature )as inventory_start_temperature,
+		min( d.water_level )as inventory_start_water_level,
+		min( d.water_volume )as inventory_start_water_volume,
+
+		max( e.level )as inventory_end_level,
+		max( e.volume )as inventory_end_volume,
+		max( e.temperature )as inventory_end_temperature,
+		max( e.water_level )as inventory_end_water_level,
+		max( e.water_volume )as inventory_end_water_volume
+
+		FROM bz_delivery_confirm a
+		LEFT JOIN bz_delivery b ON a.delivery_id = b.id
+		LEFT JOIN db_inventory_cycle c ON a.cycle_id = c.id
+		left join db_inventory d on b.start_inventory_id=d.id
+		left join db_inventory e on b.end_inventory_id=e.id
+		WHERE 1=1
+		<if test="startTime!=null">
+			AND b.REPORT_START_TIME &gt;= #{startTime}
+		</if>
+		<if test="endTime!=null">
+			AND b.REPORT_END_TIME &lt;= #{endTime}
+		</if>
+		<if test="tankNo!=null">
+			AND b.tank_no = #{tankNo}
+		</if>
+		group by c.id, c.tank_no
+		ORDER BY max(b.REPORT_START_TIME )DESC
+		<if test="offSet!=null and pageRow!=null ">
+			LIMIT #{offSet}, #{pageRow}
+		</if>
+	</select>
+	<select id="coutDeliveryConfirm" resultType="java.lang.Integer">
+		select count(*) from (
+			SELECT count(*)
+			FROM bz_delivery_confirm a
+			LEFT JOIN bz_delivery b ON a.delivery_id = b.id
+			LEFT JOIN db_inventory_cycle c ON a.cycle_id = c.id
+			WHERE 1=1
+			<if test="startTime!=null">
+				AND b.REPORT_START_TIME &gt;= #{startTime}
+			</if>
+			<if test="endTime!=null">
+				AND b.REPORT_END_TIME &lt;= #{endTime}
+			</if>
+			<if test="tankNo!=null">
+				AND b.tank_no = #{tankNo}
+			</if>
+			group by c.id, c.tank_no
+		)a
+	</select>
+</mapper>

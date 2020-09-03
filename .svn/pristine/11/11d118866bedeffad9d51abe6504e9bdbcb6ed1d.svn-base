@@ -1,0 +1,128 @@
+package com.oket.tank4station;
+
+import com.google.common.util.concurrent.Service;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.oket.dispenser.NozzleState;
+import com.oket.station.bizservice.BalanceService;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.Map;
+import java.util.concurrent.*;
+
+import static com.oket.tank4station.trace.AbstractTraceProcessor.ERROR_NUM;
+import static com.oket.tank4station.trace.AbstractTraceProcessor.errorMap;
+
+/**
+ * @description: 罐存消费者
+ * @author: SunBiaoLong
+ * @create: 2019-04-02 20:42
+ **/
+
+@Slf4j
+public class InventoryConsumer {
+	/**
+	 * 实时数据阻塞队列
+	 */
+	private final static BlockingQueue<Object> REALTIME_DATA_BLOCKING_QUEUE = new LinkedBlockingDeque<>(10);
+
+	private final Map<Integer, NozzleState> map = new ConcurrentHashMap<>();
+
+
+	ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+			.setNameFormat("InvConsumer-%d").build();
+
+
+	private ScheduledThreadPoolExecutor scheduled = new ScheduledThreadPoolExecutor(1, namedThreadFactory);
+
+	@Setter
+	@Getter
+	private BalanceService balanceService;
+
+	public InventoryConsumer(BalanceService balanceService) {
+		this.balanceService = balanceService;
+	}
+
+	/**
+	 * @return
+	 */
+	public static BlockingQueue<Object> getRealtimeDataBlockingQueue() {
+		return REALTIME_DATA_BLOCKING_QUEUE;
+	}
+
+
+	/**
+	 * 消费者定时器
+	 */
+	public void realtimeDataConsume() {
+		scheduled.scheduleAtFixedRate(() -> {
+					try {
+						//有数据时直接从队列的队首取走，无数据时阻塞，在2s内有数据，取走，超过2s还没数据，返回失败
+						Object data = REALTIME_DATA_BLOCKING_QUEUE.poll(2, TimeUnit.SECONDS);
+						while (null != data) {
+							if (data instanceof Inventory) {
+								balanceService.receiveTankInventoryMessage((TankInventory) data);
+							} else if (data instanceof NozzleState) {
+								NozzleState nozzleState = (NozzleState) data;
+								NozzleState nozzleStateFromCache = map.get(nozzleState.getNozzleNo());
+								if (nozzleStateFromCache != null) {
+									//付油动作应该是这样的：开始付油、付油中、（付油暂停，可选）、结束（空闲）
+									//判断是否不在付油
+									if (nozzleState.getCurrentState().equals(NozzleState.State.STARTED)
+											|| nozzleState.getCurrentState().equals(NozzleState.State.AUTHORIZED)) {
+										nozzleStateFromCache.setStart(true);
+									} else
+										//再加油？
+										if (!nozzleState.stateIsOnFueling()) {
+											//或者当前的油枪空闲了
+											if (nozzleState.getCurrentState().equals(NozzleState.State.IDLE)
+													|| nozzleState.getCurrentState().equals(NozzleState.State.CLOSE)
+													|| nozzleState.getCurrentState().equals(NozzleState.State.INOPERATIVE)) {
+												nozzleStateFromCache.setStart(false);
+											}
+										}
+									log.info("收到付油:{}", nozzleStateFromCache);
+									nozzleStateFromCache.setCurrentState(nozzleState.getCurrentState());
+									nozzleStateFromCache.setTime(nozzleState.getTime());
+									nozzleStateFromCache.setLastAmount(nozzleState.getLastAmount());
+									nozzleStateFromCache.setTransientAmountList(nozzleState.getTransientAmountList());
+
+								} else {
+									if (nozzleState.stateIsOnFueling()
+											|| nozzleState.getCurrentState().equals(NozzleState.State.STARTED)) {
+										nozzleState.setStart(true);
+									}
+									map.put(nozzleState.getNozzleNo(), nozzleState);
+									nozzleStateFromCache = nozzleState;
+								}
+								balanceService.nozzleStateChanged(nozzleStateFromCache);
+							}
+							data = REALTIME_DATA_BLOCKING_QUEUE.poll(2, TimeUnit.SECONDS);
+						}
+					} catch (Exception e) {
+						log.error(e.getMessage(), e);
+					}
+				},
+				//18 * 1000表示首次执行任务的延迟时间，40表示每次执行任务的间隔时间，TimeUnit.MILLISECONDS执行的时间间隔数值单位
+				19 * 1000, 50, TimeUnit.MILLISECONDS);
+	}
+
+
+	/**
+	 * 每24小时清一次没达到阈值的errormap
+	 */
+	public void removeErrorMap() {
+		scheduled.scheduleAtFixedRate(() -> {
+					if(errorMap.size()>0) {
+						for (Map.Entry<Integer, Integer> m : errorMap.entrySet()) {
+							if (m.getValue() < ERROR_NUM) {
+								m.setValue(0);
+							}
+						}
+					}
+				},
+				//每24小时清一次
+				24, 24, TimeUnit.HOURS);
+	}
+}

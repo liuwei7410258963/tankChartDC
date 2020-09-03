@@ -1,0 +1,366 @@
+package com.oket.delivery.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.oket.config.exception.CommonJsonException;
+import com.oket.delivery.BzDelivery;
+import com.oket.delivery.DeliveryConfirm;
+import com.oket.delivery.dao.DeliveryDAO;
+import com.oket.delivery.service.DeliveryConfirmService;
+import com.oket.delivery.service.DeliveryService;
+import com.oket.device.TankInfo;
+import com.oket.device.service.TankInfoService;
+import com.oket.oil.OilEntity;
+import com.oket.oil.service.OilService;
+import com.oket.tank4station.dao.DbInventorCycleDAO;
+import com.oket.tank4station.entity.DbInventory;
+import com.oket.tank4station.service.DbInventoryService;
+import com.oket.tank4station.websocket.BizWebSocketServer;
+import com.oket.tankchartdc.DbInventoryCycle;
+import com.oket.tankchartdc.service.DbInventoryCycleService;
+import com.oket.util.CommonUtil;
+import com.oket.util.TimeUtils;
+import com.oket.util.constants.ErrorEnum;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+
+import static java.util.stream.Collectors.toList;
+
+/**
+ * 〈一句话功能简述〉<br>
+ * 〈卸油业务service实现类〉
+ *
+ * @author sunbiaolong
+ * @create 2019/3/14
+ * @since 1.0.0
+ */
+@Service
+@Slf4j
+public class DeliveryServiceImpl extends ServiceImpl<DeliveryDAO, BzDelivery> implements DeliveryService {
+	@Autowired
+	private OilService oilService;
+	@Autowired
+	private DeliveryConfirmService deliveryConfirmService;
+	@Autowired
+	private DbInventoryCycleService dbInventoryCycleService;
+	@Autowired
+	private DbInventoryService dbInventoryService;
+	@Autowired
+	private TankInfoService tankInfoService;
+	@Resource
+	BizWebSocketServer bizWebSocketServer;
+
+	@Override
+	public IPage<BzDelivery> query(JSONObject req, boolean isPage) {
+		IPage<BzDelivery> page = new Page<>(req.getIntValue("pageNum"), req.getIntValue("pageRow"));
+		QueryWrapper<BzDelivery> wrapper = new QueryWrapper<>();
+		if (req.getInteger("tankNo") != null) {
+			wrapper.lambda().eq(BzDelivery::getTankNo, req.getInteger("tankNo"));
+		}
+		if (req.getString("oilCode") != null) {
+			wrapper.lambda().eq(BzDelivery::getOilCode, req.getInteger("oilCode"));
+		}
+		//如果是监控中心，需要查询出日期条件内的和所有endtime为空的
+		if (req.getBoolean("ishomepage") != null && req.getBoolean("ishomepage") == true) {
+			//查询条件
+			if (req.getString("startTime") != null && req.getString("endTime") != null) {
+				wrapper.apply("(REPORT_START_TIME >='" + req.getString("startTime") + "' and REPORT_END_TIME<='" + req.getString("endTime") + "') or (REPORT_START_TIME is not NULL and REPORT_END_TIME is NULL)");
+			}
+			wrapper.ne("tank_no",0);
+			wrapper.orderByDesc("REPORT_START_TIME");
+			final List<BzDelivery> bzDeliveries = baseMapper.selectList(wrapper);
+
+			List<BzDelivery> result;
+			result = bzDeliveries.stream().filter(x->x.getEndTime()==null)
+					.sorted(Comparator.comparing(BzDelivery::getStartTime).reversed())
+					.collect(toList());
+			List<BzDelivery> temp = bzDeliveries.stream().filter(x->x.getEndTime()!=null).sorted(Comparator.comparing(BzDelivery::getEndTime).reversed()).collect(toList());
+			result.addAll(temp);
+			page.setRecords(result);
+			return page;
+		}
+		wrapper.orderByDesc("REPORT_START_TIME");
+		//分页
+		if (req.getBoolean("flag") == true) {
+			//查卸油记录
+			if(req.getIntValue("type")==1){
+				if (req.get("startTime") != null && req.get("endTime") != null) {
+					try {
+						wrapper.lambda()
+								.ge(BzDelivery::getReportStartTime,
+										TimeUtils.parseToSecond(req.getString("startTime")))
+								.le(BzDelivery::getReportEndTime,
+										TimeUtils.parseToSecond(req.getString("endTime")));
+					} catch (ParseException e) {
+						log.error("解析时间失败", e);
+						throw new CommonJsonException(ErrorEnum.E_70015);
+					}
+				}
+				return baseMapper.selectPage(page, wrapper);
+			}
+			//查配送报警
+			else{
+				wrapper.lambda().eq(BzDelivery::getTankNo, 0);
+				if (req.get("startTime") != null && req.get("endTime") != null) {
+					try {
+						wrapper.lambda()
+								.ge(BzDelivery::getReceiveTime,
+										TimeUtils.parseToSecond(req.getString("startTime")))
+								.le(BzDelivery::getReceiveTime,
+										TimeUtils.parseToSecond(req.getString("endTime")));
+					} catch (ParseException e) {
+						log.error("解析时间失败", e);
+						throw new CommonJsonException(ErrorEnum.E_70015);
+					}
+				}
+				return baseMapper.selectPage(page, wrapper);
+			}
+		}
+		//导出
+		else {
+			//查卸油记录
+			if(req.getIntValue("type")==1) {
+				if (req.getString("startTime") != null && req.getString("endTime") != null) {
+					wrapper.lambda().ge(BzDelivery::getReportStartTime, req.getString("startTime"));
+					wrapper.apply("(REPORT_END_TIME<='" + req.getString("endTime") + "' or REPORT_END_TIME is NULL)");
+				}
+				final List<BzDelivery> bzDeliveries = baseMapper.selectList(wrapper);
+				page.setRecords(bzDeliveries);
+				return page;
+			}
+			//查配送报警
+			else{
+				wrapper.lambda().eq(BzDelivery::getTankNo, 0);
+				if (req.getString("startTime") != null && req.getString("endTime") != null) {
+					wrapper.lambda().ge(BzDelivery::getReceiveTime, req.getString("startTime"));
+					wrapper.lambda().le(BzDelivery::getReceiveTime, req.getString("endTime"));
+				}
+				final List<BzDelivery> bzDeliveries = baseMapper.selectList(wrapper);
+				page.setRecords(bzDeliveries);
+				return page;
+			}
+		}
+	}
+
+
+	@Override
+	public void processDelivery(BzDelivery bzDelivery) {
+		if (bzDelivery == null || bzDelivery.getDeliveryNo() == null) {
+			log.error("无效卸油数据:" + (bzDelivery != null ? bzDelivery.toString() : "卸油数据为空"));
+			return;
+		}
+		if (bzDelivery.getReceiveDataType() == BzDelivery.ALARM_DATA_TYPE) {
+			saveLossData(bzDelivery);
+			return;
+		}
+		final BzDelivery deliveryFromDB = getDeliveryByNo(bzDelivery.getDeliveryNo(),bzDelivery.getTankNo());
+		if (deliveryFromDB == null) {
+			if (bzDelivery.getReceiveDataType() == BzDelivery.NOZZLE_OUT_DATA_TYPE) {
+				matchInventory(bzDelivery);
+			}
+			setOilCodeAndName(bzDelivery);
+			baseMapper.insert(bzDelivery);
+			if (bzDelivery.getReportStartTime() != null && bzDelivery.getReportEndTime() != null) {
+				saveConfirm(bzDelivery);
+				bizWebSocketServer.sendMessage2(bzDelivery);
+			}
+		} else {
+			if (bzDelivery.getReceiveDataType() == BzDelivery.AUDIT_DATA_TYPE) {
+				saveAuditData(bzDelivery, deliveryFromDB);
+			} else if (bzDelivery.getReceiveDataType() == BzDelivery.NOZZLE_OUT_DATA_TYPE) {
+				saveNozzleOutData(bzDelivery, deliveryFromDB);
+				matchInventory(deliveryFromDB);
+				bizWebSocketServer.sendMessage2(deliveryFromDB);
+			}
+			baseMapper.updateById(deliveryFromDB);
+			if (deliveryFromDB.getReportStartTime() != null && bzDelivery.getReportEndTime() != null) {
+				final List<DeliveryConfirm> confirm = deliveryConfirmService.getConfirm(deliveryFromDB.getId());
+				if (confirm == null || confirm.isEmpty()) {
+					saveConfirm(deliveryFromDB);
+				}
+			}
+		}
+	}
+
+	/**
+	 * 开始卸油结束卸油匹配罐存
+	 *
+	 * @param bzDelivery
+	 */
+	private void matchInventory(BzDelivery bzDelivery) {
+		bzDelivery.setStartInventoryId(getInventoryId(bzDelivery.getTankNo(), bzDelivery.getReportStartTime()));
+		bzDelivery.setEndInventoryId(getInventoryId(bzDelivery.getTankNo(), bzDelivery.getReportEndTime()));
+	}
+
+	/**
+	 * 获取罐存id
+	 *
+	 * @param tankNo
+	 * @param time
+	 * @return
+	 */
+	private Long getInventoryId(int tankNo, Date time) {
+		Long id;
+		DbInventory dbInventoryS = dbInventoryService.getBeforeInventory(tankNo, time);
+		DbInventory dbInventoryE = dbInventoryService.getAfterInventory(tankNo, time);
+		if (dbInventoryS != null) {
+			if (dbInventoryE != null) {
+				long diff = Math.abs(time.getTime() - dbInventoryS.getTime().getTime());
+				long diff2 = Math.abs(time.getTime() - dbInventoryE.getTime().getTime());
+				id = (diff < diff2) ? dbInventoryS.getId() : dbInventoryE.getId();
+			} else {
+				id = dbInventoryS.getId();
+			}
+		} else {
+			return null;
+		}
+		return id;
+	}
+
+	/**
+	 * 保存
+	 *
+	 * @param deliveryFromDB
+	 */
+	private void saveConfirm(BzDelivery deliveryFromDB) {
+		//查询卸油周期卸油数据
+		List<DbInventoryCycle> dbInventoryCycleLists
+				= dbInventoryCycleService.getCycle(deliveryFromDB.getTankNo()
+				, deliveryFromDB.getReportStartTime(), deliveryFromDB.getReportEndTime());
+		if (!dbInventoryCycleLists.isEmpty()) {
+			//保存需确认数据入库
+			DeliveryConfirm deliveryConfirm = new DeliveryConfirm();
+			deliveryConfirm.setDeliveryId(deliveryFromDB.getId());
+			deliveryConfirm.setCycleId(dbInventoryCycleLists.get(0).getId());
+			deliveryConfirm.setFlag(false);
+			deliveryConfirmService.save(deliveryConfirm);
+		}
+
+	}
+
+
+	/**
+	 * 根据卸油单号获取卸油信息
+	 *
+	 * @param deliveryNo
+	 * @return
+	 */
+	private BzDelivery getDeliveryByNo(String deliveryNo,int tankNo) {
+		if (StringUtils.isBlank(deliveryNo)) {
+			return null;
+		}
+		QueryWrapper<BzDelivery> wrapper = new QueryWrapper<>();
+		wrapper.lambda().eq(BzDelivery::getDeliveryNo, deliveryNo);
+		wrapper.lambda().eq(BzDelivery::getTankNo, tankNo);
+		wrapper.last("LIMIT 1");
+		return baseMapper.selectOne(wrapper);
+	}
+	/**
+	 * 根据卸油单号获取配送报警信息
+	 *
+	 * @param deliveryNo
+	 * @return
+	 */
+	private BzDelivery 	getLossDelivery(String deliveryNo) {
+		if (StringUtils.isBlank(deliveryNo)) {
+			return null;
+		}
+		QueryWrapper<BzDelivery> wrapper = new QueryWrapper<>();
+		wrapper.lambda().eq(BzDelivery::getDeliveryNo, deliveryNo);
+		wrapper.lambda().eq(BzDelivery::getTankNo, 0);
+		return baseMapper.selectOne(wrapper);
+	}
+
+	/**
+	 * 保存加油机付出数
+	 *
+	 * @param bzDelivery
+	 * @param deliveryFromDB
+	 */
+	private void saveNozzleOutData(BzDelivery bzDelivery, BzDelivery deliveryFromDB) {
+		deliveryFromDB.setReportStartTime(bzDelivery.getStartTime());
+		deliveryFromDB.setReportEndTime(bzDelivery.getEndTime());
+		deliveryFromDB.setNozzleOut(bzDelivery.getNozzleOut());
+		deliveryFromDB.setTankNo(bzDelivery.getTankNo());
+		setOilCodeAndName(deliveryFromDB);
+	}
+
+	/**
+	 * 保存审核数据
+	 *
+	 * @param bzDelivery
+	 * @param deliveryFromDB
+	 */
+	private void saveAuditData(BzDelivery bzDelivery, BzDelivery deliveryFromDB) {
+		deliveryFromDB.setAuditor(bzDelivery.getAuditor());
+		deliveryFromDB.setAuditorTime(bzDelivery.getAuditorTime());
+		deliveryFromDB.setVolume(bzDelivery.getVolume());
+		deliveryFromDB.setReceiveTime(bzDelivery.getReceiveTime());
+		deliveryFromDB.setDeliveryType(bzDelivery.getDeliveryType());
+		deliveryFromDB.setTankNo(bzDelivery.getTankNo());
+		deliveryFromDB.setOilCode(bzDelivery.getOilCode());
+		setOilCodeAndName( deliveryFromDB);
+	}
+
+	/**
+	 * 保存损益数据
+	 *
+	 * @param bzDelivery
+	 */
+	private void saveLossData(BzDelivery bzDelivery) {
+		final BzDelivery deliveryFromDB = getLossDelivery(bzDelivery.getDeliveryNo());
+		if(deliveryFromDB==null) {
+			bzDelivery.setStockVolume(bzDelivery.getLoss() + bzDelivery.getVolume());
+			setOilCodeAndName( bzDelivery);
+			//损益数据，和卸油数据区分，设置为0
+			bzDelivery.setTankNo(0);
+			baseMapper.insert(bzDelivery);
+		}
+		else{
+			//更新损益数据
+			deliveryFromDB.setLoss(bzDelivery.getLoss());
+			deliveryFromDB.setStockVolume(bzDelivery.getLoss() + bzDelivery.getVolume());
+			deliveryFromDB.setVolume(bzDelivery.getVolume());
+			deliveryFromDB.setLossAlarm(bzDelivery.getLossAlarm());
+			deliveryFromDB.setReceiveTime(bzDelivery.getReceiveTime());
+			setOilCodeAndName( deliveryFromDB);
+			baseMapper.updateById(deliveryFromDB);
+		}
+	}
+
+	/**
+	 * 获取油品名称和油品编码
+	 *
+	 * @param bzDelivery
+	 */
+	private void setOilCodeAndName( BzDelivery bzDelivery) {
+		if (bzDelivery.getOilCode() != null) {
+			final OilEntity oilByCode = oilService.getOilByCode(bzDelivery.getOilCode());
+			if (oilByCode != null) {
+				bzDelivery.setOilName(oilByCode.getFullName());
+			}
+		}else if (bzDelivery.getTankNo()!=null){
+			final TankInfo tankInfo = tankInfoService.getTankInfo(bzDelivery.getTankNo());
+			if (tankInfo!=null&&tankInfo.getOilCode()!=null){
+				bzDelivery.setOilCode(tankInfo.getOilCode());
+				bzDelivery.setOilName(tankInfo.getOilName());
+			}
+		}
+	}
+
+}

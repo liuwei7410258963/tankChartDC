@@ -1,0 +1,249 @@
+package com.oket.tank4station.trace;
+
+import com.oket.tank4station.*;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * @description: 上升液位处理器
+ * @author: SunBiaoLong
+ * @create: 2020-04-10 10:17
+ **/
+@Slf4j
+public class AscendingTraceProcessor extends AbstractTraceProcessor {
+	/**
+	 * 卸油液位差阈值
+	 */
+	private static final double UNLOADING_LEVEL_THRESHOLD = 30.0D;
+	/**
+	 * 卸油体积差阈值
+	 */
+	private static final double UNLOADING_VOLUME_THRESHOLD = 150.0D;
+
+	public AscendingTraceProcessor(AscendingInventoryTrace ascendingInventoryTrace, TankSession tankSession) {
+		super(ascendingInventoryTrace, tankSession);
+	}
+
+
+	@Override
+	public void processing(Inventory inventory) throws InventoryException {
+		super.processing(inventory);
+	}
+
+
+	@Override
+	public void start(Inventory inventory) throws InventoryException {
+		log.debug("上升液位开始");
+		super.start(inventory);
+	}
+
+	@Override
+	public void closed() throws InventoryException {
+		log.debug("上升液位结束");
+		super.closed();
+	}
+
+
+	@Override
+	public LevelState checkLevelState(Inventory inventory) {
+		final double level = inventory.getLevel();
+		if (trace.getLastLevel() == null) {
+			return LevelState.LEVEL_ASCENDING;
+		}
+		AscendingInventoryTrace ascendingInventoryTrace = (AscendingInventoryTrace) trace;
+		TankInventory lastTankInventory = trace.getLastLevel();
+		double levelGap = level - trace.getLastLevel().getLevel();
+		long seconds = inventory.getTime().getTime() - trace.getLastLevel().getTime().getTime();
+		seconds = seconds / 1000;
+		//30秒内不用做异常检查
+		if (seconds < INVENTORY_UPLOAD_SECONDS) {
+			return getLevelState(inventory, ascendingInventoryTrace, levelGap);
+		}
+		else {
+			long min = seconds / 60;
+			if (min <= INVENTORY_UPLOAD_MINUTE) {
+				return getLevelState(inventory, ascendingInventoryTrace, levelGap);
+			}
+			//超过45分钟
+			else {
+				ascendingInventoryTrace.setStableStartTime(0);
+				ascendingInventoryTrace.setWavingStartTime(0);
+				ascendingInventoryTrace.setDescendStartTime(0);
+				//是否继续上升
+				if (levelGap > LEVEL_UP_THRESHOLD) {
+					// fv大于\v\
+					if (trace.getFV() > Math.abs(levelGap)) {
+						saveInventoryAlarm(lastTankInventory, inventory);
+						return LevelState.NEW;
+					}
+					// 小于
+					else {
+						return LevelState.LEVEL_ASCENDING;
+					}
+				} else {
+					if (trace.getFV() > Math.abs(levelGap)) {
+						saveInventoryAlarm(lastTankInventory, inventory);
+						return LevelState.NEW;
+					} else {
+						if (trace.getSumNozzleOut() > 300) {
+							return LevelState.LEVEL_WAVING;
+						} else {
+							if (levelGap < LEVEL_DOWN_THRESHOLD) {
+								return LevelState.LEVEL_DESCENDING;
+							} else {
+								return LevelState.LEVEL_STABLE;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private LevelState getLevelState(Inventory inventory, AscendingInventoryTrace ascendingInventoryTrace, double levelGap) {
+		//是否在加油中
+		if (tankSession.isOnFueling()) {
+			ascendingInventoryTrace.setStableStartTime(0);
+			//是否继续上升
+			return getLevelStateOnFueling(inventory, ascendingInventoryTrace, levelGap);
+		} else {
+			if (levelGap > LEVEL_UP_THRESHOLD) {
+				ascendingInventoryTrace.setWavingStartTime(0);
+				ascendingInventoryTrace.setStableStartTime(0);
+				ascendingInventoryTrace.setDescendStartTime(0);
+				return LevelState.LEVEL_ASCENDING;
+			} else {
+				if (isUnloading(ascendingInventoryTrace)) {
+					return getLevelStateUnloading(inventory, ascendingInventoryTrace, levelGap);
+
+				} else {
+					//所有油枪处于空闲状态，可以自由转换
+					if (levelGap < LEVEL_DOWN_THRESHOLD) {
+						ascendingInventoryTrace.setStableStartTime(0);
+						//是否有第一个下降点
+						if (ascendingInventoryTrace.getDescendStartTime() == 0) {
+							ascendingInventoryTrace.setDescendStartTime(ascendingInventoryTrace.getLastLevel().getTime().getTime());
+							return LevelState.LEVEL_ASCENDING;
+						} else {
+							long secGap = inventory.getTime().getTime() - ascendingInventoryTrace.getDescendStartTime();
+							secGap = secGap / 1000;
+							if (secGap > AscendingInventoryTrace.DESCEND_THRESHOLD) {
+								//稳定持续一段时间才能转为下降
+								return LevelState.LEVEL_DESCENDING;
+							} else {
+								return LevelState.LEVEL_ASCENDING;
+							}
+						}
+					} else {
+						if (ascendingInventoryTrace.getDescendStartTime()!=0){
+							long secGap = inventory.getTime().getTime() - ascendingInventoryTrace.getDescendStartTime();
+							secGap = secGap / 1000;
+							//有的液位并不是直降下降的，因为设备可能没有巡检那么快，有可能是下降、平稳、下降、平稳这样的取下降
+							if (secGap>AscendingInventoryTrace.DESCEND_THRESHOLD){
+								ascendingInventoryTrace.setDescendStartTime(0);
+							}
+						}
+						//是否有第一个平稳点
+						if (ascendingInventoryTrace.getStableStartTime() == 0) {
+							ascendingInventoryTrace.setStableStartTime(ascendingInventoryTrace.getLastLevel().getTime().getTime());
+							return LevelState.LEVEL_ASCENDING;
+						} else {
+							long secGap = inventory.getTime().getTime() - ascendingInventoryTrace.getStableStartTime();
+							secGap = secGap / 1000;
+							if (secGap > AscendingInventoryTrace.STABLE_THRESHOLD) {
+								//稳定持续一段时间才能转为平稳
+								return LevelState.LEVEL_STABLE;
+							} else {
+								return LevelState.LEVEL_ASCENDING;
+							}
+						}
+
+					}
+				}
+			}
+
+		}
+	}
+
+	private LevelState getLevelStateUnloading(Inventory inventory, AscendingInventoryTrace ascendingInventoryTrace, double levelGap) {
+		ascendingInventoryTrace.setOnUnloading(true);
+                    /*
+                    液位仪检测频率可能超过10秒,因此,一个液位转为波动的情况就判断不准确
+                     */
+		if (levelGap >= -0.55) {
+			//平稳判断
+			if (ascendingInventoryTrace.getWavingStartTime() == 0) {
+				//判断是不是短暂平稳段
+				ascendingInventoryTrace.setWavingStartTime(ascendingInventoryTrace.getLastLevel().getTime().getTime());
+				return LevelState.LEVEL_ASCENDING;
+			} else {
+				long secGap = inventory.getTime().getTime() - ascendingInventoryTrace.getWavingStartTime();
+				secGap = secGap / 1000;
+				if (secGap > AscendingInventoryTrace.WAVING_THRESHOLD) {
+					//至少达到阈值才能转为波动
+					return LevelState.LEVEL_WAVING;
+				} else {
+					//继续上升
+					return LevelState.LEVEL_ASCENDING;
+				}
+			}
+		} else {
+			//液位下降 转为波动
+			return LevelState.LEVEL_WAVING;
+		}
+	}
+
+	private LevelState getLevelStateOnFueling(Inventory inventory, AscendingInventoryTrace ascendingInventoryTrace, double levelGap) {
+		//是否继续上升
+		if (levelGap > LEVEL_UP_THRESHOLD) {
+			return LevelState.LEVEL_ASCENDING;
+		} else {
+			//是否在卸油
+			if (isUnloading(ascendingInventoryTrace)) {
+				//转为波动
+				return getLevelStateUnloading(inventory, ascendingInventoryTrace, levelGap);
+			} else {
+				//是否在下降
+				if (levelGap < LEVEL_DOWN_THRESHOLD) {
+					return LevelState.LEVEL_DESCENDING;
+				} else {
+					//如果是平稳，因为在加油，所以不能结束，需要继续上升
+					return LevelState.LEVEL_ASCENDING;
+				}
+			}
+		}
+	}
+
+	/**
+	 * 是否在卸油
+	 *
+	 * @return
+	 */
+	public static boolean isUnloading(AbstractLevelTrace levelTrace) {
+		//根据属性或者液位差判断
+		return levelTrace.isOnUnloading()
+				|| levelTrace.getLastLevel().getLevel() - levelTrace.getFirstLevel().getLevel() > UNLOADING_LEVEL_THRESHOLD
+						&& levelTrace.getVolumeDiff() > UNLOADING_VOLUME_THRESHOLD;
+	}
+
+	/**
+	 * 波动转上升，是否在卸油
+	 *
+	 * @return
+	 */
+	public static boolean isUnloading1(AbstractLevelTrace levelTrace) {
+		//根据属性或者液位差判断
+		return levelTrace.getLastLevel().getLevel() - levelTrace.getFirstLevel().getLevel() > UNLOADING_LEVEL_THRESHOLD
+				&& levelTrace.getVolumeDiff() > UNLOADING_VOLUME_THRESHOLD;
+	}
+
+	/**
+	 * 是否在卸油
+	 *
+	 * @return
+	 */
+	public static boolean isUnloading(DbInventoryTrace levelTrace) {
+		return levelTrace.getEndLevel() - levelTrace.getStartLevel() > UNLOADING_LEVEL_THRESHOLD
+                &&levelTrace.getEndVolume()-levelTrace.getStartVolume() > UNLOADING_VOLUME_THRESHOLD;
+	}
+}

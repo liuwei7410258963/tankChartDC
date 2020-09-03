@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.tankchartdc.dao.BzTraceRelOutGroupDAO">
+
+	<select id="count" resultType="java.lang.Integer">
+		select count(*) from (select btrog.out_group_id as out_group_id
+		from bz_trace_rel_out_group btrog
+		join db_inventory_trace trace on(btrog.status=1 and btrog.trace_id =trace.id and trace.status=1)
+		join bz_nozzle_out_group out_group on (btrog.out_group_id =out_group.id and out_group.status=1)
+		where 1=1
+		<if test="tankNo!=null">
+			and btrog.tank_no=#{tankNo}
+		</if>
+		<if test="startTime!=null">
+			and out_group.start_time <![CDATA[>=]]> #{startTime}
+		</if>
+		<if test="endTime!=null">
+			and out_group.end_time <![CDATA[<=]]> #{endTime}
+		</if>
+		<if test="needConfirm!=null and needConfirm!=''">
+			and btrog.need_confirm = #{needConfirm}
+		</if>) a
+	</select>
+	<select id="getRels" resultMap="entity">
+		select
+		btrog.out_group_id as out_group_id,
+		btrog.trace_id as trace_id,
+		btrog.volume_diff as volume_diff,
+		btrog.start_diff as start_diff,
+		btrog.end_diff as end_diff,
+		btrog.tank_no as tank_no,
+		btrog.id as id,
+		btrog.need_confirm as need_confirm,
+		btrog.status as `status`,
+		trace.start_time as trace_start_time,
+		trace.end_Time as trace_end_Time,
+		trace.start_level as trace_start_level,
+		trace.start_volume as trace_start_volume,
+		trace.start_temperature as trace_start_temp,
+		trace.start_id as trace_start_id,
+		trace.end_level as trace_end_level,
+		trace.end_volume as trace_end_volume,
+		trace.end_temperature as trace_end_temp,
+		trace.end_id as trace_end_id,
+		trace.level_state as trace_level_state,
+		- trace.volume as trace_volume,
+		out_group.start_time as out_group_start_time,
+		out_group.end_Time as out_group_end_Time,
+		out_group.volume as out_group_volume
+		from bz_trace_rel_out_group btrog
+		join db_inventory_trace trace on( btrog.status=1 and btrog.trace_id =trace.id and trace.status=1)
+		join bz_nozzle_out_group out_group on (btrog.out_group_id =out_group.id and out_group.status=1)
+		where 1=1
+		<if test="tankNo!=null">
+			and btrog.tank_no=#{tankNo}
+		</if>
+		<if test="startTime!=null">
+			and trace.start_time <![CDATA[>=]]> #{startTime}
+		</if>
+		<if test="endTime!=null">
+			and trace.end_time <![CDATA[<=]]> #{endTime}
+		</if>
+		<if test="needConfirm!=null and needConfirm!=''">
+			and btrog.need_confirm = #{needConfirm}
+		</if>
+		order by trace.start_time desc
+		<if test="flag==null">
+			<if test="pageNum!=null and pageRow!=null">
+				limit #{pageNum},#{pageRow}
+			</if>
+		</if>
+	</select>
+	<resultMap id="entity" type="com.oket.tankchartdc.BzTraceRelOutGroup">
+		<result property="id" column="id"/>
+		<result property="traceId" column="trace_id"/>
+		<result property="outGroupId" column="out_group_id"/>
+		<result property="status" column="status"/>
+		<result property="startDiff" column="start_diff"/>
+		<result property="endDiff" column="end_diff"/>
+		<result property="tankNo" column="tank_no"/>
+		<result property="volumeDiff" column="volume_diff"/>
+		<result property="needConfirm" column="need_confirm"/>
+		<collection property="trace" ofType="com.oket.tank4station.entity.DbInventoryTrace">
+			<result property="startTime" column="trace_start_time"/>
+			<result property="endTime" column="trace_end_time"/>
+			<result property="startId" column="trace_start_id"/>
+			<result property="startLevel" column="trace_start_level"/>
+			<result property="startWaterLevel" column="trace_start_water_level"/>
+			<result property="startVolume" column="trace_start_volume"/>
+			<result property="startTemperature" column="trace_start_temp"/>
+			<result property="endId" column="trace_end_id"/>
+			<result property="endLevel" column="trace_end_level"/>
+			<result property="endWaterLevel" column="trace_end_water_level"/>
+			<result property="endVolume" column="trace_end_volume"/>
+			<result property="endTemperature" column="trace_end_temp"/>
+			<result property="volume" column="trace_volume"/>
+			<result property="levelState" column="trace_level_state"/>
+		</collection>
+		<collection property="outGroup" ofType="com.oket.dispenser.BzNozzleOutGroup">
+			<result property="startTime" column="out_group_start_time"/>
+			<result property="endTime" column="out_group_end_Time"/>
+			<result property="volume" column="out_group_volume"/>
+		</collection>
+	</resultMap>
+
+
+</mapper>

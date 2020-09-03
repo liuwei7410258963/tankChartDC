@@ -1,0 +1,166 @@
+package com.oket.tank4station.trace;
+
+import com.oket.tank4station.*;
+import com.oket.tank4station.entity.DbInventoryAlarm;
+import com.oket.tank4station.service.InventoryPersistenceProcessor;
+import com.oket.tank4station.tankchart.TankChartManager;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * @description: 下降液位处理器
+ * @author: SunBiaoLong
+ * @create: 2020-04-10 10:17
+ **/
+@Slf4j
+public class DescendingTraceProcessor extends AbstractTraceProcessor {
+
+
+    public DescendingTraceProcessor(DescendingInventoryTrace descendingInventoryTrace, TankSession tankSession) {
+        super(descendingInventoryTrace, tankSession);
+    }
+
+    @Override
+    public LevelState checkLevelState(Inventory inventory) {
+        final double level = inventory.getLevel();
+        if (trace.getLastLevel() == null) {
+            return LevelState.LEVEL_DESCENDING;
+        }
+        double levelGap = level - trace.getLastLevel().getLevel();
+        TankInventory lastTankInventory = trace.getLastLevel();
+        long seconds = inventory.getTime().getTime() - trace.getLastLevel().getTime().getTime();
+        seconds = seconds / 1000;
+        //30分钟内不用做异常检查
+        if (seconds < INVENTORY_UPLOAD_SECONDS) {
+            return getLevelState(levelGap,inventory);
+        } else {
+            long min = seconds / 60;
+            if (min <= INVENTORY_UPLOAD_MINUTE) {
+                return getLevelState(levelGap,inventory);
+            }
+            //超过45分钟
+            else {
+                ((DescendingInventoryTrace)trace).setStableStartTime(0);
+                double mmChangeRate =
+                        TankChartManager.mmChangeRate(
+                                lastTankInventory
+                                , inventory);
+                //继续上升
+                if (levelGap > LEVEL_UP_THRESHOLD) {
+                    if (Math.abs(trace.getFV() - Math.abs(levelGap)) <= 1 * mmChangeRate) {
+                        return LevelState.LEVEL_ASCENDING;
+                    } else {
+                        saveInventoryAlarm(lastTankInventory, inventory);
+                        return LevelState.NEW;
+                    }
+                }
+                //继续下降
+                else if (levelGap < LEVEL_UP_THRESHOLD) {
+                    if (Math.abs(trace.getFV() - Math.abs(levelGap)) <= 1 * mmChangeRate) {
+                        return LevelState.LEVEL_DESCENDING;
+                    } else {
+                        saveInventoryAlarm(lastTankInventory, inventory);
+                        return LevelState.NEW;
+                    }
+                }
+                //平稳
+                else {
+                    if (Math.abs(trace.getFV() - Math.abs(levelGap)) <= 1 * mmChangeRate) {
+                        return LevelState.LEVEL_STABLE;
+                    } else {
+                        saveInventoryAlarm(lastTankInventory, inventory);
+                        return LevelState.NEW;
+                    }
+                }
+            }
+        }
+    }
+
+    private LevelState getLevelState(double levelGap,Inventory inventory) {
+        DescendingInventoryTrace descendingInventoryTrace= (DescendingInventoryTrace) trace;
+        //是否在付油中
+        if (tankSession.isOnFueling()) {
+            descendingInventoryTrace.setStableStartTime(0);
+            if (levelGap > LEVEL_UP_THRESHOLD) {
+                //上升
+                return LevelState.LEVEL_ASCENDING;
+            } else {
+                //加油中不会转为平稳，会继续下降
+                return LevelState.LEVEL_DESCENDING;
+            }
+        } else {
+            if (levelGap < LEVEL_DOWN_THRESHOLD) {
+                descendingInventoryTrace.setStableStartTime(0);
+                return LevelState.LEVEL_DESCENDING;
+            } else if (levelGap > LEVEL_UP_THRESHOLD) {
+                descendingInventoryTrace.setStableStartTime(0);
+                return LevelState.LEVEL_ASCENDING;
+            } else {
+                if (descendingInventoryTrace.getStableStartTime() == 0) {
+                    descendingInventoryTrace.setStableStartTime(descendingInventoryTrace.getLastLevel().getTime().getTime());
+                    return LevelState.LEVEL_DESCENDING;
+                } else {
+                    long secGap = inventory.getTime().getTime() - descendingInventoryTrace.getStableStartTime();
+                    secGap = secGap / 1000;
+                    if (secGap > DescendingInventoryTrace.STABLE_THRESHOLD) {
+                        return LevelState.LEVEL_STABLE;
+                    } else {
+                        return LevelState.LEVEL_DESCENDING;
+                    }
+                }
+            }
+        }
+    }
+
+
+    @Override
+    public void closed() throws InventoryException {
+//        final boolean abnormalDescend = checkAlarm(trace);
+//        if (abnormalDescend) {
+//            DbInventoryAlarm alarm = getDbInventoryAlarm(trace);
+//            tankSession.addAlarmToNeedPersistence(alarm);
+//        }
+
+        super.closed();
+    }
+
+    public static DbInventoryAlarm getDbInventoryAlarm(AbstractLevelTrace trace) {
+        DbInventoryAlarm alarm = new DbInventoryAlarm();
+        alarm.init(trace.getFirstLevel());
+        alarm.setEndAlarm(trace.getLastLevel());
+        alarm.setSumOut(trace.getSumOut());
+        alarm.setType(DbInventoryAlarm.ABNORMAL_DESCEND);
+        alarm.setTraceId(trace.getId());
+        return alarm;
+    }
+
+    /**
+     * 异常检查--异常下降情况，即出现了下降量超过付油量
+     * （异常检查 sumFV-sumV>Δmv）
+     *
+     * @return
+     */
+    public static boolean checkAlarm(AbstractLevelTrace trace) {
+        double diff =Math.abs(Math.abs( trace.getVolumeDiff()) - Math.abs(trace.getSumOut()));
+        double mmChangeRate =
+                TankChartManager.mmChangeRate(
+                        trace.getFirstLevel()
+                        , trace.getLastLevel());
+        log.info("下降量："+Math.abs(trace.getVolumeDiff()) );
+        log.info("付油量："+trace.getSumOut());
+        log.info("下降量与付油量的差："+diff);
+        log.info("下降毫米变化率："+mmChangeRate);
+        log.info("ΔMV："+MAX_CONTINUITY *mmChangeRate);
+        if (mmChangeRate == 0
+                || diff <= MAX_CONTINUITY * mmChangeRate) {
+            return false;
+        }
+        return true;
+    }
+
+
+}

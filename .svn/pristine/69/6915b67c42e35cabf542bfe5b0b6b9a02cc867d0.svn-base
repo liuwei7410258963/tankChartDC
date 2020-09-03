@@ -1,0 +1,134 @@
+package com.oket.tankchartdc;
+
+import com.alibaba.fastjson.annotation.JSONField;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.oket.common.base.Status;
+import com.oket.dispenser.BzNozzleOutGroup;
+import com.oket.tank4station.AbstractLevelTrace;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.tankchartdc.entity.BackToTankConfirmEntity;
+import com.oket.util.DoubleUtils;
+import io.swagger.models.auth.In;
+import lombok.Data;
+
+import java.util.Date;
+import java.util.List;
+
+/**
+ * @description: 回罐记录组
+ * @author: SunBiaoLong
+ * @create: 2020-04-02 11:22
+ **/
+@Data
+@TableName(value = "back_to_tank")
+public class BackToTank {
+	@TableId(type = IdType.AUTO)
+	private Integer id;
+	private Integer tankNo;
+	@JSONField(format = "yyyy-MM-dd HH:mm:ss")
+	private Date startTime;
+	@JSONField(format = "yyyy-MM-dd HH:mm:ss")
+	private Date endTime;
+	/**
+	 * 回罐对应的付油记录的付油量的和
+	 * */
+	private double volume;
+
+	/**
+	 * 真实的回罐体积  多条回罐volume之和
+	 * 因为有时候并不会吧所有的付出油量回罐，可能只有部分回罐
+	 */
+	private double trueVolume;
+	/**
+	 * 是否是回罐
+	 */
+	private boolean backTank = true;
+	/**
+	 * 是否需要确认
+	 */
+	private boolean needConfirm;
+	/**
+	 * 确认时间
+	 */
+	@JSONField(format = "yyyy-MM-dd HH:mm:ss")
+	private Date confirmTime = new Date();
+	/**
+	 * 创建时间
+	 */
+	@TableField(exist = false)
+	private Date createTime = new Date();
+	@TableField(exist = false)
+	private Integer nozzleNo;
+	private Long traceId;
+	private Long groupId;
+	//交易序号
+	private String tradeNo;
+	/*
+	 * 预留字段，现用于区分系统判断回罐还是dit推回罐
+	 * 1 Dit推的 不用确认
+	 * 2 系统判断的  需要确认
+	 */
+	private int reservedField;
+	private Status status = Status.ENABLE;
+	@TableField(exist = false)
+	List<BackToTankConfirmEntity> backToTankConfirmEntities;
+
+
+	/**
+	 * 创建新的回罐信息
+	 *
+	 * @param trace
+	 * @param bzNozzleOutGroup
+	 * @return
+	 */
+	public static BackToTank newBackToTank(DbInventoryTrace trace, BzNozzleOutGroup bzNozzleOutGroup) {
+		BackToTank backToTank = new BackToTank();
+		backToTank.setGroupId(bzNozzleOutGroup.getId());
+		double volume = Math.abs(DoubleUtils.round(bzNozzleOutGroup.getVolume() + trace.getVolume(), 3));
+		backToTank.initFromTrace(trace);
+		backToTank.setVolume(volume);
+		return backToTank;
+	}
+
+	/**
+	 * 创建新的回罐
+	 *
+	 * @param trace
+	 * @return
+	 */
+	public static BackToTank newBackToTank(AbstractLevelTrace trace) {
+		BackToTank backToTank = new BackToTank();
+		backToTank.initFromTrace(trace);
+		backToTank.setVolume(Math.abs(DoubleUtils.round(trace.getSumNozzleOut() + trace.getVolumeDiff(), 3)));
+		return backToTank;
+	}
+
+
+	/**
+	 * 从轨迹中初始化
+	 *
+	 * @param trace
+	 */
+	public void initFromTrace(AbstractLevelTrace trace) {
+		this.setTankNo(trace.getTankNo());
+		this.startTime = trace.getFirstLevel().getTime();
+		this.endTime = trace.getLastLevel().getTime();
+		this.traceId = trace.getId();
+	}
+	/**
+	 * 从轨迹中初始化
+	 *
+	 * @param trace
+	 */
+	public void initFromTrace(DbInventoryTrace trace) {
+		this.setTankNo(trace.getTankNo());
+		this.startTime = trace.getStartTime();
+		this.endTime = trace.getEndTime();
+		this.traceId = trace.getId();
+	}
+
+}
+

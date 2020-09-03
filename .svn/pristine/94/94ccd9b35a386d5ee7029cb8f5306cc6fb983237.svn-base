@@ -1,0 +1,169 @@
+package com.oket.tankchartdc.controller;
+
+
+import com.alibaba.fastjson.JSONObject;
+
+import com.oket.config.spring.SpringUtil;
+import com.oket.tankchartdc.entity.DitEntity;
+import com.oket.tankchartdc.service.DitService;
+import com.oket.tankchartdc.service.SimulatorService;
+import com.oket.util.CommonUtil;
+import com.oket.util.MathExtend;
+import com.oket.util.StringExUtils;
+import io.swagger.annotations.ApiOperation;
+
+import io.swagger.models.auth.In;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.oket.tankchartdc.mina.ifsf.IFSFAcceptor.ifsfFlag;
+import static com.oket.tankchartdc.mina.json.JSONAcceptor.jsonFlag;
+
+/**
+ * <p>
+ *  前端控制器
+ * </p>
+ *
+ * @author lw
+ * @since 2020-03-30
+ */
+@RestController
+@RequestMapping("/tankchartdc/dit")
+public class DitController {
+    @Autowired
+    DitService ditService;
+    @Autowired
+    SimulatorService simulatorService;
+
+    /**
+     * 查询当前dit端口
+     */
+    @PostMapping("/select")
+    @ApiOperation(value = "查询当前dit端口")
+    public JSONObject select(@RequestBody DitEntity ditEntity) {
+        return CommonUtil.successJson(ditService.select(ditEntity));
+    }
+
+    /**
+     * 当前dit端口
+     */
+    @PostMapping("/update")
+    @ApiOperation(value = "修改")
+    public JSONObject update(@RequestBody DitEntity ditEntity) {
+        int flag = ditService.change(ditEntity);
+        if(flag==1){
+            return CommonUtil.successJson();
+        }
+        else {
+            return CommonUtil.failJson();
+        }
+    }
+
+    /**
+     * 开启Ifsf
+     */
+    @PostMapping("/runIfsf")
+    @ApiOperation(value = "开启ifsf")
+    public JSONObject run(@RequestBody DitEntity ditEntity) {
+        ditService.runIfsf(ditEntity);
+        if(ifsfFlag){
+            return CommonUtil.successJson();
+        }
+        else{
+            return CommonUtil.failJson();
+        }
+    }
+
+    /**
+     * 关闭ifsf
+     */
+    @PostMapping("/closeIfsf")
+    @ApiOperation(value = "关闭ifsf")
+    public JSONObject closeIfsf(@RequestBody DitEntity ditEntity) {
+        ditService.closeIfsf(ditEntity);
+        return CommonUtil.successJson();
+    }
+
+    /**
+     * 开启json
+     */
+    @PostMapping("/runJson")
+    @ApiOperation(value = "开启json")
+    public JSONObject runJson(@RequestBody DitEntity ditEntity) {
+        ditService.runJson(ditEntity);
+        if(jsonFlag){
+            return CommonUtil.successJson();
+        }
+        else{
+            return CommonUtil.failJson();
+        }
+    }
+
+    /**
+     * 关闭json
+     */
+    @PostMapping("/closeJson")
+    @ApiOperation(value = "关闭json")
+    public JSONObject closeJson(@RequestBody DitEntity ditEntity) {
+        ditService.closeJson(ditEntity);
+        return CommonUtil.successJson();
+    }
+
+
+    /**
+     * 关闭json
+     */
+    @GetMapping("/test")
+    public String test() throws IOException {
+        //读取文件(字节流)
+        BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("C:\\Users\\Administrator\\Desktop\\InfoGather_06.29.log"), "GBK"));
+        String str = null;
+        //循环取出数据
+        while ((str = in.readLine()) != null) {
+            if(str.contains("P91_10012")&&str.contains("{")&&str.contains("[")){
+                String temp = str.substring(36);
+
+                //startCode
+                byte[] startSignBytes = temp.substring(0,5).getBytes("UTF-8");
+                int startSignBytesLength = startSignBytes.length;
+
+                //pid的长度
+                long pidLenght =  Long.parseLong(temp.substring(5,6));
+                byte[] pidLenghtBytes = MathExtend.longToBytes(pidLenght,1);
+                int pidLenghtLength = pidLenghtBytes.length;
+
+                //pid:P91_10012
+                String pid = temp.substring(6,15);
+                byte[] pidBytes = pid.getBytes("UTF-8");
+                int pidLength = pidBytes.length;
+
+                //数据长度
+                int DataLenth = Integer.parseInt(temp.substring(15,18))-1;
+                byte[] DataLenthBytes = MathExtend.intToByteArray(DataLenth);
+                int DataLenthBytesLength = DataLenthBytes.length;
+
+                //数据
+                String data = temp.substring(18);
+                byte[] dataBytes = data.getBytes();
+                int dataBytesLength = dataBytes.length;
+
+                byte[] result = new byte[19+dataBytesLength];
+                System.arraycopy(startSignBytes, 0, result, 0, 5);
+                System.arraycopy(pidLenghtBytes, 0, result, 5,1);
+                System.arraycopy(pidBytes, 0, result, 6, 9);
+                System.arraycopy(DataLenthBytes, 0, result, 15,4);
+                System.arraycopy(dataBytes, 0, result, 19,dataBytes.length);
+
+                simulatorService.send(StringExUtils.byteArrayToHexString(result), SimulatorService.TYPE.JSON);
+            }
+        }
+        return "ok";
+    }
+}

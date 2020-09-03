@@ -1,0 +1,278 @@
+package com.oket.station.bizservice;
+
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.oket.station.ServerLog;
+import com.oket.station.service.ServerLogService;
+import com.oket.tank4station.Inventory;
+import com.oket.tank4station.entity.DbInventoryAlarm;
+import com.oket.tank4station.entity.DbInventoryLast;
+import lombok.Data;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.Date;
+import java.util.Map;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * 油罐服务统计
+ *
+ * @date 2020-04-23
+ */
+@Slf4j
+public class ServiceStatistics {
+
+	/**
+	 * 上次上传数据的时间
+	 */
+	private static final Map<Integer, InventoryUpload> LAST_UPLOAD_TIME_MAP = new ConcurrentHashMap<>();
+	ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+			.setNameFormat("Statistics-%d").build();
+
+	public static Map<Integer, InventoryUpload> getLastUploadTimeMap() {
+		return LAST_UPLOAD_TIME_MAP;
+	}
+	public static void initLastUploadTimeMap(DbInventoryLast dbInventoryLast,boolean longTimeNoUpload){
+		InventoryUpload inventoryUpload = new InventoryUpload(dbInventoryLast.getTime(),Inventory.convertFromInventory(dbInventoryLast));
+		inventoryUpload.setLongTimeNoUpload(longTimeNoUpload);
+		LAST_UPLOAD_TIME_MAP.put(dbInventoryLast.getTankNo(), inventoryUpload);
+	}
+
+	private ScheduledThreadPoolExecutor scheduled = new ScheduledThreadPoolExecutor(1, namedThreadFactory);
+
+	private final Lock operateLock = new ReentrantLock();
+
+	/**
+	 * 定时器间隔,秒数
+	 */
+	private final static int GAP = 30;
+
+	/**
+	 * 定时器启动后第一次执行后延迟描述
+	 */
+	private final static int INIT = 10;
+
+	@Data
+	public static class InventoryUpload {
+		/**
+		 * 上传数据的时候
+		 */
+		private Date lastUploadTime;
+		/**
+		 * 罐存
+		 */
+		private Inventory inventory;
+		/**
+		 * 是否长时间没有上传
+		 */
+		private boolean longTimeNoUpload = false;
+
+		public InventoryUpload(Date lastUploadTime, Inventory inventory) {
+			this.lastUploadTime = lastUploadTime;
+			this.inventory = inventory;
+		}
+	}
+
+	private BalanceService balanceService;
+
+	/**
+	 * 系统运行日志
+	 */
+	private ServerLog serverLog;
+	@Setter
+	private ServerLogService serverLogService;
+	/**
+	 *
+	 */
+	private long lastReceiveIFSFTime;
+	/**
+	 *
+	 */
+	private long lastReceiveJsonTime;
+
+
+	public ServiceStatistics(BalanceService balanceService) {
+		this.balanceService = balanceService;
+	}
+
+
+	/**
+	 * 更新系统运行日志
+	 */
+	private void updateServerLog() {
+		//更新结束时间
+		serverLog.setEndTime(new Date());
+		serverLogService.updateById(serverLog);
+	}
+
+	/**
+	 * 服务器启动
+	 */
+	public void serverStart() {
+		serverLog = new ServerLog();
+		serverLog.setType(ServerLog.RUNNING);
+		serverLog.setStartTime(new Date());
+		serverLog.setEndTime(serverLog.getStartTime());
+		log.info("系统运行日志:" + serverLog);
+		final ServerLog lastLog = serverLogService.getLastLog();
+		if (lastLog != null) {
+			log.info("上次系统运行日志:" + serverLog);
+			//保存离线的日志记录
+			//日志记录是1条运行日志,1条离线日志
+			ServerLog offlineLog = new ServerLog();
+			offlineLog.setStartTime(lastLog.getEndTime());
+			offlineLog.setEndTime(serverLog.getStartTime());
+			offlineLog.setType(ServerLog.OFFLINE);
+			serverLogService.save(offlineLog);
+			log.info("系统离线日志:" + offlineLog);
+
+		}
+		serverLogService.save(serverLog);
+	}
+
+	/**
+	 * 每隔一分钟执行一次
+	 */
+	public void timerTaskStart() {
+		scheduled.scheduleAtFixedRate(() -> {
+					updateServerLog();
+					checkInventoryLongNoUpload();
+				},
+				INIT, GAP, TimeUnit.SECONDS);
+	}
+
+	/**
+	 * 检查罐存长时间没有上传
+	 */
+	private void checkInventoryLongNoUpload() {
+		if (!LAST_UPLOAD_TIME_MAP.isEmpty()) {
+			for (InventoryUpload value : LAST_UPLOAD_TIME_MAP.values()) {
+				if (!value.longTimeNoUpload) {
+					long seconds = (System.currentTimeMillis() - value.getLastUploadTime().getTime()) / 1000;
+					if (seconds > DbInventoryAlarm.TIMEOUT_THRESHOLD) {
+						balanceService.saveInventoryLongTimeNoUpload(value.inventory, value.getLastUploadTime());
+						value.setLongTimeNoUpload(true);
+					}
+				}
+			}
+		}
+	}
+
+
+	/**
+	 * 新液位上传
+	 *
+	 * @param inventory
+	 */
+	public void inventoryUpload(Inventory inventory) {
+		final InventoryUpload inventoryUpload = LAST_UPLOAD_TIME_MAP.get(inventory.getTankNo());
+		if (inventoryUpload != null) {
+			if (inventoryUpload.isLongTimeNoUpload()) {
+				balanceService.endInventoryLongTimeNoUpload(inventory);
+				inventoryUpload.setLongTimeNoUpload(false);
+			}
+			inventoryUpload.setLastUploadTime(new Date());
+			inventoryUpload.setInventory(inventory);
+		} else {
+			balanceService.firstProcessLongTimeNoUpload(inventory);
+			LAST_UPLOAD_TIME_MAP.put(inventory.getTankNo(), new InventoryUpload(new Date(), inventory));
+		}
+	}
+
+	/**
+	 * 最后接收数据的时间
+	 *
+	 * @return
+	 */
+	public final long getLastReceiveTime() {
+		operateLock.lock();
+		try {
+			return Math.max(lastReceiveJsonTime, lastReceiveIFSFTime);
+		} finally {
+			operateLock.unlock();
+		}
+	}
+
+	/**
+	 * 最后接收ifsf数据的时间
+	 *
+	 * @return
+	 */
+	public long getLastReceiveIFSFTime() {
+		operateLock.lock();
+		try {
+			return lastReceiveIFSFTime;
+		} finally {
+			operateLock.unlock();
+		}
+
+	}
+
+	/**
+	 * 设置ifsf最后接收时间
+	 *
+	 * @param lastReceiveIFSFTime
+	 */
+	public void setLastReceiveIFSFTime(long lastReceiveIFSFTime) {
+		operateLock.lock();
+		try {
+			if (this.lastReceiveIFSFTime == 0) {
+				this.lastReceiveIFSFTime = lastReceiveIFSFTime;
+			}
+		} finally {
+			operateLock.unlock();
+		}
+
+	}
+
+	/**
+	 * 获取json接收最后的时间
+	 *
+	 * @return
+	 */
+	public long getLastReceiveJsonTime() {
+		operateLock.lock();
+		try {
+			return lastReceiveJsonTime;
+		} finally {
+			operateLock.unlock();
+		}
+
+	}
+
+	/**
+	 * 获取最后接收json数据的时间
+	 *
+	 * @param lastReceiveJsonTime
+	 */
+	public void setLastReceiveJsonTime(long lastReceiveJsonTime) {
+		operateLock.lock();
+		try {
+			if (this.lastReceiveJsonTime == 0) {
+				this.lastReceiveJsonTime = lastReceiveJsonTime;
+			}
+		} finally {
+			operateLock.unlock();
+		}
+
+	}
+
+	/**
+	 * 油罐业务数据统计
+	 */
+	public class TankStatistics {
+		/**
+		 * 最后一条罐存数据的时间
+		 */
+		private long lastInventoryTime;
+		/**
+		 * 数据错误的时间
+		 */
+		private long dataErrorTime;
+
+	}
+
+}

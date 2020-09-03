@@ -1,0 +1,566 @@
+package com.oket.tank4station;
+
+import com.oket.device.TankInfo;
+import com.oket.dispenser.BzNozzleOut;
+import com.oket.dispenser.NozzleState;
+import com.oket.dispenser.NozzleTransientOut;
+import com.oket.dispenser.TransientOut;
+import com.oket.tank4station.entity.DbInventoryAlarm;
+import com.oket.tank4station.service.InventoryPersistenceProcessor;
+import com.oket.tank4station.trace.AbstractTraceProcessor;
+import com.oket.tankchartdc.DbInventoryCycle;
+import com.oket.util.TimeUtils;
+import lombok.Data;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+
+@Slf4j
+@Data
+public abstract class AbstractTankSession implements TankSession {
+    /**
+     * 需要持久化的数据
+     */
+    private final NeedPersistence needPersistence = new NeedPersistence();
+    /**
+     * 最新的油枪状态的数据
+     */
+    private final ConcurrentMap<Integer, NozzleState> nozzleStateMap = new ConcurrentHashMap<>();
+    /**
+     * 当前液位轨迹及液位状态
+     */
+    protected LevelTrace levelTrace;
+    protected AbstractTraceProcessor traceProcessor;
+    /**
+     * 上一直的轨迹信息
+     */
+    protected LevelTrace lastTrace;
+
+    private LevelState state = LevelState.NEW;
+    /**
+     * 最大可以保存16把枪的状态
+     * 4位表示一个枪的状态（每隔四位是一个油枪）。共有九种
+     *
+     * @see com.oket.dispenser.NozzleState.State
+     */
+    private final AtomicLong nozzleState = new AtomicLong();
+    /**
+     * 1.index--nozzleIds的索引（16-index 该油枪所在nozzleState的位置）,
+     * 2.nozzleIds[index]对应的值是油枪编号
+     */
+    private int[] nozzleNos = new int[16];
+    private AtomicLong lastNozzleStateTime = new AtomicLong(0);
+    ;
+    /**
+     * 开始付油时间
+     * 没有付油置为0，有则记录开始时间
+     */
+    private AtomicLong startOutTime = new AtomicLong(0);
+    private TankInfo tankInfo;
+    /**
+     * 液位持久化处理器
+     */
+    private InventoryPersistenceProcessor persistenceProcessor;
+    /**
+     * 油罐编号
+     */
+    private int tankNo;
+    private Map<Integer, TransientOut> outMap = new ConcurrentHashMap<>();
+    private Map<Integer, List<TransientOut>> outsMap = new ConcurrentHashMap<>();
+
+    /**
+     * 周期
+     */
+    protected DbInventoryCycle cycle;
+
+    public AbstractTankSession(int tankNo) {
+        this.tankNo = tankNo;
+        needPersistence.tankNo = this.tankNo;
+    }
+
+    @Override
+    public void setLevelTrace(LevelTrace levelTrace) {
+        this.levelTrace = levelTrace;
+    }
+
+    @Override
+    public void setLastTrace(LevelTrace lastTrace) {
+        this.lastTrace = lastTrace;
+    }
+
+    /**
+     * 油枪状态变化
+     *
+     * @param nozzleState
+     */
+    public void nozzleStateChanged(NozzleState nozzleState) {
+        //找到油枪状态在nozzleState的位置
+        int index = getNozzleIndex(nozzleState);
+        long state = nozzleState.isOnFueling() ? 1 : 0;
+        state = state << index;
+        long temp = 1L << index;
+
+        temp = ~temp;
+        boolean test = false;
+        while (!test) {
+            long originValue = this.nozzleState.longValue();
+            //把最新的油枪状态赋值到nozzleState
+            //compareAndSet的首先比较传入的值originValue和系统的中值是否相同，如果相同，再去更新；否则不更新
+            long value = this.nozzleState.longValue() & temp | state;
+            test = this.nozzleState.compareAndSet(originValue,
+                    value);
+        }
+        lastNozzleStateTime.set(System.currentTimeMillis());
+    }
+
+    @Override
+    public void nozzleStateDelete(int nozzleNo) {
+        synchronized (nozzleState) {
+            //清空油枪状态，设置为非空闲
+            nozzleStateChanged(new NozzleState(nozzleNo, NozzleState.State.IDLE));
+            //清空油枪状态标识
+            clearNozzleIndex(nozzleNo);
+        }
+
+    }
+
+    /**
+     * 是否卸油
+     * 巡检是否所有枪都是空闲的
+     *
+     * @return
+     */
+    @Override
+    public boolean isOnFueling() {
+        if (this.nozzleState.get() != 0) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 用油枪状态中的油枪编号nozzleNo去确定在nozzleNos的位置：
+     * 1.遍历nozzleNos
+     * 1.1 当前位置（index）没有保存油枪编号，直接赋值当前的油枪编号（nozzleNo），并返回index
+     * 1.2 当前位置（index）有保存油枪编号，判断nozzleState的nozzleNo和nozzleNos[i]是否相等，
+     * 1.2.1 如果相等，直接返回index
+     * 1.2.2 不相等。继续遍历
+     *
+     * @param nozzleState
+     * @return
+     */
+    private int getNozzleIndex(NozzleState nozzleState) {
+        int index = -1;
+        for (int i = 0; i < nozzleNos.length; i++) {
+            int temp = nozzleNos[i];
+            if (temp == 0) {
+//				1.1 当前位置（index）没有保存油枪编号，直接赋值当前的油枪编号（nozzleNo），并返回index
+                index = i;
+                nozzleNos[i] = nozzleState.getNozzleNo();
+                break;
+            } else {
+//				1.2 当前位置（index）有保存油枪编号，判断nozzleState的nozzleNo和nozzleNos[i]是否相等，如果相等，直接返回index
+                if (temp == nozzleState.getNozzleNo()) {
+                    index = i;
+                    break;
+                }
+            }
+        }
+        return index;
+    }
+
+    /**
+     * 清空油枪索引
+     *
+     * @param nozzleNo
+     * @return
+     */
+    private void clearNozzleIndex(int nozzleNo) {
+        for (int i = 0; i < nozzleNos.length; i++) {
+            int temp = nozzleNos[i];
+            if (temp == nozzleNo) {
+                //清空油枪索引
+                nozzleNos[i] = 0;
+                return;
+            }
+        }
+    }
+
+    /**
+     * 增加罐存到需要持久化的list
+     *
+     * @param inventory
+     */
+    @Override
+    public void addInventoryToNeedPersistence(TankInventory inventory, boolean saveNow) {
+        Inventory inv = (Inventory) inventory;
+        if (!needPersistence.getInventories().isEmpty()) {
+            boolean exist = false;
+            for (Inventory inventory1 : needPersistence.inventories) {
+                if (inventory1.getTime().equals(inv.getTime())) {
+                    exist = true;
+                    break;
+                }
+            }
+            if (!exist) {
+                needPersistence.inventories.add(inv);
+            }
+        } else {
+            needPersistence.inventories.add(inv);
+        }
+        needPersistence.saveNow = saveNow;
+    }
+
+    /**
+     * 添加罐存到持久化中
+     *
+     * @param cycle
+     */
+    public void addCycleToNeedPersistence(DbInventoryCycle cycle) {
+        if (!needPersistence.getCycles().isEmpty()) {
+            boolean exist = false;
+            for (DbInventoryCycle cycle1 : needPersistence.cycles) {
+                if (cycle1.getDeliveryId() == cycle.getDeliveryId()) {
+                    exist = true;
+                    break;
+                }
+            }
+            if (!exist) {
+                needPersistence.cycles.add(cycle);
+            }
+        } else {
+            needPersistence.cycles.add(cycle);
+        }
+    }
+
+    /**
+     * 增加轨迹到需要持久化的list
+     *
+     * @param trace
+     */
+    @Override
+    public void addTraceToNeedPersistence(AbstractLevelTrace trace) {
+        needPersistence.traces.add(trace);
+        needPersistence.saveNow = true;
+    }
+
+    /**
+     * 增加轨迹到需要持久化的list
+     *
+     * @param alarm
+     */
+    @Override
+    public void addAlarmToNeedPersistence(DbInventoryAlarm alarm) {
+        needPersistence.alarms.add(alarm);
+    }
+
+    @Override
+    public void addLevelInfo(LevelInfo level) {
+
+    }
+
+    @Override
+    public void addNozzleOut(BzNozzleOut bzNozzleOut) {
+
+    }
+
+    /**
+     * 更新加油枪状态
+     * 1.液位轨迹不存在，直接返回
+     * 2.为当前的轨迹更新油枪状态
+     *
+     * @param nozzleState
+     */
+    @Override
+    public void updateNozzleState(NozzleState nozzleState) {
+        if (levelTrace == null) {
+            log.error("液位轨迹不存在");
+        } else {
+            synchronized (this.nozzleState) {
+                //更新油枪状态原子变量
+                nozzleStateChanged(nozzleState);
+                levelTrace.updateNozzleState(nozzleState);
+            }
+        }
+    }
+
+
+    /**
+     * 通知油枪实时加油数据
+     *
+     * @param nozzleTransientOut
+     */
+    @Override
+    public boolean updateNozzleTransientOut(NozzleTransientOut nozzleTransientOut) {
+        return false;
+    }
+
+    @Override
+    public void addLevelInfo(String levelString) {
+
+    }
+
+    @Override
+    public void addInventory(TankInventory inventory) throws InventoryException {
+        if (levelTrace == null) {
+            //新建周期
+            createNewCycle((Inventory) inventory, 1);
+            //没有数据，那么应该去初始化
+            this.levelTrace = new NewInventoryTrace(cycle.getDeliveryId(), 0, this);
+            log.info("第一次初始化：" + levelTrace);
+//			levelTrace.getTraceProcessor(persistenceProcessor, this).start((Inventory) inventory);
+        } else {
+            //获取轨迹对应的处理器
+            final AbstractTraceProcessor traceProcessor
+                    = levelTrace.getTraceProcessor();
+            boolean checkTime = traceProcessor.checkTime((Inventory) inventory);
+            if (!checkTime) {
+                return;
+            }
+            final LevelState levelState
+                    = traceProcessor.checkLevelState((Inventory) inventory);
+            //没有关闭的时候检查
+            // 1.液位状态发生变化 !levelState.equals(levelTrace.getLevelState())
+            // 2.不是类型转换  !levelTrace.isConvertToOtherTrace()
+            //比如.new->stable. 并不是关闭,只是把类型转为stable,closed=false
+            //比如.stable->ascend.  是关闭,结束stable,新建ascend.closed=true
+            if (!levelTrace.isClosed()
+                    && !levelState.equals(levelTrace.getLevelState())
+                    && !levelTrace.isConvertToOtherTrace()) {
+                levelTrace.setClosed(true);
+            }
+
+		/*
+		1.判断状态是否发生了变化
+		2.状态没有改变也有可能结束上一条，比如时间过长的，液位数据和付油数据匹配不上的等
+		 */
+            if (levelState.equals(levelTrace.getLevelState()) && !levelTrace.isClosed()) {
+                //状态同,没有关闭
+
+
+            } else if (levelState.equals(levelTrace.getLevelState()) && levelTrace.isClosed()) {
+                //状态同,关闭
+                //如levelState=new，levelTrace.getLevelState()=new，因为不连续的原因，应该关闭上一周期，新建周期
+                //状态同,关闭
+                traceProcessor.closed();
+
+                //周期处理
+                lastTrace = levelTrace;
+                if (levelState.equals(LevelState.NEW)) {
+                    //只要是new，肯定要新建周期
+                    //结束上一周期
+                    closeAndNewCycle((Inventory) inventory);
+                }
+                levelTrace = lastTrace.newTrace(levelState);
+                updateTraceDeliveryIdCycleId(levelTrace);
+            } else if (!levelState.equals(levelTrace.getLevelState()) && !levelTrace.isClosed()) {
+                //状态不同,没有关闭
+                //转换为新的液位轨迹
+                levelTrace = levelTrace.newTrace(levelState);
+                levelTrace.setDeliveryId(cycle.getDeliveryId());
+                levelTrace.setCycleId(cycle.getId());
+            } else if (!levelState.equals(levelTrace.getLevelState()) && levelTrace.isClosed()) {
+                //状态不同,关闭
+                //状态同,关闭
+                traceProcessor.closed();
+                //周期处理
+                lastTrace = levelTrace;
+                levelTrace = lastTrace.newTrace(levelState);
+                processCycle(lastTrace);
+                updateTraceDeliveryIdCycleId(levelTrace);
+                if (levelState.equals(LevelState.NEW)) {
+                    //只要是new，肯定要新建周期
+                    //结束上一周期
+                    closeAndNewCycle((Inventory) inventory);
+                }
+            }
+        }
+
+        final AbstractTraceProcessor traceProcessor = levelTrace.getTraceProcessor();
+        if (!traceProcessor.isStarted()) {
+            traceProcessor.start((Inventory) inventory);
+        } else {
+            traceProcessor.processing((Inventory) inventory);
+        }
+        //持久化
+        persistenceProcessor.persistence(needPersistence);
+    }
+
+
+    /**
+     * 周期处理
+     */
+    private void processCycle(LevelTrace levelTrace) {
+        //周期是不是新建的
+        if (cycle.getCycleState().equals(DbInventoryCycle.CycleState.NEW)) {
+            //更新周期状态
+            if (levelTrace.isOnUnloading()) {
+                cycle.unloadFinished((Inventory) levelTrace.getLastLevel());
+                log.info("上升：" + cycle.getTankNo());
+                cycle.setCycleState(DbInventoryCycle.CycleState.UNLOADING);
+                cycle.setNozzleOutWhenDelivery(cycle.getNozzleOutWhenDelivery() + levelTrace.getSumNozzleOut());
+            } else {
+                cycle.setCycleState(DbInventoryCycle.CycleState.SELLING);
+            }
+            addCycleToNeedPersistence(cycle);
+        } else {
+            //判断是否在销售中
+            if (!cycle.getCycleState().equals(DbInventoryCycle.CycleState.SELLING)) {
+                //卸油中的状态处理
+                log.info("当前周期：" + cycle.getCycleState().name());
+                switch (levelTrace.getLevelState()) {
+                    case LEVEL_ASCENDING:
+                        if (!cycle.getCycleState().equals(DbInventoryCycle.CycleState.UNLOADING)) {
+                            cycle.unloadFinished((Inventory) levelTrace.getLastLevel());
+                            log.info("转为上升：" + cycle.getTankNo());
+                            cycle.setCycleState(DbInventoryCycle.CycleState.UNLOADING);
+                        }
+                        cycle.setNozzleOutWhenDelivery(cycle.getNozzleOutWhenDelivery() + levelTrace.getSumNozzleOut());
+                        addCycleToNeedPersistence(cycle);
+                        break;
+                    case LEVEL_WAVING:
+                        cycle.unloadFinished((Inventory) levelTrace.getLastLevel());
+                        log.info("波动结束,卸油完成：" + cycle.getTankNo());
+                        cycle.setNozzleOutWhenDelivery(cycle.getNozzleOutWhenDelivery() + levelTrace.getSumNozzleOut());
+                        addCycleToNeedPersistence(cycle);
+                        break;
+                    case LEVEL_STABLE:
+                        if (!cycle.getCycleState().equals(DbInventoryCycle.CycleState.ACCOMPLISH_UNLOADING)) {
+                            log.info("卸油完成：" + cycle.getTankNo());
+                            if (cycle.getUnloadFinishedTime() == null) {
+                                cycle.unloadFinished((Inventory) levelTrace.getFirstLevel());
+                            }
+                            cycle.setCycleState(DbInventoryCycle.CycleState.ACCOMPLISH_UNLOADING);
+                            addCycleToNeedPersistence(cycle);
+                        }
+                        break;
+                    case LEVEL_DESCENDING:
+                        cycle.setCycleState(DbInventoryCycle.CycleState.SELLING);
+                        addCycleToNeedPersistence(cycle);
+                        break;
+                    default:
+                        log.error("无法确认周期：" + levelTrace.getLevelState()
+                                + ";startTime:" + levelTrace.getFirstLevel().getTime().toLocaleString());
+                }
+            } else {
+                //是否卸油
+                if (levelTrace.isOnUnloading()) {
+                    //结束上一周期
+                    cycle.closed((Inventory) levelTrace.getFirstLevel());
+                    log.info("结束上一周期：" + cycle);
+                    addCycleToNeedPersistence(cycle);
+
+
+                    int deliveryId = cycle.getDeliveryId() + 1;
+
+                    //新建变阻器
+                    cycle = DbInventoryCycle.init(levelTrace, DbInventoryCycle.CycleState.UNLOADING);
+                    cycle.setNozzleOutWhenDelivery(levelTrace.getSumNozzleOut());
+                    cycle.setDeliveryId(deliveryId);
+                    log.info("初始化新建卸油周期：" + cycle);
+
+                    levelTrace.setCycleId(0);
+                    levelTrace.setDeliveryId(deliveryId);
+                    addCycleToNeedPersistence(cycle);
+                }
+            }
+        }
+
+    }
+
+    /**
+     * 更新周期id和数据库id
+     */
+    private void updateTraceDeliveryIdCycleId(LevelTrace levelTrace) {
+
+        levelTrace.setDeliveryId(cycle.getDeliveryId());
+        levelTrace.setCycleId(cycle.getId() == null ? 0 : cycle.getId());
+    }
+
+    /**
+     * 关闭上一周期,新建新的周期
+     *
+     * @param inventory
+     */
+    private void closeAndNewCycle(Inventory inventory) {
+        //结束上一周期
+        cycle.closed(inventory);
+        addCycleToNeedPersistence(cycle);
+        int deliveryId = cycle.getDeliveryId() + 1;
+        //新建周期
+        createNewCycle(inventory, deliveryId);
+    }
+
+    /**
+     * 创建新周期
+     *
+     * @param inventory
+     */
+    private void createNewCycle(Inventory inventory, int deliveryId) {
+        cycle = DbInventoryCycle.init(inventory, DbInventoryCycle.CycleState.NEW, deliveryId);
+        addCycleToNeedPersistence(cycle);
+    }
+
+
+    @Override
+    public void addInventory(String inventoryString) {
+
+    }
+
+    /**
+     * 返回当前液位信息
+     */
+    @Override
+    public LevelState getLevelState() {
+        return null;
+    }
+
+
+    /**
+     * 需要持久化的
+     */
+    @Data
+    @ToString
+    public class NeedPersistence {
+        /**
+         * 需要保存的液位轨迹
+         */
+        private List<AbstractLevelTrace> traces;
+        /**
+         * 需要保存的液位数据
+         */
+        private List<Inventory> inventories;
+        /**
+         * 液位是否立刻保存
+         */
+        private boolean saveNow = false;
+        /**
+         * 油罐号
+         */
+        private int tankNo;
+        /**
+         * 异常信息
+         */
+        private List<DbInventoryAlarm> alarms;
+
+        /**
+         * 周期
+         */
+        private List<DbInventoryCycle> cycles;
+
+        public NeedPersistence() {
+            this.traces = new ArrayList<>();
+            this.inventories = new ArrayList<>();
+            this.alarms = new ArrayList<>();
+            this.cycles = new ArrayList<>();
+        }
+    }
+}

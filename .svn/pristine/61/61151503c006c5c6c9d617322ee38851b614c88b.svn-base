@@ -1,0 +1,425 @@
+/**
+ *
+ */
+package com.oket.util;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+/**
+ * @author IBM 定义浮点数的加、减、乘、除和四舍五入等运算方法
+ */
+public class MathExtend {
+
+	/**
+	 * <p>
+	 * {@link #DEFAULT_DIV_SCALE} 默认除法运算精度
+	 * </p>
+	 * */
+	private static final int DEFAULT_DIV_SCALE = 10;
+
+	/**
+	 *
+	 * 提供精确的加法运算。
+	 *
+	 * @param v1
+	 * @param v2
+	 * @return 两个参数的和
+	 */
+	public static double add(double v1, double v2) {
+		BigDecimal b1 = new BigDecimal(Double.toString(v1));
+		BigDecimal b2 = new BigDecimal(Double.toString(v2));
+		return b1.add(b2).doubleValue();
+	}
+
+	/**
+	 *
+	 * 提供精确的加法运算
+	 *
+	 * @param v1
+	 * @param v2
+	 * @return 两个参数数学加和，以字符串格式返回
+	 */
+	public static String add(String v1, String v2) {
+		BigDecimal b1 = new BigDecimal(v1);
+		BigDecimal b2 = new BigDecimal(v2);
+		return b1.add(b2).toString();
+	}
+
+	/**
+	 *
+	 * 提供精确的减法运算。
+	 *
+	 * @param v1
+	 * @param v2
+	 * @return 两个参数的差
+	 */
+	public static double subtract(double v1, double v2) {
+		BigDecimal b1 = new BigDecimal(Double.toString(v1));
+		BigDecimal b2 = new BigDecimal(Double.toString(v2));
+		return b1.subtract(b2).doubleValue();
+	}
+
+	/**
+	 *
+	 * 提供精确的减法运算
+	 *
+	 * @param v1
+	 * @param v2
+	 * @return 两个参数数学差，以字符串格式返回
+	 */
+	public static String subtract(String v1, String v2) {
+		BigDecimal b1 = new BigDecimal(v1);
+		BigDecimal b2 = new BigDecimal(v2);
+		return b1.subtract(b2).toString();
+	}
+
+	/**
+	 *
+	 * 提供精确的乘法运算。
+	 *
+	 * @param v1
+	 * @param v2
+	 * @return 两个参数的积
+	 */
+	public static double multiply(double v1, double v2) {
+		BigDecimal b1 = new BigDecimal(Double.toString(v1));
+		BigDecimal b2 = new BigDecimal(Double.toString(v2));
+		return b1.multiply(b2).doubleValue();
+	}
+
+	/**
+	 *
+	 * 提供精确的乘法运算
+	 *
+	 * @param v1
+	 * @param v2
+	 * @return 两个参数的数学积，以字符串格式返回
+	 */
+
+	public static String multiply(String v1, String v2) {
+		BigDecimal b1 = new BigDecimal(v1);
+		BigDecimal b2 = new BigDecimal(v2);
+		return b1.multiply(b2).toString();
+	}
+
+	/**
+	 *
+	 * 提供（相对）精确的除法运算，当发生除不尽的情况时，精确到 小数点以后10位，以后的数字四舍五入,舍入模式采用ROUND_HALF_EVEN
+	 *
+	 * @param v1
+	 * @param v2
+	 * @return 两个参数的商
+	 */
+	public static double divide(double v1, double v2) {
+		return divide(v1, v2, DEFAULT_DIV_SCALE);
+	}
+
+	/**
+	 * 提供（相对）精确的除法运算。当发生除不尽的情况时，由scale参数指 定精度，以后的数字四舍五入。舍入模式采用ROUND_HALF_EVEN
+	 *
+	 * @param v1
+	 * @param v2
+	 * @param scale
+	 *          表示需要精确到小数点以后几位。
+	 * @return 两个参数的商
+	 */
+	public static double divide(double v1, double v2, int scale) {
+		return divide(v1, v2, scale, BigDecimal.ROUND_HALF_EVEN);
+	}
+
+	/**
+	 * 提供（相对）精确的除法运算。当发生除不尽的情况时，由scale参数指 定精度，以后的数字四舍五入。舍入模式采用用户指定舍入模式
+	 *
+	 * @param v1
+	 * @param v2
+	 * @param scale
+	 *          表示需要精确到小数点以后几位
+	 * @param round_mode
+	 *          表示用户指定的舍入模式
+	 * @return 两个参数的商
+	 */
+	public static double divide(double v1, double v2, int scale, int round_mode) {
+		if (scale < 0) {
+			throw new IllegalArgumentException(
+					"The scale must be a positive integer or zero");
+		}
+		BigDecimal b1 = new BigDecimal(Double.toString(v1));
+		BigDecimal b2 = new BigDecimal(Double.toString(v2));
+		return b1.divide(b2, scale, round_mode).doubleValue();
+	}
+
+	/**
+	 * 提供（相对）精确的除法运算，当发生除不尽的情况时，精确到 小数点以后10位，以后的数字四舍五入,舍入模式采用ROUND_HALF_EVEN
+	 *
+	 * @param v1
+	 * @param v2
+	 * @return 两个参数的商，以字符串格式返回
+	 */
+	public static String divide(String v1, String v2) {
+		return divide(v1, v2, DEFAULT_DIV_SCALE);
+	}
+
+	/**
+	 * 提供（相对）精确的除法运算。当发生除不尽的情况时，由scale参数指 定精度，以后的数字四舍五入。舍入模式采用ROUND_HALF_EVEN
+	 *
+	 * @param v1
+	 * @param v2
+	 * @param scale
+	 *          表示需要精确到小数点以后几位
+	 * @return 两个参数的商，以字符串格式返回
+	 */
+	public static String divide(String v1, String v2, int scale) {
+		return divide(v1, v2, DEFAULT_DIV_SCALE, BigDecimal.ROUND_HALF_EVEN);
+	}
+
+	/**
+	 * 提供（相对）精确的除法运算。当发生除不尽的情况时，由scale参数指 定精度，以后的数字四舍五入。舍入模式采用用户指定舍入模式
+	 *
+	 * @param v1
+	 * @param v2
+	 * @param scale
+	 *          表示需要精确到小数点以后几位
+	 * @param round_mode
+	 *          表示用户指定的舍入模式
+	 * @return 两个参数的商，以字符串格式返回
+	 */
+	public static String divide(String v1, String v2, int scale, int round_mode) {
+		if (scale < 0) {
+			throw new IllegalArgumentException(
+					"The scale must be a positive integer or zero");
+		}
+		BigDecimal b1 = new BigDecimal(v1);
+		BigDecimal b2 = new BigDecimal(v2);
+		return b1.divide(b2, scale, round_mode).toString();
+	}
+
+	/**
+	 * 提供精确的小数位四舍五入处理,舍入模式采用ROUND_HALF_EVEN
+	 *
+	 * @param v
+	 *          需要四舍五入的数字
+	 * @param scale
+	 *          小数点后保留几位
+	 * @return 四舍五入后的结果
+	 */
+	public static double round(double v, int scale) {
+		return round(v, scale, BigDecimal.ROUND_HALF_EVEN);
+	}
+
+	/**
+	 * 提供精确的小数位四舍五入处理
+	 *
+	 * @param v
+	 *          需要四舍五入的数字
+	 * @param scale
+	 *          小数点后保留几位
+	 * @param round_mode
+	 *          指定的舍入模式
+	 * @return 四舍五入后的结果
+	 */
+	public static double round(double v, int scale, int round_mode) {
+		if (scale < 0) {
+			throw new IllegalArgumentException(
+					"The scale must be a positive integer or zero");
+		}
+		BigDecimal b = new BigDecimal(Double.toString(v));
+		return b.setScale(scale, round_mode).doubleValue();
+	}
+
+	/**
+	 * 提供精确的小数位四舍五入处理,舍入模式采用ROUND_HALF_EVEN
+	 *
+	 * @param v
+	 *          需要四舍五入的数字
+	 * @param scale
+	 *          小数点后保留几位
+	 * @return 四舍五入后的结果，以字符串格式返回
+	 */
+
+	public static String round(String v, int scale) {
+		return round(v, scale, BigDecimal.ROUND_HALF_EVEN);
+	}
+
+	/**
+	 * 提供精确的小数位四舍五入处理
+	 *
+	 * @param v
+	 *          需要四舍五入的数字
+	 * @param scale
+	 *          小数点后保留几位
+	 * @param round_mode
+	 *          指定的舍入模式
+	 * @return 四舍五入后的结果，以字符串格式返回
+	 */
+	public static String round(String v, int scale, int round_mode) {
+		if (scale < 0) {
+			throw new IllegalArgumentException(
+					"The scale must be a positive integer or zero");
+		}
+
+		BigDecimal b = new BigDecimal(v);
+		return b.setScale(scale, round_mode).toString();
+	}
+
+	/**
+	 * 计算平均值
+	 *
+	 * @param v
+	 * @return
+	 */
+	public static double average(double[] v) {
+		double sum = 0;
+		for (int i = 0; i < v.length; i++) {
+			sum += v[i];
+		}
+		return sum / v.length;
+	}
+
+	/**
+	 * 计算偏差值 Xi-X平均
+	 *
+	 * @param v
+	 * @return
+	 */
+	public static double[] deviation(double[] v) {
+		double avgv = average(v);
+		double[] rv = new double[v.length];
+		for (int i = 0; i < v.length; i++) {
+			rv[i] = v[i] - avgv;
+		}
+		return rv;
+	}
+
+	public static byte[] int2ByteArray(int val) {
+		byte[] result = new byte[2];
+		String binary = Integer.toBinaryString(val);
+		StringBuffer buffer = new StringBuffer(binary);
+		for (int i = binary.length(); i < 16; i++) {
+			buffer.insert(0, "0");
+		}
+		for (int i = 0; i < 2; i++) {
+			String vv = buffer.substring(i * 8, 8 * (i + 1));
+			BigInteger vals = new BigInteger(vv, 2);
+			result[i] = vals.byteValue();
+		}
+		return result;
+	}
+
+	public static int byte2Int(byte[] val) {
+		StringBuffer rst = new StringBuffer();
+		StringBuffer bin = new StringBuffer();
+		for (int i = 0; i < 2; i++) {
+			int n = val[i] & 0xFF;
+
+			bin.append(Integer.toBinaryString(n));
+			for (int j = bin.toString().length(); j < 8; j++) {
+				bin.insert(0, "0");
+			}
+			rst.append(bin.toString());
+			bin.delete(0, bin.length());
+		}
+		return new BigInteger(rst.toString(), 2).intValue();
+	}
+
+
+	/**
+	 * 高位在前，地位在后
+	 *
+	 * @param src
+	 * @return
+	 */
+	public static int bytes2Int4(byte[] src) {
+		int value;
+		value = (int) (((src[0] & 0xFF) << 24) | ((src[1] & 0xFF) << 16)
+				| ((src[2] & 0xFF) << 8) | (src[3] & 0xFF));
+		return value;
+	}
+
+	public static byte[] intToByteArray(int value) {
+		byte[] b = new byte[4];
+		for (int i = 0; i < 4; i++) {
+			int offset = (b.length - 1 - i) * 8;
+			b[i] = (byte) ((value >>> offset) & 0xFF);
+		}
+		return b;
+	}
+
+	public static byte int2Byte(int val) {
+		String binary = Integer.toBinaryString(val);
+		StringBuffer buffer = new StringBuffer(binary);
+		for (int i = binary.length(); i < 8; i++) {
+			buffer.insert(0, "0");
+		}
+		return new BigInteger(buffer.toString(), 2).byteValue();
+	}
+
+	/**
+	 * 把一个整形改为2位的byte数组
+	 *
+	 * @param value
+	 * @return
+	 * @throws Exception
+	 */
+	public static byte[] integerTo2Bytes(int value) {
+		byte[] result = new byte[2];
+		result[0] = (byte) ((value >>> 8) & 0xFF);
+		result[1] = (byte) (value & 0xFF);
+		return result;
+	}
+
+	/**
+	 * 把一个长整形改为byte数组
+	 *
+	 * @param value
+	 * @return
+	 * @throws Exception
+	 */
+	public static byte[] longToBytes(long value, int len) {
+		byte[] result = new byte[len];
+		int temp;
+		for (int i = 0; i < len; i++) {
+			temp = (len - 1 - i) * 8;
+			if (temp == 0) {
+				result[i] += (value & 0x0ff);
+			} else {
+				result[i] += (value >>> temp) & 0x0ff;
+			}
+		}
+		return result;
+	}
+
+	/**    byte[]转long
+	 * @param byteNum
+	 * @return
+	 */
+	public static long bytes2Long(byte[] byteNum) {
+		long num = 0;
+		for (int ix = 0; ix < 8; ++ix) {
+			num <<= 8;
+			num |= (byteNum[ix] & 0xff);
+		}
+		return num;
+	}
+
+	public static void main(String[] args) {
+		System.out.println(bytes2Int4(new byte[]
+				{0x02, 0x24, (byte) 0xFD, (byte) 0xBC}));
+		System.out.println(StringExUtils.byteArrayToHexString(intToByteArray(12)));
+		System.out.println(Long.toHexString(3279341802L));
+		System.out.println(bytes2FloatOfC(new byte[]{0x44, (byte) 0xc8, (byte) 0x00, (byte) 0x00}));
+	}
+
+	public static int bytes2IntOfC(byte[] b) {
+		int s = 0;
+		for (int i = 0; i <= 3; i++) {
+			s *= 256;
+			s += b[i] < 0 ? b[i] + 256 : b[i];
+		}
+		return s;
+	}
+
+	public static float bytes2FloatOfC(byte[] data) {
+		return Float.intBitsToFloat(bytes2IntOfC(data));
+	}
+}

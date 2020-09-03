@@ -1,0 +1,385 @@
+package com.oket.tank4station.service.impl;
+
+
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.oket.common.base.Status;
+import com.oket.config.exception.CommonJsonException;
+import com.oket.tank4station.InventoryException;
+import com.oket.tank4station.LevelState;
+import com.oket.tank4station.dao.DbInventoryTraceDAO;
+import com.oket.tank4station.entity.DbInventory;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.tank4station.service.DbInventoryService;
+import com.oket.tank4station.service.DbInventoryTraceService;
+import com.oket.tank4station.service.vo.InventoryTraceMergeVO;
+import com.oket.tank4station.service.vo.InventoryTraceVO;
+import com.oket.tankchartdc.BzTraceRelOutGroup;
+import com.oket.tankchartdc.NozzleOutGroupProcessor;
+import com.oket.tankchartdc.service.BzTraceRelOutGroupService;
+import com.oket.util.CommonUtil;
+import com.oket.util.TimeUtils;
+import com.oket.util.constants.ErrorEnum;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.validation.constraints.NotEmpty;
+import java.text.ParseException;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * @description: 液位轨迹service
+ * @author: SunBiaoLong
+ * @create: 2020-03-17 13:09
+ **/
+@Service
+@Slf4j
+public class DbInventoryTraceServiceImpl extends ServiceImpl<DbInventoryTraceDAO, DbInventoryTrace> implements DbInventoryTraceService {
+
+    @Autowired
+    private DbInventoryService dbInventoryService;
+    @Autowired
+    private BzTraceRelOutGroupService bzTraceRelOutGroupService;
+
+//    @Autowired
+//    private BackToTankService backToTankService;
+
+    @Override
+    public DbInventoryTrace getBeforeTrace(Date time, int tankNo) {
+        QueryWrapper<DbInventoryTrace> qw = new QueryWrapper<>();
+        qw.lambda().le(DbInventoryTrace::getStartTime, time);
+        qw.lambda().eq(DbInventoryTrace::getTankNo, tankNo);
+        qw.lambda().orderByDesc(DbInventoryTrace::getStartTime);
+        qw.lambda().eq(DbInventoryTrace::getStatus, Status.ENABLE);
+        qw.lambda().last(" LIMIT 1");
+        return baseMapper.selectOne(qw);
+    }
+    @Override
+    public JSONObject getTrace(JSONObject jsonObject){
+        QueryWrapper queryWrapper = new QueryWrapper();
+        queryWrapper.eq("tank_no",jsonObject.getInteger("tankNo"));
+        queryWrapper.lt("start_time",jsonObject.getString("endTime"));
+        queryWrapper.gt("end_time",jsonObject.getString("startTime"));
+        queryWrapper.orderByAsc("start_time");
+        return CommonUtil.successJson(baseMapper.selectList(queryWrapper));
+    }
+
+    @Override
+    public DbInventoryTrace getNextTrace(Date time, int tankNo) {
+        QueryWrapper<DbInventoryTrace> qw = new QueryWrapper<>();
+        qw.lambda().ge(DbInventoryTrace::getStartTime, time);
+        qw.lambda().eq(DbInventoryTrace::getTankNo, tankNo);
+        qw.lambda().orderByDesc(DbInventoryTrace::getStartTime);
+        qw.lambda().eq(DbInventoryTrace::getStatus, Status.ENABLE);
+        qw.lambda().last(" LIMIT 1");
+        return baseMapper.selectOne(qw);
+    }
+
+    @Override
+    public List<DbInventoryTrace> getTrace(Date startTime, Date endTime, int tankNo) {
+        QueryWrapper<DbInventoryTrace> qw = new QueryWrapper<>();
+        //1.轨迹的开始时间大于传入的结束时间
+        //2.轨迹的结束时间小于传入的开始时间
+        qw.lambda().ge(DbInventoryTrace::getStartTime, startTime);
+        qw.lambda().le(DbInventoryTrace::getEndTime, endTime);
+        qw.lambda().eq(DbInventoryTrace::getTankNo, tankNo);
+        qw.lambda().eq(DbInventoryTrace::getStatus, Status.ENABLE);
+        qw.lambda().orderByAsc(DbInventoryTrace::getStartTime);
+        return baseMapper.selectList(qw);
+    }
+
+    @Override
+    public List<DbInventoryTrace> getTrace(Date startTime, Date endTime, int tankNo, boolean descByStartTime) {
+        QueryWrapper<DbInventoryTrace> qw = new QueryWrapper<>();
+        //1.轨迹的开始时间小于等于传入的结束时间
+        //2.轨迹的结束时间小于等于传入的开始时间
+        qw.lambda().ge(DbInventoryTrace::getEndTime, startTime);
+        qw.lambda().le(DbInventoryTrace::getStartTime, endTime);
+        qw.lambda().eq(DbInventoryTrace::getTankNo, tankNo);
+        qw.lambda().eq(DbInventoryTrace::getStatus, Status.ENABLE);
+        if (descByStartTime) {
+            qw.lambda().orderByDesc(DbInventoryTrace::getStartTime);
+        } else {
+            qw.lambda().orderByAsc(DbInventoryTrace::getStartTime);
+        }
+        return baseMapper.selectList(qw);
+    }
+
+
+    @Override
+    public List<InventoryTraceVO> queryInventories(List<Long> traceIds) {
+        QueryWrapper<DbInventoryTrace> qw = new QueryWrapper<>();
+        qw.lambda().in(DbInventoryTrace::getId, traceIds);
+        qw.lambda().eq(DbInventoryTrace::getStatus, Status.ENABLE);
+        final List<DbInventoryTrace> traces = this.list(qw);
+        List<InventoryTraceVO> inventoryTraceVOS = null;
+        if (traces != null && !traces.isEmpty()) {
+            inventoryTraceVOS = new ArrayList<>();
+            for (DbInventoryTrace trace : traces) {
+                InventoryTraceVO inventoryTraceVO = new InventoryTraceVO();
+                inventoryTraceVO.setTrace(trace);
+                final List<DbInventory> inventories = dbInventoryService.getInGaps(trace.getTankNo(), trace.getStartId(), trace.getEndId());
+                inventoryTraceVO.setDbInventories(inventories);
+                inventoryTraceVOS.add(inventoryTraceVO);
+            }
+            return inventoryTraceVOS;
+        }
+        return null;
+    }
+
+    @Override
+    public List<DbInventoryTrace> getAllLastTrace() {
+        QueryWrapper<DbInventoryTrace> qw = new QueryWrapper<>();
+        qw.lambda().eq(DbInventoryTrace::getClosed, DbInventoryTrace.NOT_FINISHED);
+        qw.lambda().eq(DbInventoryTrace::getStatus, Status.ENABLE);
+        return list(qw);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void merge(InventoryTraceMergeVO traceMergeVO) throws InventoryException {
+        if (traceMergeVO == null) {
+            throw new CommonJsonException(ErrorEnum.E_1001);
+        }
+        final List<DbInventoryTrace> traceFromDb = getTrace(traceMergeVO.getStartTime(), traceMergeVO.getEndTime(), traceMergeVO.getTankNo());
+        @NotEmpty final List<InventoryTraceMergeVO.Segment> segments = check(traceMergeVO, traceFromDb);
+
+        if (segments.size() == 1) {
+            //合并液位组
+            merge(traceFromDb, segments.get(0));
+            //合并液位组
+            final List<Long> traceIds = traceFromDb.parallelStream().map(DbInventoryTrace::getId).collect(Collectors.toList());
+            //找到对应付油组关联关系
+            final List<BzTraceRelOutGroup> byTraceIds = bzTraceRelOutGroupService.getByTraceIds(traceIds);
+//            backToTankService.disableBackToTanks(traceFromDb);
+            if (!byTraceIds.isEmpty()) {
+                final DbInventoryTrace dbInventoryTrace = traceFromDb.get(0);
+                bzTraceRelOutGroupService.mergeRel(byTraceIds, dbInventoryTrace);
+            }
+        } else {
+            //合并及拆分，目前没有用到
+            //TODO:需要再做调试
+            final Collection<DbInventory> dbInventories = getDbInventoriesByIds(traceMergeVO);
+            List<DbInventoryTrace> saveOrUpdateList = new ArrayList<>();
+            merge(traceMergeVO, traceFromDb, segments, dbInventories, saveOrUpdateList);
+            this.saveOrUpdateBatch(saveOrUpdateList);
+        }
+
+    }
+
+    /**
+     * 合并液位
+     *
+     * @param traceMergeVO
+     * @param traceFromDb
+     * @param segments
+     * @param dbInventories
+     * @param saveOrUpdateList
+     * @throws InventoryException
+     */
+    public void merge(InventoryTraceMergeVO traceMergeVO
+            , List<DbInventoryTrace> traceFromDb
+            , @NotEmpty List<InventoryTraceMergeVO.Segment> segments
+            , Collection<DbInventory> dbInventories
+            , List<DbInventoryTrace> saveOrUpdateList) throws InventoryException {
+        //遍历前端传来的轨迹信息
+        for (InventoryTraceMergeVO.Segment segment : segments) {
+            if (segment.getLevelState() == null) {
+                throw new InventoryException("新建轨迹未选择液位状态");
+            }
+            //查询这一轨迹的开始和结束的液位数据
+
+            final DbInventory startDbInventory = dbInventories.parallelStream().filter(v -> v.getId().equals(segment.getStartId())).findFirst().orElseThrow(InventoryException::new);
+            final DbInventory endDbInventory = dbInventories.parallelStream().filter(v -> v.getId().equals(segment.getEndId())).findFirst().orElseThrow(InventoryException::new);
+            if (startDbInventory == null || endDbInventory == null) {
+                throw new InventoryException("选择开始或结束液位无效，查询不到：startId:"
+                        + segment.getStartId()
+                        + ",endId:" + segment.getEndId()
+                );
+            }
+            //获取轨迹信息
+            DbInventoryTrace trace = null;
+            if (traceFromDb.size() >= 1) {
+                final Iterator<DbInventoryTrace> iterator = traceFromDb.iterator();
+                while (iterator.hasNext()) {
+                    final DbInventoryTrace firstTrace = iterator.next();
+                    if (firstTrace.getEndTime().getTime() <= startDbInventory.getTime().getTime()) {
+                        firstTrace.setStatus(Status.DISABLE);
+                        saveOrUpdateList.add(firstTrace);
+                        iterator.remove();
+                    } else if (firstTrace.getStartTime().getTime() > endDbInventory.getTime().getTime()) {
+                        //下一次可能用到
+                        break;
+                    } else {
+                        trace = firstTrace;
+                        iterator.remove();
+                        break;
+                    }
+                }
+            }
+            if (trace == null) {
+                trace = new DbInventoryTrace();
+            }
+            saveOrUpdateList.add(trace);
+            //设置修改的相应属性
+            trace.startInventory(startDbInventory, segment.getLevelState());
+            trace.endInventory(endDbInventory);
+        }
+        if (!traceFromDb.isEmpty()) {
+            for (DbInventoryTrace trace : traceFromDb) {
+                trace.setStatus(Status.DISABLE);
+                saveOrUpdateList.add(trace);
+            }
+        }
+        log.debug(JSONObject.toJSONString(saveOrUpdateList, SerializerFeature.PrettyFormat,
+                SerializerFeature.WriteMapNullValue,
+                SerializerFeature.WriteDateUseDateFormat));
+    }
+
+
+    public void merge(List<DbInventoryTrace> traceList, InventoryTraceMergeVO.Segment segment) {
+        DbInventoryTrace merge = null;
+        for (int i = 0; i < traceList.size(); i++) {
+            final DbInventoryTrace dbInventoryTrace = traceList.get(i);
+            if (i == 0) {
+                merge = dbInventoryTrace;
+            } else {
+                if (dbInventoryTrace.getStartTime().getTime() < merge.getStartTime().getTime()) {
+                    merge.startInventory(dbInventoryTrace);
+                }
+                if (dbInventoryTrace.getEndTime().getTime() > merge.getEndTime().getTime()) {
+                    merge.endInventory(dbInventoryTrace);
+                }
+                merge.setPoints(merge.getPoints() + dbInventoryTrace.getPoints());
+                //周期不同的归属于下一周期
+                if (dbInventoryTrace.getDeliveryId() > merge.getDeliveryId()) {
+                    merge.setDeliveryId(dbInventoryTrace.getDeliveryId());
+                }
+                dbInventoryTrace.setStatus(Status.DISABLE);
+            }
+        }
+        assert merge != null;
+        if (segment == null) {
+            double levelGap = merge.getEndLevel() - merge.getStartLevel();
+            //设置液位状态
+            merge.setLevelState(levelGap <= 0.1 ? LevelState.LEVEL_DESCENDING : LevelState.LEVEL_ASCENDING);
+        } else {
+            merge.setLevelState(segment.getLevelState());
+        }
+
+        this.saveOrUpdateBatch(traceList);
+    }
+
+    @Override
+    public void getStartAndEndInv(DbInventoryTrace lastTrace) {
+        if (lastTrace != null) {
+            lastTrace.setFirstInventory(dbInventoryService.getById(lastTrace.getStartId()));
+            if (lastTrace.getClosed() == DbInventoryTrace.FINISHED) {
+                lastTrace.setLastInventory(dbInventoryService.getById(lastTrace.getEndId()));
+            } else {
+                lastTrace.setLastInventory(dbInventoryService.getLastByTankNo(lastTrace.getTankNo()));
+            }
+        }
+    }
+
+    @Override
+    public void merge(List<DbInventoryTrace> traceList) {
+        merge(traceList, null);
+    }
+
+
+    private Collection<DbInventory> getDbInventoriesByIds(InventoryTraceMergeVO traceMergeVO) {
+        List<Long> ids = traceMergeVO.getSegments().parallelStream().flatMap(v -> Stream.of(v.getStartId(), v.getEndId())).collect(Collectors.toList());
+        return dbInventoryService.listByIds(ids);
+    }
+
+    @NotEmpty
+    private List<InventoryTraceMergeVO.Segment> check(InventoryTraceMergeVO traceMergeVO, List<DbInventoryTrace> traceFromDb) throws InventoryException {
+        if (traceFromDb == null || traceFromDb.isEmpty()) {
+            throw new InventoryException("查询不到液位轨迹：" + traceMergeVO);
+        }
+        @NotEmpty final List<InventoryTraceMergeVO.Segment> segments = traceMergeVO.getSegments();
+        segments.sort((a, b) -> {
+            long r = b.getStartId() - a.getStartId();
+            if (r > 0) {
+                return -1;
+            } else if (r < 0) {
+                return 1;
+            } else {
+                return 0;
+            }
+        });
+        if (!segments.get(0).getStartId().equals(traceFromDb.get(0).getStartId())) {
+            throw new InventoryException("总的开始节点和分段的开始节点不一致：" + traceMergeVO);
+        }
+        if (!segments.get(segments.size() - 1).getEndId().equals(traceFromDb.get(traceFromDb.size() - 1).getEndId())) {
+            throw new InventoryException("总的结束节点和分段的结束节点不一致：" + traceMergeVO);
+        }
+        //检查是否在匹配的缓存中
+        for (DbInventoryTrace dbInventoryTrace : traceFromDb) {
+            NozzleOutGroupProcessor.checkMerge(dbInventoryTrace.getId());
+        }
+        return segments;
+    }
+
+
+    /**
+     * 从数据库中获取上一笔数据
+     *
+     * @param tankNo
+     * @return
+     */
+    @Override
+    public DbInventoryTrace getLastTrace(int tankNo) {
+        QueryWrapper<DbInventoryTrace> qw = new QueryWrapper<>();
+        qw.lambda().eq(DbInventoryTrace::getTankNo, tankNo);
+        qw.lambda().eq(DbInventoryTrace::getStatus, Status.ENABLE);
+        qw.lambda().orderByDesc(DbInventoryTrace::getStartTime);
+        IPage<DbInventoryTrace> page = new Page<>(1, 1);
+        final IPage<DbInventoryTrace> tracePage = baseMapper.selectPage(page, qw);
+        if (tracePage.getRecords().isEmpty()) {
+            return null;
+        } else {
+            return tracePage.getRecords().get(0);
+        }
+    }
+
+    @Override
+    public IPage<DbInventoryTrace> query(JSONObject req, boolean isPage) {
+        // 参数根据需要判断来写
+        IPage<DbInventoryTrace> page = new Page<>(req.getIntValue("pageNum"), req.getIntValue("pageRow"));
+        //查询条件 根据需要写
+        QueryWrapper<DbInventoryTrace> wrapper = new QueryWrapper<>();
+        //查询条件
+        if (req.getString("startTime") != null
+                && req.getString("endTime") != null) {
+            try {
+                wrapper.lambda().ge(DbInventoryTrace::getStartTime, TimeUtils.parseToSecond(req.getString("startTime")));
+                wrapper.lambda().le(DbInventoryTrace::getEndTime, TimeUtils.parseToSecond(req.getString("endTime")));
+            } catch (ParseException e) {
+                log.error("", e);
+            }
+        }
+        if (req.getString("tankNo") != null) {
+            wrapper.lambda().eq(DbInventoryTrace::getTankNo, req.getInteger("tankNo"));
+        }
+        wrapper.lambda().eq(DbInventoryTrace::getStatus, Status.ENABLE);
+        wrapper.lambda().orderByDesc(DbInventoryTrace::getStartTime);
+        if (!isPage) {
+            //不分页的数据
+            page.setRecords(baseMapper.selectList(wrapper));
+        } else {
+            // 分页的数据
+            page = baseMapper.selectPage(page, wrapper);
+        }
+        return page;
+    }
+}

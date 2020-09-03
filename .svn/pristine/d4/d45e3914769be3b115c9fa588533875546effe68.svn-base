@@ -1,0 +1,19 @@
+# 通用配置文件
+server:
+  port: 9099
+spring:
+  resources:
+    static-locations: classpath:static/
+  servlet:
+    multipart:
+      max-file-size: 300MB
+      max-request-size: 300MB
+  devtools:
+    restart:
+      enabled: true
+
+
+# 使用的那个配置文件
+Spring:
+  profiles:
+    active: dev

@@ -1,0 +1,73 @@
+package com.oket.tankchartdc.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.oket.dispenser.BzNozzleOutGroup;
+import com.oket.tankchartdc.dao.AbnormalDao;
+import com.oket.tankchartdc.entity.AbnormalEntity;
+import com.oket.tankchartdc.mina.json.JSONAcceptor;
+import com.oket.tankchartdc.service.AbnormalService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.oket.util.TimeUtils;
+import org.springframework.stereotype.Service;
+
+import java.text.ParseException;
+import java.util.List;
+
+/**
+ * <p>
+ *  服务实现类
+ * </p>
+ *
+ * @author lw
+ * @since 2020-04-01
+ */
+@Service
+public class AbnormalServiceImpl extends ServiceImpl<AbnormalDao, AbnormalEntity> implements AbnormalService {
+
+    @Override
+    public IPage<AbnormalEntity> query(JSONObject req, boolean isPage) {
+        // 参数根据需要判断来写
+        IPage<AbnormalEntity> page = new Page<>(req.getIntValue("pageNum"), req.getIntValue("pageRow"));
+        //查询条件 根据需要写
+        QueryWrapper<AbnormalEntity> wrapper = new QueryWrapper<>();
+        //查询中断异常
+        if(req.getIntValue("errorType")==1 && req.getString("ditType").equals("IFSF")){
+            if (req.getString("startTime") != null && req.getString("endTime") != null) {
+                wrapper.lambda().ge(AbnormalEntity::getStartTime,req.getString("startTime"));
+                wrapper.apply("(end_time<='"+req.getString("endTime")+"' or end_time is NULL)");
+            }
+            wrapper.lambda().eq(AbnormalEntity::getErrorType,1);
+            wrapper.lambda().eq(AbnormalEntity::getDitType,"IFSF");
+            wrapper.lambda().orderByDesc(AbnormalEntity::getStartTime);
+        }
+        else if(req.getIntValue("errorType")==1 && req.getString("ditType").equals("JSON")){
+            if (req.getString("startTime") != null && req.getString("endTime") != null) {
+                wrapper.lambda().ge(AbnormalEntity::getStartTime,req.getString("startTime"));
+                wrapper.apply("(end_time<='"+req.getString("endTime")+"' or end_time is NULL)");
+            }
+            wrapper.lambda().eq(AbnormalEntity::getErrorType,1);
+            wrapper.lambda().eq(AbnormalEntity::getDitType,"JSON");
+            wrapper.lambda().orderByDesc(AbnormalEntity::getStartTime);
+        }
+        //查询IFSF数据超时发送异常
+        else if(req.getIntValue("errorType")==2){
+            if (req.getString("startTime") != null && req.getString("endTime") != null) {
+                wrapper.lambda().ge(AbnormalEntity::getStartTime,req.getString("startTime"));
+                wrapper.apply("(end_time<='"+req.getString("endTime")+"' or end_time is NULL)");
+            }
+            wrapper.lambda().eq(AbnormalEntity::getErrorType,2);
+            wrapper.lambda().orderByDesc(AbnormalEntity::getStartTime);
+        }
+        if (!isPage) {
+            //不分页的数据
+            page.setRecords(baseMapper.selectList(wrapper));
+        } else {
+            // 分页的数据
+            page = baseMapper.selectPage(page, wrapper);
+        }
+        return page;
+    }
+}

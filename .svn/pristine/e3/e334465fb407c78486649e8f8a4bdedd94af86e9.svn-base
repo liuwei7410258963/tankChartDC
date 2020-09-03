@@ -1,0 +1,607 @@
+package com.oket.tank4station;
+
+import com.alibaba.fastjson.annotation.JSONField;
+import com.oket.common.base.Status;
+import com.oket.dispenser.BzNozzleOut;
+import com.oket.dispenser.NozzleState;
+import com.oket.dispenser.TransientOut;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.tank4station.trace.AbstractTraceProcessor;
+import com.oket.util.DoubleUtils;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.Serializable;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * 液位组集合，记录一段时间内液位仪液位的变化；需要按照严格的时间序列;
+ *
+ * @author 王恒
+ * @since 2020-01-06
+ */
+@Slf4j
+@Data
+public abstract class AbstractLevelTrace implements LevelTrace, Serializable {
+
+	/**
+	 * 液位差阈值--单位毫米
+	 */
+	public final static double LEVEL_UP_THRESHOLD = 0.5;
+	/**
+	 * 下降的液位阈值差-单位毫米
+	 */
+	public final static double LEVEL_DOWN_THRESHOLD = -0.2;
+	/**
+	 * 短时间液位平静阈值
+	 */
+	protected static final int STABLE_SHORT_MIN = 1;
+	private static final long serialVersionUID = 142248286259035357L;
+	/**
+	 * 是否完成
+	 */
+	protected boolean closed = false;
+	protected Inventory firstLevel;
+	protected Inventory lastLevel;
+	protected int tankNo;
+	@JSONField(serialize = false, deserialize = false)
+	protected transient AbstractTraceProcessor traceProcessor;
+	protected Long id;
+	protected boolean onUnloading = false;
+	/**
+	 * 从数据库中初始化
+	 */
+	protected boolean initFromDataBase = false;
+
+	/**
+	 * session
+	 */
+	protected TankSession tankSession;
+	/**
+	 * 状态
+	 */
+	protected Status status = Status.ENABLE;
+	/**
+	 * 初始状态未未更新状态
+	 */
+	protected LevelState levelState = LevelState.NEW;
+	/**
+	 * 本轨迹中的加油机付出量
+	 */
+	protected double sumNozzleOut;
+
+	/**
+	 *
+	 */
+	protected double sumOut;
+	/**
+	 * 最后一笔液位付出量
+	 */
+	protected double lastLevelNozzleOut;
+	/**
+	 * 计数器，用于记录当前添加到items中的个数，如果是需要压缩实现，时不是必须每个元素添加进去，
+	 * 采用增加记录个数方式来保持记录；
+	 */
+	protected AtomicInteger itemCount = new AtomicInteger(0);
+
+	/**
+	 * 添加付出的付油信息
+	 *
+	 * @param bzNozzleOut
+	 */
+	public void addMatchOut(BzNozzleOut bzNozzleOut) {
+		if (matchOuts == null) {
+			matchOuts = new ArrayList<>();
+		}
+		matchOuts.add(bzNozzleOut);
+	}
+
+	/**
+	 * 转为其他类型轨迹
+	 */
+	protected boolean convertToOtherTrace = false;
+	/**
+	 * 匹配到数据付油数据
+	 */
+	protected List<BzNozzleOut> matchOuts;
+	/**
+	 * 上一轨迹的最后的付油信息--暂时没有用到
+	 */
+	protected Map<Integer, TransientOut> lastOutMap = new ConcurrentHashMap<>();
+	/**
+	 * 当前的油枪状态及付油信息
+	 * 接收到实时油枪状态或实时付油量.
+	 * 油枪付油结束之后会把TransientOut添加到outsMap.  并生成新的TransientOut
+	 */
+	protected final Map<Integer, TransientOut> currentNozzleFuelingMap = new ConcurrentHashMap<>();
+	/**
+	 * 上一轨迹的最后正在加油的付油量--暂时没有用到
+	 */
+	protected double lastOut;
+	/**
+	 * 已经完成的付油信息
+	 */
+	protected Map<Integer, List<TransientOut>> nozzleFueledMap = new ConcurrentHashMap<>();
+
+	/**
+	 * 未匹配的.
+	 * currentNozzleFuelingMap正在加油的和和nozzleFueledMap里面的付油信息
+	 */
+	protected Map<Integer, List<TransientOut>> notMatched = new ConcurrentHashMap<>();
+
+	/**
+	 * 周期id
+	 */
+	protected int cycleId;
+	/**
+	 * 付油周期,每个罐从1开始递增
+	 */
+	protected int deliveryId;
+
+
+	public boolean isMatchFinished() {
+		return notMatched.isEmpty();
+	}
+
+	/**
+	 * 轨迹结束时间
+	 */
+	private long endLevelTime;
+
+	public AbstractLevelTrace(LevelState levelState, List<Inventory> inventories, int deliveryId, int cycleId, TankSession tankSession) {
+		if (levelState != LevelState.NEW) {
+			this.levelState = levelState;
+			addLevelInfos(inventories);
+		}
+		this.levelState = levelState;
+		this.deliveryId = deliveryId;
+		this.tankSession = tankSession;
+	}
+
+
+	public AbstractLevelTrace(LevelState levelState, int deliveryId, int cycleId) {
+		this(levelState, null, deliveryId, cycleId, null);
+	}
+
+	public AbstractLevelTrace(LevelState levelState, int deliveryId, int cycleId, TankSession tankSession) {
+		this(levelState, null, deliveryId, cycleId, tankSession);
+		createTraceProcessor(tankSession);
+	}
+
+	public AbstractLevelTrace(LevelState levelState, TankSession tankSession) {
+		this(levelState, 0, 0, tankSession);
+
+	}
+
+	/**
+	 * 两笔液位之间的付油量
+	 *
+	 * @return
+	 */
+	public double getFV() {
+		return getSumNozzleOut() - getLastLevelNozzleOut();
+	}
+
+
+	/**
+	 * 获取本轨迹内的所有付油量
+	 *
+	 * @return
+	 */
+	@Override
+	public double getSumNozzleOut() {
+		final double currentOut = getCurrentOut();
+		double finishOut = 0.0;
+		if (!nozzleFueledMap.isEmpty()) {
+			for (List<TransientOut> value : nozzleFueledMap.values()) {
+				for (TransientOut transientOut : value) {
+					finishOut += transientOut.getOut();
+				}
+			}
+		}
+		double ousum = currentOut + finishOut - lastOut;
+		return ousum;
+	}
+
+	@Override
+	public void updateNozzleState(NozzleState nozzleState) {
+		synchronized (currentNozzleFuelingMap) {
+			log.debug("更新油枪状态：" + nozzleState);
+			TransientOut out = currentNozzleFuelingMap.get(nozzleState.getNozzleNo());
+			if (out == null) {
+				//初始化缓存
+				putOutInMap(nozzleState);
+			} else {
+				if (out.isOnFueling() && !nozzleState.isOnFueling()) {
+					//缓存正在加油，上来加油结束的
+					//把这笔付油数据添加到已经完成的list集合中
+					log.info("结束加油：" + nozzleState.getNozzleNo() + ";time:" + nozzleState.getTime().toLocaleString());
+					out.setEndTime(nozzleState.getCurrentTime().getTime());
+					out.setOnFueling(false);
+					if (out.getOut() > 0) {
+						//大于0的加入
+						List<TransientOut> outs = nozzleFueledMap.computeIfAbsent(out.getNozzleNo(), k -> new ArrayList<>());
+						outs.add(out);
+					}
+					putOutInMap(nozzleState);
+				} else {
+					if (out.isOnFueling() && nozzleState.isOnFueling()) {
+						//上传最新的付油量，更新一下
+						if (nozzleState.getLastAmount() != null
+								&& nozzleState.getCurrentVolume() > out.getOut()) {
+							log.debug("加油中：" + nozzleState.getNozzleNo()
+									+ ";volume:" + nozzleState.getCurrentVolume());
+
+							out.setOut(nozzleState.getCurrentVolume());
+						}
+						//更新结束时间
+						out.setEndTime(nozzleState.getCurrentTime().getTime());
+					} else {
+						if (!out.isOnFueling() && nozzleState.isOnFueling()) {
+							//缓存是空闲的，上来第一笔加油中的状态，更新油枪状态
+							out.setStartTime(nozzleState.getCurrentTime().getTime());
+							out.setEndTime(nozzleState.getCurrentTime().getTime());
+							out.setOnFueling(true);
+							log.info("开始加油：" + nozzleState.getNozzleNo() + ";time:" + nozzleState.getTime().toLocaleString());
+							//上传最新的付油量，更新一下
+							if (nozzleState.getLastAmount() != null) {
+								out.setOut(nozzleState.getCurrentVolume());
+							}
+						} else {
+//							!out.onFueling && !nozzleState.isOnFueling()
+							//不处理
+						}
+					}
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * 油枪状态存入缓存
+	 *
+	 * @param nozzleState
+	 */
+	private void putOutInMap(NozzleState nozzleState) {
+		TransientOut out = new TransientOut(nozzleState.getNozzleNo(), nozzleState.getTime().getTime(), nozzleState.isOnFueling());
+		currentNozzleFuelingMap.put(out.getNozzleNo(), out);
+	}
+
+
+	/**
+	 * 获取体积变化量
+	 *
+	 * @return
+	 */
+	public double getVolumeDiff() {
+		if (lastLevel == null || firstLevel == null) {
+			return 0;
+		} else {
+			return DoubleUtils.round(lastLevel.getVolume() - firstLevel.getVolume(), 3);
+		}
+	}
+
+	/**
+	 * 获取液位变化量
+	 *
+	 * @return
+	 */
+	public double getLevelDiff() {
+		if (lastLevel == null || firstLevel == null) {
+			return 0;
+		} else {
+			return lastLevel.getLevel() - firstLevel.getLevel();
+		}
+	}
+
+	@Override
+	public boolean addInventory(Inventory inventory) throws InventoryException {
+		boolean ret = true;
+		if (inventory != null) {
+			if (firstLevel == null) {
+				firstLevel = inventory;
+				this.tankNo = firstLevel.getTankNo();
+			} else {
+				if (firstLevel == inventory) {
+					return true;
+				}
+				if (lastLevel != null) {
+					//毫秒不计
+					if (lastLevel.getTime().getTime() / 1000 > inventory.getTime().getTime() / 1000) {
+						throw new InventoryException("无效的液位时间，小于前一笔液位时间，last：" + firstLevel + ";inv:" + inventory);
+					}
+				} else {
+					//毫秒不计
+					if (firstLevel.getTime().getTime() / 1000 > inventory.getTime().getTime() / 1000) {
+						throw new InventoryException("无效的液位时间，小于第一笔液位时间,first：" + firstLevel + ";inv:" + inventory);
+					}
+				}
+				lastLevel = inventory;
+			}
+			itemCount.getAndIncrement();
+			lastLevelNozzleOut = getSumNozzleOut();
+		} else {
+			ret = false;
+		}
+		return ret;
+	}
+
+
+	@Override
+	public boolean addLevelInfos(Collection<Inventory> levels) {
+		if (levels != null) {
+			Iterator<Inventory> e = levels.iterator();
+			while (e.hasNext()) {
+				try {
+					addInventory(e.next());
+				} catch (InventoryException ex) {
+					log.error(ex.getMessage(), ex);
+				}
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public int getLevelCount() {
+		return 0;
+	}
+
+	@Override
+	public long getLevelIntervalTime(TimeUnit unit) {
+		long interval = 0;
+		if (firstLevel != null && lastLevel != null) {
+			interval = lastLevel.getTime().getTime() - firstLevel.getTime().getTime();
+		}
+		return TimeUnit.MILLISECONDS.convert(interval, unit);
+	}
+
+
+	@Override
+	public LevelState getLevelState() {
+		return levelState;
+	}
+
+
+	@Override
+	public void setLevelState(LevelState state) {
+		this.levelState = state;
+	}
+
+
+	@Override
+	public AbstractLevelTrace newTrace(LevelState levelState) throws InventoryException {
+		final AbstractLevelTrace trace = InventoryTraceFactory.getTrace(levelState, tankSession);
+		trace.addInventory(this.lastLevel);
+		addOutToNext(trace);
+		log.info("new:::getSumNozzleOut:" + trace.getSumNozzleOut()+";lastOut:"+trace.getLastOut());
+		return trace;
+	}
+
+	/**
+	 * 转化为其他类型的轨迹
+	 *
+	 * @param trace
+	 * @throws InventoryException
+	 */
+	public void convertToOtherTrace(AbstractLevelTrace trace) throws InventoryException {
+		trace.addInventory(this.firstLevel);
+		trace.setId(this.id);
+		if (!this.getCurrentNozzleFuelingMap().isEmpty()) {
+			trace.getCurrentNozzleFuelingMap().putAll(this.getCurrentNozzleFuelingMap());
+		}
+		if (!this.getNozzleFueledMap().isEmpty()) {
+			trace.getNozzleFueledMap().putAll(this.getNozzleFueledMap());
+		}
+	}
+
+
+	/**
+	 * 将未结束的付油信息同步到下一组
+	 *
+	 * @param trace
+	 */
+	protected void addOutToNext(AbstractLevelTrace trace) {
+		synchronized (currentNozzleFuelingMap) {
+			if (!currentNozzleFuelingMap.isEmpty()) {
+				log.info("currentNozzleFuelingMap:" + currentNozzleFuelingMap);
+			}
+			if (!nozzleFueledMap.isEmpty()) {
+				log.info("nozzleFueledMap:" + nozzleFueledMap);
+			}
+
+			//将最后还在付油中的信息导入的下一轨迹
+			if (!currentNozzleFuelingMap.isEmpty()) {
+				trace.setLastOutMap(this.currentNozzleFuelingMap);
+				currentNozzleFuelingMap.forEach((a, b) -> {
+					if (b.isOnFueling()) {
+						TransientOut transientOut = null;
+						try {
+							//克隆
+							transientOut = b.clone();
+						} catch (CloneNotSupportedException e) {
+							log.error(e.getMessage(), e);
+						}
+						trace.getCurrentNozzleFuelingMap().put(a, transientOut);
+					}
+
+				});
+			}
+
+			/*
+			1.当时稳定状态，将付油信息转到到下一液位组
+			2.当前不是稳定状态，上次不在加油中且加油没有在结束中
+			 */
+			if (this.getLastOut() == 0 && fuelingIsOnEnd()
+					|| this.levelState.equals(LevelState.LEVEL_STABLE)) {
+				log.info("付油信息归属于下一条：" + tankNo);
+				//这些数据应该归属于下一条记录
+				currentNozzleFuelingMap.clear();
+				if (!nozzleFueledMap.isEmpty()) {
+					trace.getNozzleFueledMap().putAll(this.nozzleFueledMap);
+					this.nozzleFueledMap.clear();
+				}
+			} else {
+				trace.setLastOut(getCurrentOut());
+				//加入到未匹配队列中
+				notMatched.putAll(nozzleFueledMap);
+				if (!currentNozzleFuelingMap.isEmpty()) {
+					currentNozzleFuelingMap.forEach((a, b) -> {
+						//将目前正在加油中的信息添加到历史付油信息中
+						if (b.isOnFueling()) {
+							List<TransientOut> transientOuts
+									= notMatched.computeIfAbsent(a, k -> new ArrayList<>());
+							transientOuts.add(b);
+						}
+					});
+				}
+			}
+
+		}
+		sumOut = getSumNozzleOut();
+		log.info("getSumNozzleOut:" + getSumNozzleOut()+";lastOut:"+lastOut+"sumOut:"+sumOut);
+	}
+
+
+	/**
+	 * 获取当前正在付油的付油量
+	 *
+	 * @return
+	 */
+	public double getCurrentOut() {
+		synchronized (currentNozzleFuelingMap) {
+			if (!currentNozzleFuelingMap.isEmpty()) {
+				double out = 0.0;
+				for (TransientOut value : currentNozzleFuelingMap.values()) {
+					out += value.getOut();
+				}
+				return out;
+			}
+			return 0.0D;
+		}
+	}
+
+	/**
+	 * 转为数据库中trace
+	 *
+	 * @return
+	 */
+	public DbInventoryTrace toDbTrace() {
+		DbInventoryTrace trace = new DbInventoryTrace();
+		trace.setId(this.id);
+		trace.setTankNo(this.tankNo);
+		trace.setStartTime(firstLevel.getTime());
+		trace.setStartId(firstLevel.getId());
+		trace.setStartLevel(firstLevel.getLevel());
+		trace.setStartWaterLevel(firstLevel.getWaterLevel());
+		trace.setStartVolume(firstLevel.getVolume());
+		trace.setStartTemperature(firstLevel.getTemperature());
+		trace.setStartWaterVolume(firstLevel.getWaterVolume());
+		trace.setCycleId(this.cycleId);
+		trace.setDeliveryId(this.deliveryId);
+		if (closed) {
+			if (this.lastLevel != null) {
+				trace.setEndId(lastLevel.getId());
+				trace.setEndTime(lastLevel.getTime());
+				trace.setEndLevel(lastLevel.getLevel());
+				trace.setEndWaterLevel(lastLevel.getWaterLevel());
+				trace.setEndVolume(lastLevel.getVolume());
+				trace.setEndTemperature(lastLevel.getTemperature());
+				trace.setEndWaterVolume(lastLevel.getWaterVolume());
+				trace.setVolume(getVolumeDiff());
+				long minutes = (lastLevel.getTime().getTime() - firstLevel.getTime().getTime()) / 1000 / 60;
+				trace.setMinutes((int) minutes);
+			}
+		}
+		trace.setLevelState(this.getLevelState());
+		trace.setPoints(this.itemCount.get());
+		if (this.closed) {
+			trace.setClosed(DbInventoryTrace.FINISHED);
+		} else {
+			trace.setClosed(DbInventoryTrace.NOT_FINISHED);
+		}
+		trace.setOilName(firstLevel.getOilName());
+		trace.setOilCode(firstLevel.getOilCode());
+		trace.setStatus(status);
+		return trace;
+	}
+
+	/**
+	 * 从数据库中转化
+	 *
+	 * @param dbTrace
+	 * @return
+	 */
+	public void fromDbTrace(DbInventoryTrace dbTrace) {
+		firstLevel = Inventory.convertFromInventory(dbTrace.getFirstInventory());
+		if (dbTrace.getLastInventory() != null) {
+			lastLevel = Inventory.convertFromInventory(dbTrace.getLastInventory());
+		}
+		if (dbTrace.getClosed() == DbInventoryTrace.FINISHED) {
+			this.closed = true;
+		} else {
+			this.closed = false;
+		}
+		this.itemCount.addAndGet(dbTrace.getPoints());
+		this.cycleId = dbTrace.getCycleId();
+		this.deliveryId = dbTrace.getDeliveryId();
+		this.id = dbTrace.getId();
+		this.status = dbTrace.getStatus();
+		this.tankNo = dbTrace.getTankNo();
+	}
+
+	@Override
+	public boolean isClosed() {
+		return closed;
+	}
+
+	/**
+	 * 开始状态处理
+	 */
+	public void start() {
+		this.tankNo = firstLevel.getTankNo();
+	}
+
+
+	/**
+	 * 结束当前周期
+	 */
+	public void end() {
+		this.closed = true;
+		endLevelTime = System.currentTimeMillis();
+	}
+
+	/**
+	 * 付油发生在最后.这样应该归属于下一个轨迹组
+	 *
+	 * @return
+	 */
+	private boolean fuelingIsOnEnd() {
+		//getSumNozzleOut付油总量
+		//getFV时最后的付油量,从lastLevel到新上传的level之间的付油
+		double outDiff = getSumNozzleOut() - getFV();
+		//0.01是因为double无法绝对相等
+		if (Math.abs(outDiff) < 0.01) {
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "AbstractLevelTrace{" +
+				"closed=" + closed +
+				", firstLevel=" + firstLevel +
+				", lastLevel=" + lastLevel +
+				", tankNo=" + tankNo +
+
+				", status=" + status +
+				", levelState=" + levelState +
+				'}';
+	}
+
+}

@@ -1,0 +1,371 @@
+package com.oket.station.bizservice;
+
+import com.oket.delivery.BzDelivery;
+import com.oket.device.Dispenser4Device;
+import com.oket.device.Nozzle4Device;
+import com.oket.device.TankInfo;
+import com.oket.device.service.Nozzle4DeviceService;
+import com.oket.device.service.TankInfoService;
+import com.oket.dispenser.BzNozzleOut;
+import com.oket.dispenser.NozzleOutConsumer;
+import com.oket.dispenser.NozzleState;
+import com.oket.dispenser.service.NozzleOutService;
+import com.oket.station.service.ServerLogService;
+import com.oket.tank4station.*;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.tank4station.service.DbInventoryAlarmService;
+import com.oket.tank4station.service.InventoryPersistenceProcessor;
+import com.oket.tankchartdc.DbInventoryCycle;
+import com.oket.tankchartdc.service.DbInventoryCycleService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * 抽象的业务处理类--液位和付油、卸油  进出存平衡
+ * 如果以后要抽离，可以是提升作为抽象类
+ */
+@Slf4j
+@Service
+public class AbstractBalanceService implements BalanceService {
+	/**
+	 * Tracks managed sessions.
+	 * key为油罐变化
+	 * value是session
+	 */
+	private final ConcurrentMap<Integer, TankSession> tankSessions = new ConcurrentHashMap<>();
+	/**
+	 * key为油枪编号
+	 * value为对应油罐的session和tankSessions 油罐编号对应的session是同一个
+	 */
+	private final ConcurrentMap<Integer, TankSession> nozzle2TankSessions = new ConcurrentHashMap<>();
+
+	@Override
+	public Collection<NozzleState> getAllNozzleState() {
+		return nozzleStateMap.values();
+	}
+
+	/**
+	 * 这个service有没有启动
+	 */
+	private final AtomicBoolean activated = new AtomicBoolean();
+	/**
+	 * 每把枪的状态
+	 */
+	private final Map<Integer, NozzleState> nozzleStateMap = new ConcurrentHashMap<>();
+
+
+	private ServiceStatistics stats = new ServiceStatistics(this);
+	/**
+	 * Time this listenerSupport has been activated
+	 * 启动时间
+	 */
+	private volatile long activationTime;
+	@Autowired
+	private InventoryPersistenceProcessor inventoryPersistence;
+	@Autowired
+	private TankInfoService tankInfoService;
+	@Autowired
+	private Nozzle4DeviceService nozzle4DeviceService;
+
+	@Autowired
+	private NozzleOutService nozzleOutService;
+
+	@Autowired
+	private DbInventoryAlarmService dbInventoryAlarmService;
+
+	@Autowired
+	private ServerLogService serverLogService;
+
+	@Autowired
+	private DbInventoryCycleService dbInventoryCycleService;
+
+	/**
+	 * 初始化
+	 * 初始化顺序不可以改变。
+	 * 1.初始化油罐
+	 * 2.再初始化油枪
+	 */
+	@PostConstruct
+	public void init() {
+		try {
+			initTankSession();
+			initNozzle();
+			InventoryConsumer inventoryConsumer = new InventoryConsumer(this);
+			inventoryConsumer.realtimeDataConsume();
+			NozzleOutConsumer nozzleOutConsumer = new NozzleOutConsumer(this);
+			nozzleOutConsumer.consume();
+			stats.setServerLogService(serverLogService);
+			stats.serverStart();
+			stats.timerTaskStart();
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+		}
+	}
+
+
+	/**
+	 * 初始化油枪
+	 */
+	private void initNozzle() {
+		final List<Nozzle4Device> allNozzle = nozzle4DeviceService.getAllNozzle();
+		if (allNozzle != null && !allNozzle.isEmpty()) {
+			allNozzle.parallelStream().forEach(v -> {
+						if (v.getTankNo() != null) {
+							final TankSession tankSession = tankSessions.get(v.getTankNo());
+							if (tankSession != null) {
+								log.debug("nozzle:" + v.getNozzleNo() + ";tankNo:" + v.getTankNo());
+								nozzle2TankSessions.putIfAbsent(v.getNozzleNo(), tankSession);
+							}
+						}
+					}
+			);
+		}
+	}
+
+	/**
+	 * spring初始化结束后，初始化tankSession及液位轨迹信息
+	 * 1.初始化油罐基础信息
+	 * 2.初始化液位轨迹信息
+	 */
+	private void initTankSession() {
+		//	 * 1.初始化油罐基础信息
+		final List<TankInfo> allTank = tankInfoService.getAllTank();
+		if (allTank != null && !allTank.isEmpty()) {
+			for (TankInfo tankInfo : allTank) {
+				AbstractTankSession tankSession = new TankStationSession(tankInfo.getTankNo());
+				log.debug("tankNo:" + tankSession.getTankNo());
+				tankSession.setTankNo(tankInfo.getTankNo());
+				tankSession.setTankInfo(tankInfo);
+				tankSessions.put(tankSession.getTankNo(), tankSession);
+				if (tankSession.getPersistenceProcessor() == null) {
+					tankSession.setPersistenceProcessor(inventoryPersistence);
+				}
+			}
+		}
+		//获取每个罐的最后一个轨迹
+		final List<DbInventoryTrace> allLastTrace = inventoryPersistence.getAllLastTrace();
+		if (allLastTrace != null && !allLastTrace.isEmpty()) {
+			for (DbInventoryTrace trace : allLastTrace) {
+				final AbstractLevelTrace bizTrace;
+				try {
+					//数据库实体转为业务实体
+					bizTrace = InventoryTraceFactory.getTrace(trace);
+
+					if (bizTrace == null) {
+						log.error("无法初始化轨迹信息，数据库中的trace：" + trace);
+					} else {
+
+						//标识这个轨迹是从数据库初始化的,可能丢失部分实时的付油信息
+						//目前没有用到
+						bizTrace.setInitFromDataBase(true);
+						final TankSession tankSession = tankSessions.get(trace.getTankNo());
+						if (tankSession != null) {
+							tankSession.setLevelTrace(bizTrace);
+
+							bizTrace.setTankSession(tankSession);
+							bizTrace.createTraceProcessor(tankSession);
+							//初始化周期
+							final DbInventoryCycle cycle = dbInventoryCycleService.getCycleFromDb(bizTrace.getTankNo());
+							tankSession.setCycle(cycle);
+							final DbInventoryTrace lastTrace = inventoryPersistence.getLastTrace(trace.getTankNo(), trace.getStartTime());
+							if (lastTrace != null) {
+								final AbstractLevelTrace lastBizTrace = InventoryTraceFactory.getTrace(lastTrace);
+								lastBizTrace.setInitFromDataBase(true);
+								tankSession.setLastTrace(lastBizTrace);
+							}
+						}
+					}
+				} catch (Exception e) {
+					log.error(e.getMessage() + ";trace:" + trace, e);
+				}
+			}
+
+		}
+	}
+
+
+	@Override
+	public void addListener(ServiceListener listener) {
+
+	}
+
+	@Override
+	public void removeListener(ServiceListener listener) {
+
+	}
+
+	@Override
+	public Map<Integer, TankSession> getManagedTankSessions() {
+		return tankSessions;
+	}
+
+	@Override
+	public int getManagedTankCount() {
+		return tankSessions.size();
+	}
+
+	@Override
+	public boolean isDisposing() {
+		return false;
+	}
+
+	@Override
+	public boolean isDisposed() {
+		return false;
+	}
+
+	@Override
+	public void endInventoryLongTimeNoUpload(Inventory inventory) {
+		dbInventoryAlarmService.endLongTimeNoUpload(inventory);
+	}
+
+	@Override
+	public void saveInventoryLongTimeNoUpload(Inventory inventory, Date lastUploadTime) {
+		dbInventoryAlarmService.saveLongTimeNoUpload(inventory, lastUploadTime);
+	}
+
+	@Override
+	public void firstProcessLongTimeNoUpload(Inventory inventory) {
+		dbInventoryAlarmService.firstProcessLongTimeNoUpload(inventory);
+	}
+
+	@Override
+	public boolean isActive() {
+		return false;
+	}
+
+	@Override
+	public long getActivationTime() {
+		return 0;
+	}
+
+	@Override
+	public ServiceStatistics getStatistics() {
+		return null;
+	}
+
+	@Override
+	public void receiveTankInventoryMessage(TankInventory inventory) {
+		log.info("收到液位：" + inventory.getLevel()
+				+ ";volume:" + inventory.getVolume()
+				+ ";tankNo:" + inventory.getTankNo()
+				+ ";time:" + inventory.getTime().toLocaleString()
+		);
+		try {
+			TankSession tankSession = tankSessions.get(inventory.getTankNo());
+			if (tankSession == null) {
+				log.error("找不到对应的油罐编号：" + inventory.getTankNo());
+				return;
+			}
+			//如果为null，给一个默认值30000L
+			inventory.setMaxVolume(tankSession.getTankInfo().getMaxVolume() == null ? 30000 : tankSession.getTankInfo().getMaxVolume());
+			inventory.setOilCode(tankSession.getTankInfo().getOilCode());
+			inventory.setOilName(tankSession.getTankInfo().getOilName());
+			tankSession.addInventory(inventory);
+			inventoryPersistence.updateInventoryLast(inventory);
+			stats.inventoryUpload((Inventory) inventory);
+		} catch (InventoryException e) {
+			log.error("处理罐存数据失败" + e.getMessage(), e);
+		}
+	}
+
+	@Override
+	public void receiveNozzleOut(BzNozzleOut nozzleOut) {
+		nozzleOutService.processNozzleOutFromDit(nozzleOut);
+	}
+
+	@Override
+	public void nozzleStateChanged(NozzleState nozzleState) {
+		final int nozzleNo = nozzleState.getNozzleNo();
+		final TankSession tankSession = nozzle2TankSessions.get(nozzleNo);
+		if (tankSession == null) {
+			log.error("油枪状态变化找不到对应的油罐session，油枪号：" + nozzleNo);
+		} else {
+			tankSession.updateNozzleState(nozzleState);
+		}
+		//油枪状态存入缓存
+		nozzleStateMap.put(nozzleState.getNozzleNo(), nozzleState);
+	}
+
+	@Override
+	public void tankPropertyChanged(TankInfo tankInfo) {
+		//油罐信息修改同步信息
+		TankSession tankSession = tankSessions.get(tankInfo.getTankNo());
+		if (tankSession != null) {
+			tankSession.setTankInfo(tankInfo);
+		} else {
+			tankSession = new TankStationSession(tankInfo.getTankNo());
+			tankSession.setTankInfo(tankInfo);
+			//存入缓存
+			tankSessions.putIfAbsent(tankInfo.getTankNo(), tankSession);
+		}
+		if (tankSession.getPersistenceProcessor() == null) {
+			tankSession.setPersistenceProcessor(inventoryPersistence);
+		}
+	}
+
+	@Override
+	public void nozzlePropertyChanged(List<Nozzle4Device> nozzle4Device) {
+
+	}
+
+	@Override
+	public void dispenserPropertyChanged(Dispenser4Device nozzle4Device) {
+
+	}
+
+	@Override
+	public void nozzleRelTankChanged(List<Nozzle4Device> nozzle4Devices) {
+		for (Nozzle4Device nozzle4Device : nozzle4Devices) {
+			final TankSession tankSession = nozzle2TankSessions.get(nozzle4Device.getNozzleNo());
+			if (tankSession != null) {
+				final Integer tankNo = tankSession.getTankInfo().getTankNo();
+				if (nozzle4Device.getTankNo() == null) {
+					nozzle2TankSessions.put(nozzle4Device.getNozzleNo(), null);
+					return;
+				}
+				if (!tankNo.equals(nozzle4Device.getTankNo())) {
+					tankSession.nozzleStateDelete(nozzle4Device.getNozzleNo());
+					//枪罐关系发生了改变
+					TankSession tankSession2 = tankSessions.get(nozzle4Device.getTankNo());
+					if (tankSession2 != null) {
+						nozzle2TankSessions.put(nozzle4Device.getNozzleNo(), tankSession2);
+					} else {
+						//tankSession还没有
+						log.error("tankSession不存在,油枪编号:" + nozzle4Device + ";油罐编号:" + nozzle4Device);
+					}
+				}
+			} else {
+				if (nozzle4Device.getTankNo() == null) {
+					return;
+				}
+				TankSession tankSession2 = tankSessions.get(nozzle4Device.getTankNo());
+				if (tankSession2 != null) {
+					//首次存入
+					nozzle2TankSessions.put(nozzle4Device.getNozzleNo(), tankSession2);
+				} else {
+					//tankSession还没有
+					log.error("tankSession不存在,油枪编号:" + nozzle4Device + ";油罐编号:" + nozzle4Device);
+				}
+			}
+
+
+		}
+	}
+
+	@Override
+	public void receiveDelivery(List<BzDelivery> deliveries) {
+
+	}
+
+}

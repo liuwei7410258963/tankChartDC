@@ -1,0 +1,18 @@
+package com.oket.tank4station.entity;
+
+import lombok.Data;
+
+/**
+ * @author ：lw
+ * @date ：Created in 2020/8/5 9:16
+ * @description：
+ */
+@Data
+public class NormalCheck {
+    //正常次数
+    Integer normalNum;
+    //当前平稳段是否正常
+    Boolean flag;
+    //当前付油段是否已经加过正常次数
+    Boolean addNormalNum;
+}

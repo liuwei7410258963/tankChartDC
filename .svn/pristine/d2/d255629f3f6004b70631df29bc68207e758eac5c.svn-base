@@ -1,0 +1,196 @@
+package com.oket.tank4station.trace;
+
+import com.oket.tank4station.*;
+import com.oket.tank4station.service.InventoryPersistenceProcessor;
+import com.oket.tank4station.tankchart.TankChartManager;
+import com.oket.util.MathExtend;
+import io.swagger.models.auth.In;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * @description: 波动液位轨迹处理器
+ * @author: SunBiaoLong
+ * @create: 2020-04-10 10:17
+ **/
+@Slf4j
+public class WavingTraceProcessor extends AbstractTraceProcessor {
+	/**
+	 * 继续上升（毫米）
+	 */
+	public final static double CONTINUE_ASCEND = 50.0;
+
+	public final static double LEVEL_STABLE_UP_THRESHOLD = 0.55;
+	/**
+	 * 下降的液位阈值差-单位毫米
+	 */
+	public final static double LEVEL_STABLE_DOWN_THRESHOLD = -0.55;
+	//波动到平稳的标准差阈值
+	private final double Standard_Deviation_Threshold = 1.4;
+
+	public WavingTraceProcessor(WavingInventoryTrace wavingInventoryTrace, TankSession tankSession) {
+		super(wavingInventoryTrace, tankSession);
+	}
+
+	@Override
+	public void processing(Inventory inventory) throws InventoryException {
+		super.processing(inventory);
+	}
+
+
+	@Override
+	public void closed() throws InventoryException {
+		//判断是否转为其他轨迹
+		if (!trace.isConvertToOtherTrace()) {
+			//不是转化,说明需要结束当前轨迹
+			super.closed();
+		}
+	}
+
+	@Override
+	public LevelState checkLevelState(Inventory inventory) {
+		final double level = inventory.getLevel();
+		WavingInventoryTrace wavingInventoryTrace = ((WavingInventoryTrace) trace);
+		TankInventory lastTankInventory = trace.getLastLevel();
+
+		long seconds = inventory.getTime().getTime() - trace.getLastLevel().getTime().getTime();
+		seconds = seconds / 1000;
+		//30分钟内不用做异常检查
+		if (seconds < INVENTORY_UPLOAD_SECONDS) {
+			double levelGap = level - trace.getLastLevel().getLevel();
+
+			final double ascendStartLevel = wavingInventoryTrace.getAscendStartLevel();
+			if (levelGap > 10 * LEVEL_UP_THRESHOLD) {
+				wavingInventoryTrace.setStableStartTime(0);
+				if (ascendStartLevel == 0) {
+					wavingInventoryTrace.setAscendStartLevel(trace.getLastLevel().getLevel());
+					return LevelState.LEVEL_WAVING;
+				} else {
+					double minGap = inventory.getLevel() - ascendStartLevel;
+					if (minGap > CONTINUE_ASCEND) {
+						trace.setConvertToOtherTrace(true);
+						//转为上升。
+						return LevelState.LEVEL_ASCENDING;
+					} else {
+						return LevelState.LEVEL_WAVING;
+					}
+				}
+			} else {
+				if (levelGap <= 0) {
+					wavingInventoryTrace.setAscendStartLevel(0.0);
+				}
+				/*
+				 *   波动结束的条件
+				 * 最近8分钟的罐存数据大于12条,并且第一条的时间和当前条数的时间超过5分钟
+				 * 把5分钟内的数据取出来，再判断是否大于12条
+				 * 去掉最大值最小值
+				 * 标准差<1
+				 */
+				List<Inventory> lastInventories1 = wavingInventoryTrace.getLastInventories();
+				if(lastInventories1.size()>12 && inventory.getTime().getTime()-lastInventories1.get(0).getTime().getTime()>60*5*1000){
+					List<Inventory> lastInventories = lastInventories1.stream().filter(x-> inventory.getTime().getTime()-x.getTime().getTime()<=60*5*1000).collect(Collectors.toList());
+					if(lastInventories.size()>12) {
+						double[] leaveArr = lastInventories.stream().map(Inventory::getLevel).mapToDouble(i -> i).toArray();
+						Arrays.sort(leaveArr);
+						double[] tempLeaveArr = new double[leaveArr.length - 2];
+						System.arraycopy(leaveArr, 1, tempLeaveArr, 0, leaveArr.length - 2);
+						double result = MathExtend.StandardDiviation(tempLeaveArr);
+						if (result < Standard_Deviation_Threshold) {
+							double centereave = tempLeaveArr[tempLeaveArr.length / 2];
+							lastInventories.stream().forEach(x -> {
+								if (x.getLevel() == centereave) {
+									wavingInventoryTrace.setUploadFinshed(x);
+								}
+							});
+							return LevelState.LEVEL_STABLE;
+						}
+					}
+					else{
+						return LevelState.LEVEL_WAVING;
+					}
+					return LevelState.LEVEL_WAVING;
+				}
+				else{
+					//超过30分钟的判断逻辑
+					long minGap = (inventory.getTime().getTime() - wavingInventoryTrace.getFirstLevel().getTime().getTime())/1000/60;
+					if (minGap > 30) {
+						return overTimeCheck(inventory, wavingInventoryTrace);
+					} else {
+						return LevelState.LEVEL_WAVING;
+					}
+				}
+			}
+
+		}
+		//30-45分钟内
+		else {
+			wavingInventoryTrace.setAscendStartLevel(0.0);
+			wavingInventoryTrace.setStableStartTime(0);
+
+			long min = seconds / 60;
+			if (min <= INVENTORY_UPLOAD_MINUTE) {
+				//(30sec,45min]区间的设置为波动
+				return LevelState.LEVEL_WAVING;
+			}
+			//超过45分钟
+			else {
+				double mmChangeRate
+						= TankChartManager.mmChangeRate(
+						lastTankInventory
+						, inventory);
+				if (trace.getFV() > 20 * mmChangeRate) {
+					return LevelState.LEVEL_WAVING;
+				} else {
+					saveInventoryAlarm(lastTankInventory, inventory);
+					return LevelState.NEW;
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * @param inventory
+	 * @param wavingInventoryTrace
+	 * @return
+	 */
+	private LevelState overTimeCheck(Inventory inventory, WavingInventoryTrace wavingInventoryTrace) {
+		final List<Inventory> lastInventories = wavingInventoryTrace.getLastInventories();
+		if (lastInventories.isEmpty() || lastInventories.size() < 5) {
+			//过少的数据不可判断
+			return LevelState.LEVEL_WAVING;
+		} else {
+			List<Inventory> inventories = new ArrayList<>();
+			for (Inventory next : lastInventories) {
+				long minGap = inventory.getTime().getTime() - next.getTime().getTime();
+				minGap = minGap / 1000 / 60;
+				//时间过长的数据剔除掉
+				if (minGap <= WavingInventoryTrace.MAX_LAST_INVENTORY_TIME_GAP) {
+					inventories.add(next);
+				}
+			}
+			if (inventories.isEmpty() || inventories.size() < 5) {
+				//过少的数据不可判断
+				return LevelState.LEVEL_WAVING;
+			} else {
+				final Inventory inventory1 = inventories.get(0);
+				double levelGap = inventory.getLevel() - inventory1.getLevel();
+				if (levelGap > 0.6) {
+					return LevelState.LEVEL_WAVING;
+				} else if (levelGap >= -0.6 && levelGap <= 0.6) {
+					if (tankSession.isOnFueling()) {
+						return LevelState.LEVEL_WAVING;
+					} else {
+						return LevelState.LEVEL_STABLE;
+					}
+				} else {
+					return LevelState.LEVEL_DESCENDING;
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,663 @@
+package com.oket.tankchartdc.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.oket.common.base.Status;
+import com.oket.dispenser.BzNozzleOut;
+import com.oket.dispenser.BzNozzleOutGroup;
+import com.oket.dispenser.dao.NozzleOutDao;
+import com.oket.dispenser.service.NozzleOutService;
+import com.oket.station.HandOver;
+import com.oket.station.bizservice.AbstractBalanceService;
+import com.oket.station.service.HandOverService;
+import com.oket.tank4station.AbstractLevelTrace;
+import com.oket.tank4station.TankSession;
+import com.oket.tank4station.dao.DbInventoryTraceDAO;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.tank4station.service.DbInventoryTraceService;
+import com.oket.tank4station.tankchart.TankChartManager;
+import com.oket.tank4station.trace.AscendingTraceProcessor;
+import com.oket.tank4station.websocket.BizWebSocketServer;
+import com.oket.tankchartdc.BackToTank;
+import com.oket.tankchartdc.dao.BackToTankDAO;
+import com.oket.tankchartdc.entity.BackToTankConfirmEntity;
+import com.oket.tankchartdc.mina.json.bean.DitBackToTank;
+import com.oket.tankchartdc.service.BackToTankConfirmService;
+import com.oket.tankchartdc.service.BackToTankService;
+import com.oket.util.*;
+import io.swagger.models.auth.In;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.annotation.Resource;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.oket.util.TimeUtils.FORMAT1;
+
+/**
+ * @description: 回罐接口
+ * @author: SunBiaoLong
+ * @create: 2020-04-17 08:28
+ **/
+@Service
+@Slf4j
+public class BackToTankServiceImpl extends ServiceImpl<BackToTankDAO, BackToTank> implements BackToTankService {
+	/**
+	 * 最少回罐量
+	 */
+	public static final double MIN_BACK_TO_TANK = 0.6D;
+
+	@Autowired
+	private BackToTankConfirmService backToTankConfirmService;
+	@Autowired(required = false)
+	private NozzleOutDao nozzleOutDao;
+	@Resource
+	BizWebSocketServer bizWebSocketServer;
+	@Autowired
+	DbInventoryTraceDAO traceDAO;
+	@Autowired
+	AbstractBalanceService balanceService;
+	@Autowired
+	BackToTankConfirmService confirmService;
+	@Autowired
+	AbstractBalanceService abstractBalanceService;
+	/**
+	 * 是否是回罐
+	 *
+	 * @param trace
+	 * @return
+	 */
+	public boolean isBackToTank(AbstractLevelTrace trace) {
+		log.info("getLevelDiff:{},getSumOut:{}", Math.abs(trace.getLevelDiff()), Math.abs(trace.getSumOut()));
+		//过小的值不做回罐判断
+		if (Math.abs(trace.getLevelDiff()) < 0.34
+				&& Math.abs(trace.getSumOut()) < 5.0) {
+			return false;
+		}
+		//付出量与变化量（结束体积-开始开始的量）的和。
+		double diff = DoubleUtils.round(Math.abs(trace.getSumOut()) + trace.getVolumeDiff(), 3);
+		log.info("sumFV-sumV:{},sumFV:{},sumV:{}", diff, Math.abs(trace.getSumOut()), trace.getVolumeDiff());
+		//sumV时结束减去开始，而我们这里使用的是开始减去结束，因此计算的时候是相加
+		double mmChangeRate = TankChartManager.mmChangeRate(trace.getFirstLevel(), trace.getLastLevel());
+		if (trace.getLastLevel() == trace.getLastLevel() && mmChangeRate == 0) {
+			return false;
+		}
+		log.info("回罐阈值:" + MIN_BACK_TO_TANK * mmChangeRate);
+		if (diff > MIN_BACK_TO_TANK * mmChangeRate) {
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public void disableBacks(List<AbstractLevelTrace> levelTraces) {
+		if (!levelTraces.isEmpty()) {
+			final List<Long> traceIds = levelTraces.parallelStream().map(AbstractLevelTrace::getId).collect(Collectors.toList());
+			disable(traceIds);
+		}
+
+
+	}
+
+	/**
+	 * 禁用掉回罐信息
+	 *
+	 * @param traceIds
+	 */
+	private void disable(List<Long> traceIds) {
+		if (!traceIds.isEmpty()) {
+			QueryWrapper<BackToTank> qw = new QueryWrapper<>();
+			qw.lambda().in(BackToTank::getTraceId, traceIds);
+			qw.lambda().in(BackToTank::getStatus, Status.ENABLE);
+			final List<BackToTank> list = list(qw);
+			if (!list.isEmpty()) {
+				list.forEach(v -> v.setStatus(Status.DISABLE));
+				saveOrUpdateBatch(list);
+			}
+		}
+	}
+
+	@Override
+	public void disableBackToTanks(List<DbInventoryTrace> levelTraces) {
+		if (!levelTraces.isEmpty()) {
+			final List<Long> traceIds = levelTraces.parallelStream().map(DbInventoryTrace::getId).collect(Collectors.toList());
+			disable(traceIds);
+		}
+	}
+
+	@Override
+	public List<BackToTank> upload(MultipartFile file) throws IOException {
+		List<BackToTank> exportLists = new ArrayList<>();
+		InputStream in = file.getInputStream();
+		InputStreamReader read = new InputStreamReader(in,"GBK");
+		BufferedReader bufferedReader = new BufferedReader(read);
+		String str;
+		while((str = bufferedReader.readLine()) != null){
+			if(str.contains("回罐") && !str.contains("自用")){
+				BackToTank backToTank = new BackToTank();
+				backToTank.setReservedField(3);
+				backToTank.setStatus(Status.ENABLE);
+				backToTank.setBackTank(true);
+				String nozzleNo = getNozzleNo(str);
+				backToTank.setNozzleNo(Integer.parseInt(nozzleNo));
+				backToTank.setTankNo(abstractBalanceService.nozzle2TankSessions.get(backToTank.getNozzleNo()).getTankInfo().getTankNo());
+				String time = getTime(str);
+				backToTank.setStartTime(TimeUtils.string2Date(time,FORMAT1));
+				backToTank.setEndTime(TimeUtils.string2Date(time,FORMAT1));
+				String backNum = getVolume(str);
+				backToTank.setTrueVolume(Double.parseDouble(backNum));
+				exportLists.add(backToTank);
+			}
+		}
+		read.close();
+		List<BackToTank> dbLists = baseMapper.selectList(new QueryWrapper<>());
+		List<BackToTank> result = new ArrayList<>();
+		if(AirUtils.hv(dbLists)) {
+			//交集，被过滤的数据
+			List<BackToTank> needFilterLists = dbLists.stream().filter(item -> exportLists.stream().map(e -> e.getStartTime())
+					.collect(Collectors.toList()).contains(item.getStartTime())).collect(Collectors.toList());
+			if(AirUtils.hv(needFilterLists)){
+				exportLists.removeAll(needFilterLists);
+				needFilterLists.stream().forEach(x -> x.setFlag(false));
+				result.addAll(needFilterLists);
+			}
+		}
+		setTraceId(exportLists);
+		result.addAll(exportLists);
+		this.saveBatch(exportLists);
+		saveConfirm(exportLists);
+		return result;
+	}
+
+	private void saveConfirm(List<BackToTank> exportLists) {
+		exportLists.stream().forEach(x->{
+			BackToTankConfirmEntity backToTankConfirm = new BackToTankConfirmEntity();
+			QueryWrapper queryWrapper1 = new QueryWrapper();
+			queryWrapper1.eq("volume", x.getTrueVolume());
+			queryWrapper1.eq("nozzle_no", x.getNozzleNo());
+			queryWrapper1.lt("end_time", x.getStartTime());
+			queryWrapper1.orderByDesc("start_time");
+			queryWrapper1.last("limit 1");
+			BzNozzleOut bzNozzleOut = nozzleOutDao.selectOne(queryWrapper1);
+			if (AirUtils.hv(bzNozzleOut)) {
+				backToTankConfirm.setOutId(bzNozzleOut.getId().intValue());
+				backToTankConfirm.setStartTime(bzNozzleOut.getStartTime());
+				backToTankConfirm.setEndTime(bzNozzleOut.getEndTime());
+				backToTankConfirm.setVolume(bzNozzleOut.getVolume());
+			}
+			backToTankConfirm.setBackId(x.getId());
+			backToTankConfirm.setConfirm(true);
+			backToTankConfirm.setTankNo(x.getTankNo());
+			confirmService.save(backToTankConfirm);
+		});
+	}
+
+	private void setTraceId(List<BackToTank> exportLists) {
+		//数据量比较少或未空
+		exportLists.stream().forEach(x->{
+			TankSession tankSession = balanceService.nozzle2TankSessions.get(x.getNozzleNo());
+			x.setTankNo(tankSession.getTankInfo().getTankNo());
+			QueryWrapper queryWrapper = new QueryWrapper();
+			queryWrapper.lt("start_time",x.getStartTime());
+			queryWrapper.gt("end_time",x.getStartTime());
+			queryWrapper.eq("tank_no",x.getTankNo());
+			queryWrapper.orderByDesc("start_time");
+			queryWrapper.last("limit 1");
+			DbInventoryTrace dbInventoryTrace = traceDAO.selectOne(queryWrapper);
+			if(AirUtils.hv(dbInventoryTrace)) {
+				x.setTraceId(dbInventoryTrace.getId());
+				x.setFlag(true);
+			}
+		});
+	}
+
+	private String getVolume(String str) {
+		String backNum ="0";
+		int typeOffset = str.indexOf("回罐");
+		if(!str.substring(typeOffset-8,typeOffset-7).equals(" ")){
+			//回罐量有3位
+			backNum = str.substring(typeOffset-8,typeOffset-2);
+
+		}
+		else if(!str.substring(typeOffset-7,typeOffset-6).equals(" ")){
+			//回罐量有2位
+			backNum = str.substring(typeOffset-7,typeOffset-2);
+		}
+		else if(!str.substring(typeOffset-6,typeOffset-5).equals(" ")){
+			//回罐量有2位
+			backNum = str.substring(typeOffset-6,typeOffset-2);
+		}
+		return backNum;
+	}
+
+	private String getTime(String str) {
+		String time;
+		if(str.substring(str.length()-19).equals(" ")){
+			time = str.substring(str.length()-18);
+		}
+		else{
+			time = str.substring(str.length()-19);
+		}
+		return time;
+	}
+
+	private String getNozzleNo(String str) {
+		String nozzleNo;
+		int nozzleNoOffset = 0;
+		for (int i = 0; i < str.length(); i++) {
+			String si = str.substring(i,i+1);
+			if(si.equals(" ")){
+				continue;
+			}
+			else{
+				nozzleNoOffset = i;
+				break;
+			}
+		}
+		if(str.substring(nozzleNoOffset+1,nozzleNoOffset+2).equals(" ")){
+			//说明油枪号是一位数
+			nozzleNo = str.substring(nozzleNoOffset,nozzleNoOffset+1);
+		}
+		else{
+			//说明油枪号是两位数
+			nozzleNo = str.substring(nozzleNoOffset,nozzleNoOffset+1)+str.substring(nozzleNoOffset+1,nozzleNoOffset+2);
+		}
+		return nozzleNo;
+	}
+
+	/**
+	 * 判断是否回罐
+	 *
+	 * @param trace
+	 * @param bzNozzleOutGroup
+	 * @return
+	 */
+	public boolean isBackToTank(DbInventoryTrace trace, BzNozzleOutGroup bzNozzleOutGroup) {
+		if (AscendingTraceProcessor.isUnloading(trace)) {
+			//卸油不处理回罐
+			return false;
+		}
+		//付出量与变化量（结束体积-开始开始的量）的和。
+		double diff = DoubleUtils.round(bzNozzleOutGroup.getVolume() + trace.getVolume(), 3);
+		log.info("sumFV-sumV:" + diff);
+		//sumV时结束减去开始，而我们这里使用的是开始减去结束，因此计算的时候是相加
+		double mmChangeRate = TankChartManager.mmChangeRate(trace.getTankNo(), trace.getStartLevel(), trace.getEndLevel(), trace.getStartVolume(), trace.getEndVolume());
+		if (trace.getStartLevel() - trace.getEndLevel() < 0.1 && mmChangeRate == 0) {
+			return false;
+		}
+		log.info("回罐阈值:" + MIN_BACK_TO_TANK * mmChangeRate);
+		if (diff > MIN_BACK_TO_TANK * mmChangeRate) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * 判断是否回罐
+	 *
+	 * @param trace
+	 * @param bzNozzleOutGroup
+	 * @return
+	 */
+	public boolean isBackToTank(AbstractLevelTrace trace, BzNozzleOutGroup bzNozzleOutGroup) {
+		if (AscendingTraceProcessor.isUnloading(trace)) {
+			//卸油不处理回罐
+			return false;
+		}
+		//付出量与变化量（结束体积-开始开始的量）的和。
+		double diff = DoubleUtils.round(bzNozzleOutGroup.getVolume() + trace.getVolumeDiff(), 3);
+		log.info("sumFV-sumV:" + diff);
+		//sumV时结束减去开始，而我们这里使用的是开始减去结束，因此计算的时候是相加
+		double mmChangeRate = TankChartManager.mmChangeRate(trace.getFirstLevel(), trace.getLastLevel());
+		if (trace.getLastLevel() == trace.getLastLevel() && mmChangeRate == 0) {
+			return false;
+		}
+		log.info("回罐阈值:" + MIN_BACK_TO_TANK * mmChangeRate);
+		if (diff > MIN_BACK_TO_TANK * mmChangeRate) {
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public JSONObject select(JSONObject jsonObject) {
+		//如果是监控中心，需要查询出日期条件内的和所有endtime为空的
+		if (jsonObject.getBoolean("ishomepage") != null && jsonObject.getBoolean("ishomepage") == true) {
+			List<JSONObject> resultLists = baseMapper.selectHomePage(jsonObject);
+			cacluRate(resultLists);
+			return CommonUtil.successJson(resultLists);
+		} else {
+			//需要分页
+			if (jsonObject.getBoolean("flag") == true) {
+				CommonUtil.fillPageParam(jsonObject);
+				int count = baseMapper.count(jsonObject);
+				List<JSONObject> resultLists = baseMapper.select(jsonObject);
+				cacluRate(resultLists);
+				return CommonUtil.successPage(jsonObject, resultLists, count);
+			}
+			//不需要分页
+			else {
+				List<JSONObject> resultLists = baseMapper.selectNoPage(jsonObject);
+				cacluRate(resultLists);
+				return CommonUtil.successJson(resultLists);
+			}
+		}
+	}
+
+	/*
+	 * 计算回罐率
+	 */
+	private void cacluRate(List<JSONObject> resultLists) {
+		resultLists.forEach(x -> {
+			if ((x.getDoubleValue("end_level") - x.getDoubleValue("start_level") == 0)) {
+				x.put("backRate", 0);
+				x.put("tableRate", 0);
+			} else {
+				double tableRate = (x.getDoubleValue("end_volume") - x.getDoubleValue("start_volume")) / (x.getDoubleValue("end_level") - x.getDoubleValue("start_level"));
+				double backRate = x.getDoubleValue("true_volume") / (x.getDoubleValue("end_level") - x.getDoubleValue("start_level"));
+				x.put("backRate", Math.abs(DoubleUtils.round(backRate, 2)));
+				x.put("tableRate", Math.abs(DoubleUtils.round(tableRate, 2)));
+			}
+		});
+	}
+
+	@Override
+	public void add(BackToTank backToTank) {
+		baseMapper.insert(backToTank);
+		BackToTankConfirmEntity backToTankConfirmEntity = new BackToTankConfirmEntity();
+		backToTankConfirmEntity.setBackId(backToTank.getId());
+		backToTankConfirmEntity.setTankNo(backToTank.getTankNo());
+		backToTankConfirmEntity.setStartTime(backToTank.getStartTime());
+		backToTankConfirmEntity.setEndTime(backToTank.getEndTime());
+		backToTankConfirmEntity.setConfirm(true);
+		backToTankConfirmEntity.setVolume(backToTank.getVolume());
+		backToTankConfirmService.save(backToTankConfirmEntity);
+	}
+
+
+	@Override
+	public void process(DbInventoryTrace trace, BzNozzleOutGroup bzNozzleOutGroup) {
+		//回罐
+		final boolean isBackToTank = isBackToTank(trace, bzNozzleOutGroup);
+		if (isBackToTank) {
+			log.info("大于满足回罐阈值：" + trace.getTankNo()
+					+ ";startTime:" + trace.getStartTime().toLocaleString());
+			final BackToTank backToTank = BackToTank.newBackToTank(trace, bzNozzleOutGroup);
+			findBackToTankOut(backToTank);
+		}
+	}
+
+	@Override
+	public void process(AbstractLevelTrace trace, BzNozzleOutGroup outGroup) {
+		//回罐
+		final boolean isBackToTank = isBackToTank(trace, outGroup);
+		if (isBackToTank) {
+			log.info("大于满足回罐阈值：" + trace.getTankNo()
+					+ ";startTime:" + trace.getFirstLevel().getTime().toLocaleString());
+			final BackToTank backToTank = BackToTank.newBackToTank(trace);
+			findBackToTankOut(backToTank);
+		}
+	}
+
+	@Override
+	public void process(AbstractLevelTrace trace) {
+		final boolean isBackToTank = isBackToTank(trace);
+		if (isBackToTank) {
+			log.info("大于满足回罐阈值：" + trace.getTankNo()
+					+ ";startTime:" + trace.getFirstLevel().getTime().toLocaleString());
+			final BackToTank backToTank = BackToTank.newBackToTank(trace);
+			findBackToTankOut(backToTank);
+		}
+	}
+
+	@Override
+	public void processDitBackToTank(List<DitBackToTank> backToTankList) {
+		//一般就一条
+		final List<BackToTank> backToTanks = backToTankList.parallelStream().map(x -> {
+			if(x.getStatusCode().equals("107")){
+				BackToTank backToTank = new BackToTank();
+				backToTank.setBackTank(true);
+				backToTank.setNeedConfirm(false);
+				backToTank.setConfirmTime(new Date());
+				backToTank.setTrueVolume(DoubleUtils.round(x.getBackNum(),2));
+				backToTank.setReservedField(1);
+				//传过来的是时间点
+				backToTank.setStartTime(x.getBackTime());
+				backToTank.setEndTime(x.getBackTime());
+				backToTank.setStatus(Status.ENABLE);
+				backToTank.setTradeNo(x.getTradeNo().toString());
+				backToTank.setNozzleNo(Integer.parseInt(x.getNozzleNo()));
+				TankSession tankSession = balanceService.nozzle2TankSessions.get(Integer.parseInt(x.getNozzleNo()));
+				backToTank.setTankNo(tankSession.getTankInfo().getTankNo());
+				QueryWrapper queryWrapper = new QueryWrapper();
+				queryWrapper.lt("start_time",x.getBackTime());
+				queryWrapper.gt("end_time",x.getBackTime());
+				queryWrapper.eq("tank_no",backToTank.getTankNo());
+				queryWrapper.orderByDesc("start_time");
+				queryWrapper.last("limit 1");
+				DbInventoryTrace dbInventoryTrace = traceDAO.selectOne(queryWrapper);
+				backToTank.setTraceId(dbInventoryTrace.getId());
+				return backToTank;
+			}
+			else{
+				return null;
+			}
+		}).collect(Collectors.toList());
+
+		backToTanks.stream().forEach(x->{
+			QueryWrapper queryWrapper1 = new QueryWrapper();
+			queryWrapper1.eq("tank_no",x.getTankNo());
+			queryWrapper1.eq("start_time",x.getStartTime());
+			queryWrapper1.last("limit 1");
+			BackToTank dbTank = baseMapper.selectOne(queryWrapper1);
+			if(AirUtils.hv(dbTank)){
+				//交易序号相同，重复数据不保存
+				if(dbTank.getTradeNo().contains(x.getTradeNo())){
+					return;
+				}
+				//交易序号不相同，回罐量相加
+				else{
+					dbTank.setTrueVolume(DoubleUtils.add(dbTank.getTrueVolume(),x.getTrueVolume(),2));
+					dbTank.setTradeNo(dbTank.getTradeNo()+","+x.getTradeNo());
+					baseMapper.updateById(dbTank);
+				}
+			}
+			else {
+				this.save(x);
+			}
+			BackToTankConfirmEntity backToTankConfirm = new BackToTankConfirmEntity();
+			QueryWrapper queryWrapper = new QueryWrapper();
+			queryWrapper.eq("volume",x.getTrueVolume());
+			queryWrapper.eq("nozzle_no",x.getNozzleNo());
+			queryWrapper.lt("end_time",x.getStartTime());
+			queryWrapper.orderByDesc("start_time");
+			queryWrapper.last("limit 1");
+			BzNozzleOut bzNozzleOut = nozzleOutDao.selectOne(queryWrapper);
+			if(AirUtils.hv(bzNozzleOut)){
+				backToTankConfirm.setOutId(bzNozzleOut.getId().intValue());
+				backToTankConfirm.setStartTime(bzNozzleOut.getStartTime());
+				backToTankConfirm.setEndTime(bzNozzleOut.getEndTime());
+				backToTankConfirm.setVolume(bzNozzleOut.getVolume());
+			}
+			backToTankConfirm.setBackId(x.getId());
+			backToTankConfirm.setConfirm(true);
+			backToTankConfirm.setTankNo(x.getTankNo());
+			confirmService.save(backToTankConfirm);
+		});
+	}
+
+	@Override
+	public void confirm(int id, boolean isBackToTank) {
+		final BackToTank backToTank = this.getById(id);
+		if (backToTank != null) {
+			backToTank.setBackTank(isBackToTank);
+			this.updateById(backToTank);
+		}
+	}
+
+	/**
+	 * 查询回罐相连的付油信息
+	 *
+	 * @param backToTank
+	 */
+	private void findBackToTankOut(BackToTank backToTank) {
+		//系统判断的需要确认
+		backToTank.setNeedConfirm(true);
+		backToTank.setReservedField(2);
+		backToTank.setBackTank(false);
+		backToTank.setStatus(Status.ENABLE);
+		final List<BzNozzleOut> byTimeAndTankNo
+				= getBzNozzleOuts(backToTank.getTankNo(), backToTank.getStartTime());
+		if (byTimeAndTankNo != null && !byTimeAndTankNo.isEmpty()) {
+			List<BzNozzleOut> outs = byTimeAndTankNo.parallelStream()
+					.filter(v -> StandardContainer.calibrationAccuracy(v.getVolume()))
+					.collect(Collectors.toList());
+			List<BackToTankConfirmEntity> collect = new ArrayList<>();
+			//最近半小时有付油数据
+			if (!outs.isEmpty()) {
+				backToTank.setVolume(0);
+				outs.forEach(x -> {
+					BackToTankConfirmEntity backToTankConfirmEntity = new BackToTankConfirmEntity();
+					backToTankConfirmEntity.setBackId(backToTank.getId());
+					backToTankConfirmEntity.setConfirm(false);
+					backToTankConfirmEntity.setVolume(x.getVolume());
+					backToTank.setVolume(DoubleUtils.round(backToTank.getVolume() + x.getVolume(), 3));
+					backToTankConfirmEntity.setStartTime(x.getStartTime());
+					backToTankConfirmEntity.setEndTime(x.getEndTime());
+					backToTankConfirmEntity.setOutId(x.getId().intValue());
+					backToTankConfirmEntity.setTankNo(backToTank.getTankNo());
+					collect.add(backToTankConfirmEntity);
+				});
+			} else {
+				//非回罐、异常
+				backToTank.setBackTank(false);
+				return;
+			}
+			//TODO:往前和往后
+//			//往前查询一步
+//			QueryWrapper<BackToTank> qw = new QueryWrapper<>();
+//			qw.lambda().eq(BackToTank::getEndTime, backToTank.getStartTime());
+//			qw.lambda().eq(BackToTank::getStatus, Status.ENABLE);
+//			qw.lambda().eq(BackToTank::getTankNo, backToTank.getTankNo());
+//			qw.last("LIMIT 1");
+//			final BackToTank btt = getOne(qw);
+//			if (btt != null) {
+//				//合并液位组
+//
+//				//继续往前找
+//
+//			}
+//
+//
+//			//往后查询一步
+//			QueryWrapper<BackToTank> qw2 = new QueryWrapper<>();
+//			qw2.lambda().eq(BackToTank::getStartTime, backToTank.getEndTime());
+//			qw2.lambda().eq(BackToTank::getStatus, Status.ENABLE);
+//			qw2.lambda().eq(BackToTank::getTankNo, backToTank.getTankNo());
+//			qw2.last("LIMIT 1");
+//			final BackToTank btt2 = getOne(qw2);
+//			if (btt2 != null) {
+//				//合并液位组
+//				//继续往后找
+//			}
+
+
+			log.info("是回罐:" + backToTank);
+			//默认回罐量和付油量一致
+			backToTank.setTrueVolume(backToTank.getVolume());
+			bizWebSocketServer.sendMessageBack(backToTank);
+			this.save(backToTank);
+
+			if (!collect.isEmpty()) {
+				collect.forEach(x -> x.setBackId(backToTank.getId())
+				);
+			}
+			backToTankConfirmService.saveBatch(collect);
+		}
+	}
+
+	/**
+	 * 最近的付油数据，往前找30分钟内的付油
+	 *
+	 * @param tankNo
+	 * @param time
+	 * @return
+	 */
+	private List<BzNozzleOut> getBzNozzleOuts(int tankNo, Date time) {
+		final Calendar instance = Calendar.getInstance();
+		instance.setTime(time);
+		instance.add(Calendar.MINUTE, -30);
+		Date beginTime = instance.getTime();
+		QueryWrapper<BzNozzleOut> qw = new QueryWrapper<>();
+		qw.lambda().eq(BzNozzleOut::getTankNo, tankNo);
+		qw.lambda().ge(BzNozzleOut::getStartTime, beginTime);
+		qw.lambda().le(BzNozzleOut::getEndTime, time);
+		return nozzleOutDao.selectList(qw);
+	}
+
+
+	/**
+	 * 油枪校正标准容器的体积，常见的类型
+	 */
+	enum StandardContainer {
+		/**
+		 * 20L标准容器
+		 */
+		V20(20),
+		/**
+		 * 50L标准容器
+		 */
+		V50(50),
+		/**
+		 * 100L标准容器
+		 */
+		V(100);
+		/**
+		 * 精度阈值
+		 */
+		private final static double THRESHOLD = 0.2;
+
+		/**
+		 * 标准容器的体积
+		 */
+		@Getter
+		private final double volume;
+
+		StandardContainer(double volume) {
+			this.volume = volume;
+		}
+
+		/**
+		 * 是否是校正精度
+		 *
+		 * @param outVolume 付出数
+		 * @return
+		 */
+		public static boolean calibrationAccuracy(double outVolume) {
+			for (StandardContainer value : StandardContainer.values()) {
+				//判断付油量是否在阈值范围内
+				if (Math.abs(outVolume - value.getVolume()) < THRESHOLD) {
+					return true;
+				}
+			}
+			return false;
+
+		}
+	}
+}

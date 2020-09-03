@@ -1,0 +1,266 @@
+package com.oket.tank4station.websocket;
+
+import com.alibaba.fastjson.JSONException;
+import com.alibaba.fastjson.JSONObject;
+import com.oket.config.spring.SpringUtil;
+import com.oket.util.CommonUtil;
+import com.oket.util.constants.ErrorEnum;
+import lombok.EqualsAndHashCode;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import javax.websocket.*;
+import javax.websocket.server.ServerEndpoint;
+import java.io.IOException;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * @description: 业务数据websocket
+ * @author: SunBiaoLong
+ * @create: 2019-12-11 11:47
+ **/
+@ServerEndpoint("/tankChartDC")
+@Component
+@EqualsAndHashCode
+public class BizWebSocketServer {
+	private final static Logger log = LoggerFactory.getLogger(BizWebSocketServer.class);
+	/**
+	 * websocketKey的属性名
+	 */
+	private static final String WEBSOCKET_KEY_NAME = "websocketKey";
+	/**
+	 * websocketValue的属性名
+	 */
+	private static final String WEBSOCKET_VALUE_NAME = "websocketValue";
+	private static ScheduledExecutorService service = null;
+	/**
+	 * 业务数据查询的service
+	 */
+	private static volatile BizPushDataService bizPushDataService;
+	/**
+	 * concurrent包的线程安全Set，用来存放每个客户端对应的MyWebSocket对象。
+	 */
+
+	private static CopyOnWriteArraySet<BizWebSocketServer> webSocketSet = new CopyOnWriteArraySet<>();
+	/**
+	 * 与某个客户端的连接会话，需要通过它来给客户端发送数据
+	 */
+	private Session session;
+
+	public static BizPushDataService getBizPushDataService() {
+		if (bizPushDataService == null) {
+			synchronized (BizWebSocketServer.class) {
+				if (bizPushDataService == null) {
+					bizPushDataService = SpringUtil.getBean(BizPushDataService.class);
+				}
+			}
+		}
+		return bizPushDataService;
+	}
+
+	/**
+	 * 发送到每个链接的客户端
+	 *
+	 * @param message 发送的消息实体
+	 */
+	public static void sendAllClient(Object message) {
+		if (message == null) {
+			return;
+		}
+		if (webSocketSet != null && !webSocketSet.isEmpty()) {
+			for (BizWebSocketServer bizWebSocketServer : webSocketSet) {
+				if (bizWebSocketServer.session.isOpen()) {
+					String jsonStr = null;
+					if (message instanceof JSONObject) {
+						JSONObject jsonObject = (JSONObject) message;
+						jsonStr = jsonObject.toString();
+					} else if (message instanceof String) {
+						jsonStr = (String) message;
+					} else {
+						jsonStr = JSONObject.toJSONString(message);
+					}
+					bizWebSocketServer.sendMessage(jsonStr);
+				}
+			}
+		}
+	}
+
+	/**
+	 * 推送定时器
+	 */
+	private synchronized static void buildSendTimer() {
+		if (service != null) {
+			return;
+		}
+		/**
+		 * Runnable：实现了Runnable接口，jdk就知道这个类是一个线程
+		 */
+		//创建 run 方法
+		Runnable runnable = () -> {
+			final String sendMessage = getBizPushDataService().getSendMessage();
+			sendAllClient(sendMessage);
+		};
+		service = Executors
+				.newSingleThreadScheduledExecutor();
+		// ScheduledExecutorService:是从Java SE5的java.util.concurrent里，
+		// 做为并发工具类被引进的，这是最理想的定时任务实现方式。
+
+		// 第二个参数为首次执行的延时时间，第三个参数为定时执行的间隔时间
+		// 第一次执行的时间为10秒，然后每隔20秒执行一次
+		service.scheduleAtFixedRate(runnable, 10, 20, TimeUnit.SECONDS);
+	}
+
+	public Session getSession() {
+		return session;
+	}
+
+	public void setSession(Session session) {
+		this.session = session;
+	}
+
+	public void close() {
+		try {
+			this.session.close();
+		} catch (IOException e) {
+			log.error("session close IO异常");
+		}
+	}
+
+	/**
+	 * 连接建立成功调用的方法
+	 */
+	@OnOpen
+	public void onOpen(Session session) {
+		this.session = session;
+		log.info("open websocket........");
+	}
+
+	/**
+	 * 连接关闭调用的方法
+	 */
+	@OnClose
+	public void onClose() {
+		webSocketSet.remove(this);
+		log.error("连接关闭！");
+		close();
+	}
+
+	/**
+	 * 收到客户端消息后调用的方法
+	 *
+	 * @param message 客户端发送过来的消息
+	 */
+	@OnMessage
+	public void onMessage(String message, Session session) {
+		if (StringUtils.isNotBlank(message.trim())) {
+			JSONObject jsonObject = null;
+			log.info("收到来自窗口" + session.getId() + "的信息:" + message);
+			try {
+				jsonObject = JSONObject.parseObject(message);
+			} catch (JSONException e) {
+				log.error("非json格式数据");
+				jsonObject = CommonUtil.errorJson(ErrorEnum.E_70015);
+				sendMessage(jsonObject.toJSONString());
+				this.close();
+				return;
+			}
+			if (!getBizPushDataService().getWebsocketKey().equals(jsonObject.getString(WEBSOCKET_KEY_NAME))
+					|| !getBizPushDataService().getWebsocketValue().equals(jsonObject.getString(WEBSOCKET_VALUE_NAME))) {
+				jsonObject = CommonUtil.errorJson(ErrorEnum.E_70015);
+				sendMessage(jsonObject.toJSONString());
+				this.close();
+			} else {
+				webSocketSet.add(this);
+				final String sendMessage = getBizPushDataService().getSendMessage();
+				sendMessage(sendMessage);
+				if (service == null) {
+					buildSendTimer();
+				}
+			}
+		} else {
+			log.info("收到来自窗口" + session.getId() + "的空信息");
+		}
+	}
+
+	/**
+	 * @param session
+	 * @param error
+	 */
+	@OnError
+	public void onError(Session session, Throwable error) {
+		log.error("发生错误", error);
+	}
+
+	/**
+	 * 实现服务器主动推送
+	 */
+	public void sendMessage(String message) {
+		if (session.isOpen()) {
+			try {
+				this.session.getBasicRemote().sendText(message);
+				log.info("发送消息到" + session.getId() + ";message:" + message);
+			} catch (IOException e) {
+				log.error("发送消息失败", e);
+			}
+		}
+	}
+
+	/*
+	 * 监控中心websocket-异常数据
+	 */
+	public void sendMessageAlarm(Object object){
+		JSONObject jsonObject = CommonUtil.successJson(object);
+		jsonObject.put("type",1);
+		sendAllClient(jsonObject);
+	}
+	/*
+	 * 监控中心websocket-卸油数据
+	 */
+	public void sendMessageDelivery(Object object){
+		JSONObject jsonObject = CommonUtil.successJson(object);
+		jsonObject.put("type",2);
+		sendAllClient(jsonObject);
+	}
+	/*
+	 * 监控中心websocket-回罐数据
+	 */
+	public void sendMessageBack(Object object){
+		JSONObject jsonObject = CommonUtil.successJson(object);
+		jsonObject.put("type",3);
+		sendAllClient(jsonObject);
+	}
+	/*
+	 * 监控中心websocket-运行统计
+	 */
+	public void sendMessageServelog(Object object){
+		JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(object));
+		//异常数据
+		if(jsonObject.get("errorType")!=null){
+			//断开连接
+			if(jsonObject.getIntValue("errorType")==1){
+				if(jsonObject.getString("ditType").equals("IFSF")){
+					jsonObject.put("typeString","IFSF断开连接");
+				}
+				else if(jsonObject.getString("ditType").equals("JSON")){
+					jsonObject.put("typeString","JSON断开连接");
+				}
+			}
+			//ifsf长时间未发送
+			else if(jsonObject.getIntValue("errorType")==2){
+				jsonObject.put("typeString","IFSF接收时间间隔过长");
+			}
+		}
+		//离线数据
+		else{
+			jsonObject.put("typeString","离线");
+		}
+		JSONObject result = CommonUtil.successJson(jsonObject);
+		result.put("type",4);
+		sendAllClient(result);
+	}
+}

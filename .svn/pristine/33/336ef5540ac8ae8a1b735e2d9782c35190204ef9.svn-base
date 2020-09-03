@@ -1,0 +1,181 @@
+package com.oket.tankchartdc.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.oket.common.base.Status;
+import com.oket.config.exception.CommonJsonException;
+import com.oket.dispenser.BzNozzleOutGroup;
+import com.oket.dispenser.service.BzNozzleOutGroupService;
+import com.oket.oil.cache.OilCacheManager;
+import com.oket.tank4station.dao.DbInventoryDAO;
+import com.oket.tank4station.entity.DbInventory;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.tank4station.service.DbInventoryService;
+import com.oket.tank4station.service.DbInventoryTraceService;
+import com.oket.tankchartdc.BzTraceRelOutGroup;
+import com.oket.tankchartdc.NozzleOutGroupProcessor;
+import com.oket.tankchartdc.dao.BzTraceRelOutGroupDAO;
+import com.oket.tankchartdc.service.BzTraceRelOutGroupService;
+import com.oket.util.AirUtils;
+import com.oket.util.CommonUtil;
+import com.oket.util.constants.ErrorEnum;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
+/**
+ * @description: 液位轨迹关联付油组Service
+ * @author: SunBiaoLong
+ * @create: 2020-04-14 14:34
+ **/
+@Service
+public class BzTraceRelOutGroupServiceImpl extends ServiceImpl<BzTraceRelOutGroupDAO, BzTraceRelOutGroup>
+		implements BzTraceRelOutGroupService {
+	@Autowired
+	private DbInventoryTraceService dbInventoryTraceService;
+	@Autowired
+	private BzNozzleOutGroupService bzNozzleOutGroupService;
+	@Autowired
+	DbInventoryDAO inventoryDAO;
+
+//	@Autowired
+//	private BackToTankService backToTankService;
+
+	@Override
+	public void mergeRel(List<BzTraceRelOutGroup> bzTraceRelOutGroupList, DbInventoryTrace trace) {
+		final List<Long> outGroupIds = bzTraceRelOutGroupList.parallelStream().map(BzTraceRelOutGroup::getOutGroupId).collect(Collectors.toList());
+		final List<BzNozzleOutGroup> bzNozzleOutGroups = new ArrayList<>(bzNozzleOutGroupService.listByIds(outGroupIds));
+		if (!bzNozzleOutGroups.isEmpty()) {
+			final BzNozzleOutGroup bzNozzleOutGroup = bzNozzleOutGroups.get(0);
+			if (bzNozzleOutGroups.size() == 1) {
+				boolean modified = false;
+				//关联关系校验是否发生变化
+				for (BzTraceRelOutGroup byTraceId : bzTraceRelOutGroupList) {
+					if (byTraceId.getOutGroupId().equals(bzNozzleOutGroup.getId())) {
+						if (byTraceId.getTraceId() == null || !byTraceId.getTraceId().equals(trace.getId())) {
+							modified = true;
+							byTraceId.setTraceId(trace.getId());
+						}
+					} else {
+						modified = true;
+						byTraceId.setStatus(Status.DISABLE);
+					}
+				}
+				if (modified) {
+					this.saveOrUpdateBatch(bzTraceRelOutGroupList);
+				}
+			} else {
+				//合并付油组
+				bzNozzleOutGroupService.manyGroupMerge(bzNozzleOutGroups);
+				for (BzTraceRelOutGroup next : bzTraceRelOutGroupList) {
+					if (next.getOutGroupId().equals(bzNozzleOutGroup.getId())) {
+						next.setTraceId(trace.getId());
+					} else {
+						next.setStatus(Status.DISABLE);
+					}
+				}
+				this.saveOrUpdateBatch(bzTraceRelOutGroupList);
+			}
+//			backToTankService.process(trace, bzNozzleOutGroup);
+		} else {
+			log.error("通过关联关系找不到对应的液位组,付油组id:" + outGroupIds);
+		}
+	}
+
+	@Override
+	public JSONObject select(JSONObject req) {
+		if (req.get("pageNum") != null && req.get("pageRow") != null) {
+			req.put("pageNum", (req.getIntValue("pageNum") - 1) * req.getIntValue("pageRow"));
+			req.put("pageRow", Integer.valueOf(req.getString("pageRow")));
+		}
+		int count = baseMapper.count(req);
+		List<BzTraceRelOutGroup> results = baseMapper.getRels(req);
+		return CommonUtil.successPage(req, results, count);
+	}
+
+	@Override
+	public List<BzTraceRelOutGroup> export(JSONObject jsonObject) {
+		return baseMapper.getRels(jsonObject);
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void edit(List<BzTraceRelOutGroup> bzTraceRelOutGroupList) {
+		if (bzTraceRelOutGroupList == null || bzTraceRelOutGroupList.isEmpty()) {
+			throw new CommonJsonException(ErrorEnum.E_1001);
+		}
+		for (BzTraceRelOutGroup bzTraceRelOutGroup : bzTraceRelOutGroupList) {
+			NozzleOutGroupProcessor.checkMerge(bzTraceRelOutGroup.getTraceId());
+		}
+		for (BzTraceRelOutGroup bzTraceRelOutGroup : bzTraceRelOutGroupList) {
+		    /*
+				付油组关联液位组。查看之前否有关联付油组，有的话合并
+				没有的话建立关联关系
+				 */
+			final DbInventoryTrace trace = dbInventoryTraceService.getById(bzTraceRelOutGroup.getTraceId());
+			if (trace == null) {
+				throw new CommonJsonException(ErrorEnum.E_1001);
+			}
+//			backToTankService.disableBackToTanks(Collections.singletonList(trace));
+			if (bzTraceRelOutGroup.getStatus().equals(Status.DISABLE)) {
+				//删除关联关系
+				continue;
+			} else {
+
+				final BzNozzleOutGroup outGroup = bzNozzleOutGroupService.getById(bzTraceRelOutGroup.getOutGroupId());
+				if (outGroup == null) {
+					throw new CommonJsonException(ErrorEnum.E_1001);
+				}
+
+				final BzTraceRelOutGroup byTraceId = getByTraceId(trace.getId());
+				if (byTraceId != null) {
+					//相同不得处理
+					if (bzTraceRelOutGroup.getId() != null && byTraceId.getId().equals(bzTraceRelOutGroup.getId())) {
+						continue;
+					}
+					final BzNozzleOutGroup group = bzNozzleOutGroupService.getById(byTraceId.getOutGroupId());
+					if (group != null && group.getStatus().equals(Status.ENABLE)) {
+						List<BzNozzleOutGroup> groups = new ArrayList<>();
+						groups.add(group);
+						groups.add(outGroup);
+						bzNozzleOutGroupService.manyGroupMerge(groups);
+						bzTraceRelOutGroup.setStatus(Status.DISABLE);
+						continue;
+					}
+				}
+//				backToTankService.process(trace, outGroup);
+				BzTraceRelOutGroup newRel = new BzTraceRelOutGroup(trace, outGroup);
+				if (bzTraceRelOutGroup.getId() != null) {
+					newRel.setId(bzTraceRelOutGroup.getId());
+				}
+			}
+		}
+		this.saveOrUpdateBatch(bzTraceRelOutGroupList);
+	}
+
+	/**
+	 * @param traceIds
+	 * @return
+	 */
+	@Override
+	public List<BzTraceRelOutGroup> getByTraceIds(List<Long> traceIds) {
+		QueryWrapper<BzTraceRelOutGroup> qw = new QueryWrapper<>();
+		qw.lambda().in(BzTraceRelOutGroup::getTraceId, traceIds);
+		qw.lambda().eq(BzTraceRelOutGroup::getStatus, Status.ENABLE);
+		return this.list(qw);
+	}
+
+	@Override
+	public BzTraceRelOutGroup getByTraceId(Long traceId) {
+		QueryWrapper<BzTraceRelOutGroup> qw = new QueryWrapper<>();
+		qw.lambda().eq(BzTraceRelOutGroup::getTraceId, traceId);
+		qw.lambda().in(BzTraceRelOutGroup::getStatus, Status.ENABLE);
+		qw.last("LIMIT 1");
+		return this.getOne(qw);
+	}
+}

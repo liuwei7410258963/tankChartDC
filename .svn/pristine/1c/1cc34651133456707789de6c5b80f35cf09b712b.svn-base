@@ -1,0 +1,12 @@
+package com.oket.dispenser.dao;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.oket.dispenser.BzNozzleOutLast;
+
+/**
+ * @description: 加油机付出数
+ * @author: SunBiaoLong
+ * @create: 2019-12-13 13:36
+ **/
+public interface BzNozzleOutLastDAO extends BaseMapper<BzNozzleOutLast> {
+}

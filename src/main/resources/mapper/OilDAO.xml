@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.oil.dao.OilDAO">
+
+    <select id="selectPageExt" resultType="com.oket.oil.OilEntity">
+        SELECT *
+        FROM bd_oil_info oil
+        ${ew.customSqlSegment}
+    </select>
+    <select id="getOilNameByOilCode" resultType="java.lang.String">
+          select SHORT_NAME from bd_oil_info where CODE = #{oilCode}
+    </select>
+    <select id="getOilByTank" resultType="com.alibaba.fastjson.JSONObject">
+        SELECT tank.* FROM dev_tank_info tank
+        LEFT JOIN bd_station station ON tank.STATION_ID=station.ID
+        where 1=1
+        <if test="tankCode!=null">
+            AND tank.CODE=#{tankCode}
+        </if>
+        <if test="stationCode!=null">
+            AND station.CODE=#{stationCode}
+        </if>
+        <if test="stationId!=null">
+            AND tank.STATION_ID=#{stationId}
+        </if>
+    </select>
+    <select id="getOilNameByOilID" resultType="com.alibaba.fastjson.JSONObject">
+          select info.SHORT_NAME
+        from bd_oil_info info
+        where ID = #{oilID}
+    </select>
+    <select id="getOilNameByStation" resultType="java.lang.String">
+        SELECT
+        oil.SHORT_NAME
+        FROM
+        dev_tank_info tank
+        LEFT JOIN bd_oil_info oil ON oil.ID = tank.OIL_ID
+        WHERE
+        tank.STATION_ID = #{stationId}
+        AND tank.TANK_NO =#{tankCode}
+    </select>
+    <select id="getOilIdByShortName" resultType="java.lang.Integer">
+        SELECT ID from bd_oil_info where SHORT_NAME=#{shortName} AND status=0 LIMIT 1
+    </select>
+    <select id="getAllOil" resultMap="oils">
+        SELECT * from bd_oil_info oil
+        WHERE 1=1
+        <if test="oilName!=null">
+            AND oil.FULL_NAME LIKE '%${oilName}%'
+        </if>
+        <if test="offSet!=null and pageRow!=null ">
+            LIMIT #{offSet}, #{pageRow}
+        </if>
+
+    </select>
+    <resultMap id="oils" type="com.alibaba.fastjson.JSONObject">
+        <id column="ID" property="id"/>
+        <result column="FULL_NAME" property="fullName"/>
+        <result column="SHORT_NAME" property="shortName"/>
+        <result column="TYPE" property="type"/>
+        <result column="CODE" property="code"/>
+        <result column="DENSITY" property="density"/>
+        <result column="DELETED" property="deleted"/>
+        <result column="OP_FLAG" property="flag"/>
+        <result column="COLOR" property="color"/>
+        <result column="LS_NAME" property="lsname"/>
+        <result column="ERP_CODE" property="erpcode"/>
+    </resultMap>
+</mapper>

@@ -1,0 +1,23 @@
+package com.oket.tankchartdc.dao;
+
+import com.alibaba.fastjson.JSONObject;
+import com.oket.tankchartdc.entity.CorrectSamples;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.oket.tankchartdc.entity.CorrectingDTO;
+
+import java.util.List;
+
+/**
+ * <p>
+ *  Mapper 接口
+ * </p>
+ *
+ * @author lw
+ * @since 2020-07-22
+ */
+public interface CorrectSamplesDao extends BaseMapper<CorrectSamples> {
+    /*
+     * 查询整合图
+     */
+    List<CorrectingDTO> select(JSONObject jsonObject);
+}

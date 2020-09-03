@@ -1,0 +1,18 @@
+package com.oket.tankchartdc.entity;
+
+import lombok.Data;
+
+import java.util.List;
+
+/**
+ * @author ：lw
+ * @date ：Created in 2020/5/26 15:43
+ * @description：导出样本数据
+ */
+@Data
+public class Samples {
+    //一个连续系列编号
+    private long s_ID;
+    //样本数据
+    private List<SamplesValues> values;
+}

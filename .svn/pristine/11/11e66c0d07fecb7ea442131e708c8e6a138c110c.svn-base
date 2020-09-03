@@ -1,0 +1,461 @@
+package com.oket.tank4station.service.impl;
+
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.oket.common.UnionTable;
+import com.oket.common.service.UnionTableService;
+import com.oket.tank4station.Inventory;
+import com.oket.tank4station.InventoryCacheManager;
+import com.oket.tank4station.InventoryException;
+import com.oket.tank4station.TankInventory;
+import com.oket.tank4station.dao.DbInventoryDAO;
+import com.oket.tank4station.dao.DbInventoryLastDAO;
+import com.oket.tank4station.entity.DbInventory;
+import com.oket.tank4station.entity.DbInventoryLast;
+import com.oket.tank4station.entity.DbInventoryTrace;
+import com.oket.tank4station.service.DbInventoryService;
+import com.oket.tankchartdc.service.impl.DbInventoryCycleServiceImpl;
+import com.oket.util.SimpleSnowflakeIdWorker;
+import lombok.Data;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.PreDestroy;
+import javax.annotation.Resource;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+/**
+ * 持久化类型
+ */
+@Getter
+enum PersistentType {
+	/**
+	 * 平常状态下
+	 */
+	COMMON(5),
+	/**
+	 * 卸油中
+	 */
+	UNLOADING(1);
+
+	/**
+	 * 持久化分钟间隔
+	 */
+	private final int gap;
+
+	PersistentType(int gap) {
+		this.gap = gap;
+	}
+
+}
+
+/**
+ * @author admin
+ */
+@Transactional(rollbackFor = Exception.class)
+@Service
+@Scope(value = "singleton")
+@Slf4j
+public class DbInventoryServiceImpl extends ServiceImpl<DbInventoryDAO, DbInventory> implements DbInventoryService {
+
+	/**
+	 * 简单的雪花id生成器,不支持分布式
+	 */
+	private final SimpleSnowflakeIdWorker idWorker = new SimpleSnowflakeIdWorker();
+	private static final String INVENTORY_TABLE_NAME = "db_inventory";
+	/**
+	 * 批量保存数据map
+	 */
+	private static Map<Integer, InventoryBatchSave> DB_INVENTORY_BATCH_SAVE_MAP = new ConcurrentHashMap<>();
+	@Autowired
+	private UnionTableService unionTableService;
+	@Resource
+	private DbInventoryLastDAO dbInventoryLastDAO;
+	/**
+	 * 是否启用批量保存。每个一段时间保存一次
+	 */
+	private boolean enableBatchInsert = true;
+
+	@Override
+	public String isEnableBatchInsert() {
+		if (enableBatchInsert) {
+			return "批量保存";
+		} else {
+			return "直接保存";
+		}
+	}
+
+	@Override
+	public DbInventory getBeforeInventory(int tankNo, Date time) {
+		QueryWrapper<DbInventory> qw = new QueryWrapper<>();
+		qw.lambda().eq(DbInventory::getTankNo, tankNo);
+		qw.lambda().le(DbInventory::getTime, time);
+		qw.lambda().orderByDesc(DbInventory::getTime);
+		qw.last("LIMIT 1");
+		return this.getOne(qw);
+
+	}
+
+	@Override
+	public DbInventory getAfterInventory(int tankNo, Date time) {
+		QueryWrapper<DbInventory> qw = new QueryWrapper<>();
+		qw.lambda().eq(DbInventory::getTankNo, tankNo);
+		qw.lambda().ge(DbInventory::getTime, time);
+		qw.lambda().orderByAsc(DbInventory::getTime);
+		qw.last("LIMIT 1");
+		return this.getOne(qw);
+	}
+
+	@Override
+	public Collection<DbInventoryLast> getAllDbInventoryLast() {
+		return InventoryCacheManager.getAllLastInventory();
+	}
+
+	@Override
+	public DbInventory getLastByTankNo(int tankNo) {
+		QueryWrapper<DbInventory> qw = new QueryWrapper<>();
+		qw.lambda().eq(DbInventory::getTankNo, tankNo);
+		qw.lambda().orderByDesc(DbInventory::getTime);
+		qw.last(" LIMIT 1");
+		return getOne(qw);
+	}
+
+	@Override
+	public List<DbInventory> getInventoryInGap(int tankNo, Date startTime, Date endTime) {
+		QueryWrapper<DbInventory> qw = new QueryWrapper<>();
+		qw.lambda().eq(DbInventory::getTankNo, tankNo);
+		qw.lambda().ge(DbInventory::getTime, startTime);
+		qw.lambda().le(DbInventory::getTime, endTime);
+		return this.list(qw);
+	}
+
+
+	@Override
+	public int count(int tankNo, Long startId, Long endId) {
+		QueryWrapper<DbInventory> qw = new QueryWrapper<>();
+		qw.lambda().eq(DbInventory::getTankNo, tankNo);
+		qw.lambda().ge(DbInventory::getId, startId);
+		qw.lambda().le(DbInventory::getId, endId);
+		return this.count(qw);
+	}
+
+	@Override
+	public void setEnableBatchInsert(boolean enableBatchInsert) {
+		this.enableBatchInsert = enableBatchInsert;
+	}
+
+
+	/**
+	 * 批量保存罐存
+	 *
+	 * @param dbInventories
+	 */
+	public void batchSaveInventory(List<DbInventory> dbInventories) throws InventoryException {
+		if (dbInventories != null && !dbInventories.isEmpty()) {
+			Map<String, List<DbInventory>> subTableInventory = new HashMap<>();
+			for (DbInventory dbInventory : dbInventories) {
+				List<DbInventory> dbInventoryListInMap
+						= subTableInventory.computeIfAbsent(dbInventory.getSubTableTime(), k -> new ArrayList<>());
+				dbInventoryListInMap.add(dbInventory);
+			}
+			final Set<Map.Entry<String, List<DbInventory>>> entries = subTableInventory.entrySet();
+			for (Map.Entry<String, List<DbInventory>> next : entries) {
+				saveInventory(next.getKey(), next.getValue());
+			}
+		}
+	}
+
+	/**
+	 * 分表保存
+	 *
+	 * @param dbInventory
+	 * @throws InventoryException
+	 */
+	public void saveInventory(String subTableName, List<DbInventory> dbInventory) throws InventoryException {
+		try {
+			for (DbInventory inventory : dbInventory) {
+				generatorInventoryId(inventory);
+			}
+			String saveTableName = unionTableService.getAndCheckSubTable(subTableName, INVENTORY_TABLE_NAME, UnionTable.UNION_TYPE_INV);
+			baseMapper.batchInsert(dbInventory, saveTableName);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			throw new InventoryException(e.getMessage());
+		}
+	}
+
+	/**
+	 * 生成罐存id
+	 *
+	 * @param inventory
+	 */
+	private void generatorInventoryId(DbInventory inventory) {
+		synchronized (idWorker) {
+			inventory.setId(idWorker.nextId());
+		}
+	}
+
+	/**
+	 * 分表保存
+	 *
+	 * @param dbInventory
+	 * @throws InventoryException
+	 */
+	public void saveInventory(DbInventory dbInventory) throws Exception {
+		String saveTableName = unionTableService.getAndCheckSubTable(dbInventory.getSubTableTime(), INVENTORY_TABLE_NAME, UnionTable.UNION_TYPE_INV);
+		generatorInventoryId(dbInventory);
+		baseMapper.saveInventory(dbInventory, saveTableName);
+	}
+
+	@Override
+	public void saveInventory(List<Inventory> inventories, int tankNo, boolean saveNow) throws InventoryException {
+		if (enableBatchInsert) {
+			InventoryBatchSave inventoryBatchSave = DB_INVENTORY_BATCH_SAVE_MAP.get(tankNo);
+			List<Inventory> waitingToSave = null;
+			if (inventoryBatchSave == null) {
+				inventoryBatchSave = new InventoryBatchSave(tankNo, LocalDateTime.now(), PersistentType.COMMON);
+				DB_INVENTORY_BATCH_SAVE_MAP.put(tankNo, inventoryBatchSave);
+			}
+			waitingToSave = inventoryBatchSave.waitingToSave;
+			if (inventories != null && !inventories.isEmpty()) {
+				waitingToSave.addAll(inventories);
+			}
+			if (saveNow) {
+				saveAndConvert(waitingToSave, tankNo);
+				inventoryBatchSave.lastTime = LocalDateTime.now();
+				//保存完成清空
+				waitingToSave.clear();
+			} else {
+				batchPersistence(inventoryBatchSave);
+			}
+
+		} else {
+			final InventoryBatchSave inventoryBatchSave = DB_INVENTORY_BATCH_SAVE_MAP.get(tankNo);
+			List<Inventory> waitingToSave = null;
+			if (inventoryBatchSave != null
+					&& inventoryBatchSave.getWaitingToSave() != null
+					&& !inventoryBatchSave.getWaitingToSave().isEmpty()) {
+				waitingToSave = inventoryBatchSave.getWaitingToSave();
+				waitingToSave.addAll(inventories);
+				saveAndConvert(waitingToSave, tankNo);
+				inventoryBatchSave.lastTime = LocalDateTime.now();
+				waitingToSave.clear();
+			} else {
+				saveAndConvert(inventories, tankNo);
+			}
+		}
+	}
+
+	/**
+	 * 在销毁时，应该吧所有的数据保存到数据库
+	 *TODO:放开注解
+	 * @throws Exception
+	 */
+//	@PreDestroy
+	public void destroy() throws Exception {
+		log.info("inventory destroy...");
+		//你的代码
+		final Collection<InventoryBatchSave> values = DB_INVENTORY_BATCH_SAVE_MAP.values();
+		if (!values.isEmpty()) {
+			for (InventoryBatchSave value : values) {
+				if (!value.getWaitingToSave().isEmpty()) {
+					log.info("销毁前持久化液位到数据库,tNO:{},inv:{}", value.getTankNo(),value.getWaitingToSave());
+					saveAndConvert(value.getWaitingToSave(), value.getTankNo());
+				}
+			}
+		}
+		log.info("inventory destroy finished!");
+
+	}
+
+	/**
+	 * 更新缓存中的last信息--不会保存
+	 *
+	 * @param inventory
+	 */
+	@Override
+	public void updateInventoryLast(TankInventory inventory) {
+		DbInventoryLast lastInventory = InventoryCacheManager.getLastInventory(inventory.getTankNo());
+		if (lastInventory == null) {
+			lastInventory = new DbInventoryLast();
+			BeanUtils.copyProperties(DbInventory.convertFromInventory(inventory), lastInventory);
+			generatorInventoryId(lastInventory);
+			InventoryCacheManager.putLastInventory(inventory.getTankNo(), lastInventory);
+			dbInventoryLastDAO.insert(lastInventory);
+		} else {
+			final Long id = lastInventory.getId();
+			BeanUtils.copyProperties(DbInventory.convertFromInventory(inventory), lastInventory);
+			if (id != null) {
+				lastInventory.setId(id);
+			}
+			InventoryCacheManager.putLastInventory(inventory.getTankNo(), lastInventory);
+			dbInventoryLastDAO.updateById(lastInventory);
+		}
+	}
+
+	@Override
+	public List<DbInventory> getInGaps(int tankNo, Long startId, Long endId) {
+		QueryWrapper<DbInventory> wrapper = new QueryWrapper<>();
+		wrapper.lambda().eq(DbInventory::getTankNo, tankNo);
+		wrapper.lambda().ge(DbInventory::getId, startId);
+		wrapper.lambda().le(DbInventory::getId, endId);
+		return list(wrapper);
+
+	}
+
+	@Override
+	public IPage<DbInventory> query(JSONObject req, boolean isPage) {
+		// 参数根据需要判断来写
+		IPage<DbInventory> page = new Page<>(req.getIntValue("pageNum"), req.getIntValue("pageRow"));
+		//查询条件 根据需要写
+		QueryWrapper<DbInventory> wrapper = new QueryWrapper<>();
+		//查询条件
+		if (req.getString("startTime") != null && req.getString("endTime") != null) {
+			try {
+				wrapper.lambda().ge(DbInventory::getTime, req.getString("startTime"));
+				wrapper.lambda().le(DbInventory::getTime, req.getString("endTime"));
+			} catch (Exception e) {
+				log.error("", e);
+			}
+		}
+		if (req.getLong("startId") != null) {
+			wrapper.lambda().ge(DbInventory::getId, req.getLong("startId"));
+		}
+		if (req.getLong("endId") != null) {
+			wrapper.lambda().le(DbInventory::getId, req.getLong("endId"));
+		}
+		if (req.getString("tankNo") != null) {
+			wrapper.lambda().eq(DbInventory::getTankNo, req.getString("tankNo"));
+		}
+		wrapper.lambda().orderByDesc(DbInventory::getTime);
+		if (req.getBoolean("flag") == false) {
+			//不分页的数据
+			page.setRecords(baseMapper.selectList(wrapper));
+		} else {
+			// 分页的数据
+			page = baseMapper.selectPage(page, wrapper);
+		}
+		return page;
+	}
+
+	public boolean insert(DbInventoryTrace trace) {
+		try {
+			List<TankInventory> traceList = trace.getInventories();
+			for (TankInventory list : traceList) {
+				DbInventory dbInventory = DbInventory.convertFromInventory(list);
+				this.save(dbInventory);
+			}
+		} catch (Exception e) {
+			log.error("error***************:" + e.getMessage());
+			return false;
+		}
+		return true;
+	}
+
+
+	/**
+	 * 批量持久化--每隔一段时间持久化一次
+	 *
+	 * @param inventoryBatchSave
+	 */
+	private void batchPersistence(InventoryBatchSave inventoryBatchSave) throws InventoryException {
+		if (getMin(inventoryBatchSave.getLastTime()) > inventoryBatchSave.persistentType.getGap()) {
+			if (inventoryBatchSave.waitingToSave != null && !inventoryBatchSave.waitingToSave.isEmpty()) {
+				saveAndConvert(inventoryBatchSave.waitingToSave, inventoryBatchSave.getTankNo());
+				inventoryBatchSave.waitingToSave.clear();
+				inventoryBatchSave.lastTime = LocalDateTime.now();
+			}
+		}
+	}
+
+	/**
+	 * 保存罐存数据以及罐存LAST信息，同时把罐存数据的id复制给业务数据
+	 *
+	 * @param inventories
+	 * @param tankNo
+	 * @throws InventoryException
+	 */
+	private void saveAndConvert(List<Inventory> inventories, int tankNo) throws InventoryException {
+		if (!inventories.isEmpty()) {
+			final List<DbInventory> collect
+					= inventories.stream()
+					.map(DbInventory::convertFromInventory)
+					.collect(Collectors.toList());
+			this.batchSaveInventory(collect);
+			for (DbInventory dbInventory : collect) {
+				for (Inventory inventory : inventories) {
+					if (inventory.getTime().equals(dbInventory.getTime())) {
+						inventory.setId(dbInventory.getId());
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * 检查液位保存间隔是否变化
+	 *
+	 * @param inventoryBatchSave
+	 */
+	public void checkGapChange(InventoryBatchSave inventoryBatchSave) {
+		PersistentType currType =
+				DbInventoryCycleServiceImpl.isUnloading(inventoryBatchSave.tankNo)
+						? PersistentType.UNLOADING : PersistentType.COMMON;
+		if (!currType.equals(inventoryBatchSave.persistentType)) {
+			inventoryBatchSave.persistentType = currType;
+		}
+	}
+
+	/**
+	 * 获取当前时间和上一次的时间间隔
+	 *
+	 * @return
+	 */
+	private long getMin(LocalDateTime lastTime) {
+		return Duration.between(LocalDateTime.now(), lastTime).toMinutes();
+	}
+
+	/**
+	 * 罐存批量保存
+	 */
+	@Data
+	private class InventoryBatchSave {
+		/**
+		 * 罐号
+		 */
+		private int tankNo;
+		/**
+		 * 上次保存的时间
+		 */
+		private LocalDateTime lastTime;
+		/**
+		 * 持久化类型
+		 */
+		private PersistentType persistentType;
+		/**
+		 * 等待保存
+		 */
+		private List<Inventory> waitingToSave;
+
+		public InventoryBatchSave(int tankNo, LocalDateTime lastTime, PersistentType persistentType) {
+			this.tankNo = tankNo;
+			this.lastTime = lastTime;
+			this.persistentType = persistentType;
+			waitingToSave = new ArrayList<>();
+		}
+	}
+}

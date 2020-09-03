@@ -1,0 +1,372 @@
+package com.oket.tankchartdc.mina.json.handler;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.oket.dispenser.BzNozzleOut;
+import com.oket.dispenser.Dispenser;
+import com.oket.tank4station.websocket.BizWebSocketServer;
+import com.oket.tankchartdc.dao.AbnormalDao;
+import com.oket.tankchartdc.entity.AbnormalEntity;
+import com.oket.tankchartdc.mina.MinaIoHandler;
+import com.oket.tankchartdc.mina.json.bean.*;
+import com.oket.tankchartdc.mina.json.codec.DitJsonBody;
+import com.oket.tankchartdc.mina.json.codec.DitJsonMessage;
+import com.oket.tankchartdc.mina.json.codec.DitJsonResponse;
+import com.oket.tankchartdc.mina.process.DitJsonProcess;
+import com.oket.tankchartdc.service.AbnormalService;
+import com.oket.tankchartdc.websocket.WebSocketServer;
+import com.oket.util.CommonUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.session.IdleStatus;
+import org.apache.mina.core.session.IoSession;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * @description: dit json数据处理器
+ * @author: Longer
+ * @create: 2019-11-08 20:50
+ **/
+@Component
+@Slf4j
+public class DitJsonHandler extends IoHandlerAdapter implements MinaIoHandler {
+
+
+	@Value("${baseFilePath}")
+	private String baseFilePath;
+	@Autowired
+	private DitJsonProcess ditJsonProcess;
+
+	private WebSocketServer websocketServer;
+
+	@Autowired
+    AbnormalService abnormalService;
+	@Autowired
+	AbnormalDao abnormalDao;
+	@Resource
+	BizWebSocketServer bizWebSocketServer;
+
+
+	@Override
+	public WebSocketServer getWebSocketServer() {
+		return websocketServer;
+	}
+
+	@Override
+	public void setWebSocketServer(WebSocketServer websocketServer) {
+		this.websocketServer = websocketServer;
+	}
+
+
+
+	@Override
+	public void sessionCreated(IoSession session) throws Exception {
+		log.info("session created");
+	}
+
+	@Override
+	public void sessionOpened(IoSession session) throws Exception {
+		updateError();
+		log.info("session open");
+
+	}
+
+	@Override
+	public void sessionClosed(IoSession session) throws Exception {
+        saveError();
+		session.closeNow();
+		log.warn("session close");
+	}
+
+	@Override
+	public void sessionIdle(IoSession session, IdleStatus status) throws Exception {
+		log.info("session idle");
+	}
+
+	@Override
+	public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
+		log.error("Unexpected exception.", cause);
+		session.closeNow();
+
+	}
+
+	@Override
+	public void messageReceived(IoSession session, Object message) throws Exception {
+
+		log.info("received: " + message);
+		if (message instanceof DitJsonMessage) {
+
+			DitJsonMessage jsonMessage = (DitJsonMessage) message;
+			websocketSendMessage("JSON原发数据,类型:"+getMessageType(jsonMessage)+"received:" + JSONObject.toJSONString(jsonMessage.getOriginHex()));
+			String flag = DitJsonResponse.FLAG_SUCCESS;
+			try {
+				flag = processJsonMessage(jsonMessage);
+			} catch (Exception e) {
+				log.error("处理失败，原发数据是" + (jsonMessage.getOriginHex())
+						+ ";jsonMessage" + jsonMessage, e);
+			}
+			DitJsonResponse responseData = getResponseData(jsonMessage, flag);
+			session.write(responseData);
+			websocketSendMessage("JSON应答数据:" + JSONObject.toJSONString(responseData));
+		}
+	}
+
+	private String getMessageType(DitJsonMessage jsonMessage) {
+		if (jsonMessage!=null&&jsonMessage.getBody()!=null&&jsonMessage.getBody().getDitApiEnum()!=null){
+			return jsonMessage.getBody().getDitApiEnum().getDesc();
+		}else {
+			return "其他类型数据";
+		}
+	}
+
+
+	/**
+	 * 处理应答数据
+	 *
+	 * @param jsonMessage
+	 * @param flag
+	 * @return
+	 */
+	private DitJsonResponse getResponseData(DitJsonMessage jsonMessage, String flag) {
+		DitJsonResponse ditJsonResponse = new DitJsonResponse();
+		ditJsonResponse.setPid(jsonMessage.getHeader().getPid());
+		ditJsonResponse.setMsgID(jsonMessage.getBody().getMsgID());
+		ditJsonResponse.setPidLength((byte) ditJsonResponse.getPid().length());
+		ditJsonResponse.setMsgIDLength((byte) ditJsonResponse.getMsgID().length());
+		ditJsonResponse.setFlag(flag);
+		return ditJsonResponse;
+	}
+
+	/**
+	 * json消息
+	 *
+	 * @param jsonMessage
+	 * @return 处理数据结果 1-成功；0-失败
+	 */
+	private String processJsonMessage(DitJsonMessage jsonMessage) {
+		if (jsonMessage == null || jsonMessage.getBody() == null) {
+			return "1";
+		}
+		String flag = "1";
+		DITApiEnum ditApiEnum = jsonMessage.getBody().getDitApiEnum();
+		processStation(jsonMessage.getBody());
+		if (ditApiEnum != null) {
+			switch (ditApiEnum) {
+				case TANK_REL_GUN:
+					processTankRelGun(jsonMessage);
+					break;
+				case DELIVERY:
+					processDelivery(jsonMessage);
+					break;
+				case TANK:
+					processTank(jsonMessage);
+					break;
+				case OFFLINE_RECORD:
+					processOfflineRecord(jsonMessage);
+					break;
+				case OIL_TRANSACTION:
+					processTransaction(jsonMessage);
+					break;
+				case TANK_INVENTORY:
+					processInventory(jsonMessage);
+					break;
+				case HOSE_REL_DISPENSER:
+					processHoseRelDispenser(jsonMessage);
+					break;
+				case DELIVERY_LOSS_ALARM:
+					processDeliveryLossAlarm(jsonMessage);
+					break;
+				case NOZZLE_OUT_WHEN_DELIVERY:
+					processNozzleOutWhenDelivery(jsonMessage);
+					break;
+				default:
+					break;
+
+			}
+		}
+		return flag;
+
+	}
+
+	/**
+	 * 处理油站信息
+	 *
+	 * @param body
+	 */
+	private void processStation(DitJsonBody body) {
+		Station station = new Station();
+		station.setCode(body.getSource());
+		ditJsonProcess.processStation(station);
+
+	}
+
+	private void processHoseRelDispenser(DitJsonMessage jsonMessage) {
+		List<NozzleRelDispenser> nozzleRelDispenserList
+				= jsonMessage.getBody().getBizData();
+		
+		ditJsonProcess.processHoseRelDispenser(nozzleRelDispenserList);
+		List<Dispenser> dispensers =
+				NozzleRelDispenser.convertToDispenser(nozzleRelDispenserList);
+		final String content = JSON.toJSONString(dispensers,
+				SerializerFeature.PrettyFormat,
+				SerializerFeature.WriteMapNullValue,
+				SerializerFeature.WriteDateUseDateFormat);
+		loggerContentAndWebsocketSend("加油机油枪对应关系:" + content);
+	}
+
+	private void loggerContentAndWebsocketSend(String content) {
+		websocketSendMessage(content);
+	}
+
+	private void processInventory(DitJsonMessage jsonMessage) {
+		List<Inventory> inventories
+				= jsonMessage.getBody().getBizData();
+		List<com.oket.tank4station.Inventory> inventoryList = Inventory.convertInventory(inventories);
+		for (com.oket.tank4station.Inventory inventory : inventoryList) {
+			final String content = JSON.toJSONString(inventory,
+					SerializerFeature.PrettyFormat,
+					SerializerFeature.WriteMapNullValue,
+					SerializerFeature.WriteDateUseDateFormat);
+			loggerContentAndWebsocketSend("罐存数据:" + content);
+
+		}
+	}
+
+	private void processTransaction(DitJsonMessage jsonMessage) {
+		List<OilTransaction> oilTransactions
+				= jsonMessage.getBody().getBizData();
+		List<BzNozzleOut> bzNozzleOuts = OilTransaction.convertHoseOut(oilTransactions);
+		bzNozzleOuts.forEach(nozzleOut -> {
+			final String content = JSON.toJSONString(nozzleOut,
+					SerializerFeature.PrettyFormat,
+					SerializerFeature.WriteMapNullValue,
+					SerializerFeature.WriteDateUseDateFormat);
+			loggerContentAndWebsocketSend("交易数据:" + content);
+
+			ditJsonProcess.processNozzleOut(nozzleOut);
+		});
+	}
+
+	private void processOfflineRecord(DitJsonMessage jsonMessage) {
+		List<OfflineRecord> offlineRecords
+				= jsonMessage.getBody().getBizData();
+		List<BzNozzleOut> hoseOuts = OfflineRecord.convertToHoseOut(offlineRecords);
+		for (BzNozzleOut hoseOut : hoseOuts) {
+			final String content = JSON.toJSONString(hoseOut,
+					SerializerFeature.PrettyFormat,
+					SerializerFeature.WriteMapNullValue,
+					SerializerFeature.WriteDateUseDateFormat);
+			loggerContentAndWebsocketSend("离线交易:" + content);
+			ditJsonProcess.processNozzleOut(hoseOut);
+		}
+	}
+
+	private void processTank(DitJsonMessage jsonMessage) {
+		final List<Tank> tanks = jsonMessage.getBody().getBizData();
+		
+		ditJsonProcess.processTank(tanks);
+		final String content = JSON.toJSONString(tanks,
+				SerializerFeature.PrettyFormat,
+				SerializerFeature.WriteMapNullValue,
+				SerializerFeature.WriteDateUseDateFormat);
+		loggerContentAndWebsocketSend("油罐基本信息：" + content);
+	}
+
+	private void processDelivery(DitJsonMessage jsonMessage) {
+		final List<Delivery> deliveries = jsonMessage.getBody().getBizData();
+		ditJsonProcess.processDelivery(deliveries);
+		final String content = JSON.toJSONString(deliveries,
+				SerializerFeature.PrettyFormat,
+				SerializerFeature.WriteMapNullValue,
+				SerializerFeature.WriteDateUseDateFormat);
+		loggerContentAndWebsocketSend("油品配送数据：" + content);
+
+//		writeToDelivery
+
+
+	}
+
+	private void processTankRelGun(DitJsonMessage jsonMessage) {
+		final List<TankRelNozzle> tankRelNozzles = jsonMessage.getBody().getBizData();
+//		DitJsonCacheManager.processTankRelGun(tankRelNozzles);
+		
+		ditJsonProcess.processTankRelGun(tankRelNozzles);
+
+		final String content = JSON.toJSONString(tankRelNozzles,
+				SerializerFeature.PrettyFormat,
+				SerializerFeature.WriteMapNullValue,
+				SerializerFeature.WriteDateUseDateFormat);
+		loggerContentAndWebsocketSend("枪罐关系：" + content);
+//		ditJSONFile.writeToFile(DitJSONFile.TANK_REL_GUN,
+//				"tank_rel_gun.txt",
+//				content);
+	}
+
+	@Override
+	public void messageSent(IoSession session, Object message) throws Exception {
+	}
+
+    /*
+     * 保存json断开异常
+     */
+    private void saveError() {
+        AbnormalEntity abnormalEntity = new AbnormalEntity();
+        abnormalEntity.setDitType("JSON");
+        abnormalEntity.setErrorType(1);
+		abnormalEntity.setStartTime(new Date(System.currentTimeMillis()/1000*1000));
+		log.info("json断开连接，当前时间"+abnormalEntity.getStartTime());
+        abnormalService.save(abnormalEntity);
+		bizWebSocketServer.sendMessage4(abnormalEntity);
+		websocketSendMessage("JSON断开连接！");
+    }
+
+	/*
+	 * 给上一条关闭的结束时间赋值
+	 */
+    private void updateError(){
+		Date now = new Date();
+		log.info("json建立连接，当前时间"+now);
+		QueryWrapper<AbnormalEntity> queryWrapper = new QueryWrapper();
+		queryWrapper.lambda().eq(AbnormalEntity::getDitType,"JSON");
+		queryWrapper.lambda().eq(AbnormalEntity::getErrorType,1);
+		queryWrapper.lambda().orderByDesc(AbnormalEntity::getStartTime);
+		List<AbnormalEntity> results = abnormalDao.selectList(queryWrapper);
+		if(results.size()!=0) {
+			AbnormalEntity abnormalEntity = results.get(0);
+			if(abnormalEntity.getEndTime()==null) {
+				abnormalEntity.setEndTime(now);
+				abnormalService.updateById(abnormalEntity);
+				bizWebSocketServer.sendMessage4(abnormalEntity);
+			}
+		}
+	}
+
+	private void processDeliveryLossAlarm(DitJsonMessage jsonMessage) {
+		final List<DeliveryLossAlarm> deliveries = jsonMessage.getBody().getBizData();
+		ditJsonProcess.processDeliveryLossAlarm(deliveries);
+		final String content = JSON.toJSONString(deliveries,
+				SerializerFeature.PrettyFormat,
+				SerializerFeature.WriteMapNullValue,
+				SerializerFeature.WriteDateUseDateFormat);
+		loggerContentAndWebsocketSend("油品配送期间付油数据：" + content);
+	}
+
+	private void processNozzleOutWhenDelivery(DitJsonMessage jsonMessage) {
+		final List<NozzleOutWhenDelivery> deliveries = jsonMessage.getBody().getBizData();
+		ditJsonProcess.processNozzleOutWhenDelivery(deliveries);
+		final String content = JSON.toJSONString(deliveries,
+				SerializerFeature.PrettyFormat,
+				SerializerFeature.WriteMapNullValue,
+				SerializerFeature.WriteDateUseDateFormat);
+		loggerContentAndWebsocketSend("油品配送期间付油数据：" + content);
+	}
+}
+

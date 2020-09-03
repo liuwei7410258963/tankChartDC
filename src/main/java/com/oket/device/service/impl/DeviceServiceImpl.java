@@ -1,0 +1,618 @@
+package com.oket.device.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.oket.common.base.Status;
+import com.oket.config.spring.SpringUtil;
+import com.oket.device.*;
+import com.oket.device.cache.DeviceCacheManager;
+import com.oket.device.dao.*;
+import com.oket.device.service.*;
+import com.oket.oil.OilEntity;
+import com.oket.oil.service.OilService;
+import com.oket.station.StationEntity;
+import com.oket.station.bizservice.BalanceService;
+import com.oket.station.service.StationService;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.io.File;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
+
+/**
+ * @description: 设备service
+ * @author: SunBiaoLong
+ * @create: 2019-12-10 16:54
+ **/
+@Service
+@Transactional(rollbackFor = Exception.class)
+public class DeviceServiceImpl implements DeviceService {
+    @Autowired
+    NozRelDisService nozRelDisService;
+    @Autowired
+    NozTankRelationService nozTankRelationService;
+
+    @Resource
+    private Dispenser4DeviceDAO dispenser4DeviceDAO;
+    @Resource
+    private Nozzle4DeviceDAO nozzle4DeviceDAO;
+    @Autowired
+    private TankInfoService tankInfoService;
+    @Resource
+    private ProductDAO productDAO;
+
+    @Autowired
+    private OilService oilService;
+
+    @Autowired
+    private BalanceService balanceService;
+
+    /**
+     * 获取油罐数据
+     *
+     * @param tankNo
+     * @return
+     */
+    public TankInfo getTank(Integer tankNo) {
+        if (tankNo == null) {
+            return null;
+        }
+        //从数据库中查询是否有数据
+        QueryWrapper<TankInfo> wrapper = new QueryWrapper<>();
+        wrapper.lambda().eq(TankInfo::getTankNo, tankNo);
+        wrapper.last("LIMIT 1");
+        return tankInfoService.getOne(wrapper);
+    }
+
+    @Override
+    public void processTanks(List<TankInfo> tankInfoList) {
+        if (tankInfoList == null || tankInfoList.isEmpty()) {
+            return;
+        }
+        for (TankInfo tankInfo : tankInfoList) {
+            final TankInfo tankFromCache = getTank(tankInfo.getTankNo());
+            if (tankFromCache == null) {
+                tankInfo.setStatus(Status.ENABLE);
+                setTankOilName(tankInfo, tankInfo.getOilCode());
+                tankInfoService.save(tankInfo);
+                tankInfoService.updateNozzleOil(tankInfo);
+            } else {
+                boolean changed = false;
+                if (!tankInfo.getOilCode().equals(tankFromCache.getOilCode())) {
+                    setTankOilName(tankFromCache, tankInfo.getOilCode());
+                    changed = true;
+                }
+                //DIT传过来的最大罐容可能不准确，如果已经有了值，那么就不做修改了
+                if (tankFromCache.getMaxVolume()==null){
+                    tankFromCache.setMaxVolume(tankInfo.getMaxVolume());
+                    changed = true;
+                }
+                if (!tankInfo.getStatus().equals(tankFromCache.getStatus())) {
+                    tankFromCache.setStatus(tankInfo.getStatus());
+                    changed = true;
+                }
+                if (changed) {
+                    tankInfoService.updateById(tankFromCache);
+                    tankInfoService.updateNozzleOil(tankFromCache);
+                }
+            }
+        }
+
+    }
+
+    /**
+     * 设置油罐的油品信息
+     *
+     * @param tankInfo
+     * @param oilCode
+     */
+    private void setTankOilName(TankInfo tankInfo, String oilCode) {
+        tankInfo.setOilCode(oilCode);
+        final OilEntity oilByCode = oilService.getOilByCode(oilCode);
+        if (oilByCode != null) {
+            tankInfo.setOilId(oilByCode.getId());
+            tankInfo.setOilName(oilByCode.getFullName());
+        } else {
+            final OilEntity oilEntity = oilService.saveNewOil(oilCode);
+            if (oilEntity != null) {
+                tankInfo.setOilId(oilEntity.getId());
+                tankInfo.setOilName(oilEntity.getFullName());
+            }
+        }
+    }
+
+
+    /**
+     * 根据加油机编号获取加油信息
+     * @param dispenserNo
+     * @return
+     */
+    public Dispenser4Device getDispenser(Integer dispenserNo) {
+        if (dispenserNo == null) {
+            return null;
+        }
+        //从数据库中查询是否有数据
+        QueryWrapper<Dispenser4Device> wrapper = new QueryWrapper<>();
+        wrapper.lambda().eq(Dispenser4Device::getDispenserNo, dispenserNo);
+        wrapper.last("limit 1");
+        return dispenser4DeviceDAO.selectOne(wrapper);
+    }
+
+
+    @Override
+    public void processDispenser(List<Dispenser4Device> dispenser4DeviceList) {
+        if (dispenser4DeviceList == null || dispenser4DeviceList.isEmpty()) {
+            return;
+        }
+        //保存油枪加油机关系
+        saveNozRelDis(dispenser4DeviceList);
+        for (Dispenser4Device dispenser : dispenser4DeviceList) {
+            //应该使用dispenserNo
+            final Dispenser4Device dispenserFromCache = getDispenser(dispenser.getDispenserNo());
+            if (dispenserFromCache == null) {
+                dispenser.setStatus(Status.ENABLE);
+                isTankNosChanged(dispenser);
+                Product product = new Product();
+                product.setDeviceType(DeviceType.DISPENSER);
+                product.setProductType(dispenser.getProductType());
+                productDAO.insert(product);
+                dispenser.setProductId(product.getId());
+                dispenser.setDetailInfo(dispenser.getDispenserNo() + "");
+                dispenser4DeviceDAO.insert(dispenser);
+            } else {
+                boolean changed = false;
+                if (dispenser.getDispenserNo() != null && !dispenser.getDispenserNo().equals(dispenserFromCache.getDispenserNo())) {
+                    dispenserFromCache.setDispenserNo(dispenser.getDispenserNo());
+                    changed = true;
+                }
+                if (dispenser.getProductType() != null && !dispenser.getProductType().equals(dispenserFromCache.getProductType())) {
+                    Product product = new Product();
+                    product.setDeviceType(DeviceType.DISPENSER);
+                    product.setProductType(dispenser.getProductType());
+                    productDAO.insert(product);
+                    dispenserFromCache.setProductType(dispenser.getProductType());
+                    dispenserFromCache.setProductId(product.getId());
+                    dispenserFromCache.setProduct(product);
+                    changed = true;
+                }
+                if (changed) {
+                    dispenser4DeviceDAO.updateById(dispenser);
+                }
+            }
+        }
+
+    }
+
+    @Override
+    public void processNozzleIfsfData(Nozzle4Device nozzle) {
+        if (nozzle != null) {
+            QueryWrapper<Nozzle4Device> queryWrapper = new QueryWrapper<>();
+            queryWrapper.lambda().eq(Nozzle4Device::getNozzleNo, nozzle.getNozzleNo());
+            final Nozzle4Device nozzleFromCache = nozzle4DeviceDAO.selectOne(queryWrapper);
+            if (nozzleFromCache == null) {
+                nozzle.setStatus(Status.ENABLE);
+                nozzle.setDetailInfo(nozzle.getNozzleNo() + "");
+                nozzle4DeviceDAO.insert(nozzle);
+            } else {
+                boolean changed = false;
+                if (nozzle.getIfsfFuelingPoint() != null
+                        && !nozzle.getIfsfFuelingPoint().equals(nozzleFromCache.getIfsfFuelingPoint())) {
+                    nozzleFromCache.setIfsfFuelingPoint(nozzle.getIfsfFuelingPoint());
+                    changed = true;
+                }
+                if (nozzle.getIfsfNode() != null
+                        && !nozzle.getIfsfNode().equals(nozzleFromCache.getIfsfNode())) {
+                    nozzleFromCache.setIfsfNode(nozzle.getIfsfNode());
+                    changed = true;
+                }
+                if (changed) {
+                    nozzle4DeviceDAO.updateById(nozzleFromCache);
+                }
+            }
+        }
+    }
+
+    public Nozzle4Device getNozzle(Integer nozzleNo) {
+        if (nozzleNo == null) {
+            return null;
+        }
+        //从数据库中查询是否有数据
+        QueryWrapper<Nozzle4Device> wrapper = new QueryWrapper<>();
+        wrapper.lambda().eq(Nozzle4Device::getNozzleNo, nozzleNo);
+        return nozzle4DeviceDAO.selectOne(wrapper);
+    }
+
+    @Override
+    public void processNozzleRelTank(List<Nozzle4Device> nozzle4DeviceList) {
+        if (nozzle4DeviceList == null || nozzle4DeviceList.isEmpty()) {
+            return;
+        }
+        saveTankRelNoz(nozzle4DeviceList);
+        for (Nozzle4Device nozzle : nozzle4DeviceList) {
+            final Nozzle4Device nozzleFromCache = getNozzle(nozzle.getNozzleNo());
+            if (nozzleFromCache == null) {
+                nozzle.setStatus(Status.ENABLE);
+                nozzle4DeviceDAO.insert(nozzle);
+            } else {
+                boolean changed = false;
+                if (nozzle.getTankNo() != null) {
+                    if (nozzleFromCache.getTankNo() == null) {
+                        nozzleFromCache.setTankNo(nozzle.getTankNo());
+                        if (nozzleFromCache.getDispenserNo() != null) {
+                            //将加油机和油罐的关系对应上
+                            final Dispenser4Device dispenser = getDispenser(nozzleFromCache.getDispenserNo());
+                            if (dispenser != null) {
+                                String tankNos = dispenser.getTankNos();
+                                if (tankNos != null && tankNos.length() == 0) {
+                                    final String[] split = tankNos.split(",");
+                                    final List<String> strings = Arrays.asList(split);
+                                    //判断加油机是否已经关联此油罐
+                                    if (!strings.contains(nozzle.getTankNo().toString())) {
+                                        tankNos += "," + nozzle.getTankNo();
+                                        dispenser.setTankNos(tankNos);
+                                        //更新加油机
+                                        dispenser4DeviceDAO.updateById(dispenser);
+                                    }
+                                } else {
+                                    dispenser.setTankNos(nozzle.getTankNo().toString());
+                                    //更新加油机
+                                    dispenser4DeviceDAO.updateById(dispenser);
+                                }
+                            }
+                        }
+                        changed = true;
+                    } else {
+                        //判断枪罐是否发生变化
+                        if (!nozzleFromCache.getTankNo().equals(nozzle.getTankNo())) {
+                            nozzleFromCache.setTankNo(nozzle.getTankNo());
+                            if (nozzleFromCache.getDispenserNo() != null) {
+                                /**
+                                 * 1.校验加油机和油罐关系是否发生变化
+                                 * 2.修改油枪的枪罐关系
+                                 */
+                                final Dispenser4Device dispenser = getDispenser(nozzleFromCache.getDispenserNo());
+                                if (dispenser != null) {
+                                    final boolean tankNosChanged = isTankNosChanged(dispenser);
+                                    if (tankNosChanged) {
+                                        dispenser4DeviceDAO.updateById(dispenser);
+                                    }
+                                }
+                            }
+                            changed = true;
+                        }
+                    }
+                }
+                if (changed) {
+                    nozzle4DeviceDAO.updateById(nozzleFromCache);
+                }
+            }
+
+        }
+
+    }
+
+
+    /**
+     * 判断加油机对应的油罐数据是否发生变化
+     *
+     * @param dispenser
+     * @return
+     */
+    private boolean isTankNosChanged(Dispenser4Device dispenser) {
+        final Collection<Nozzle4Device> allNozzle = nozzle4DeviceDAO.selectList(new QueryWrapper<>());
+        if (!allNozzle.isEmpty()) {
+            final Set<String> tankNos =
+                    allNozzle.parallelStream().filter(
+                            nozzle4Device -> dispenser.getDispenserNo()
+                                    .equals(nozzle4Device.getDispenserNo())
+                                    && nozzle4Device.getTankNo() != null)
+                            .map(nozzle4Device -> nozzle4Device.getTankNo().toString()).collect(Collectors.toSet());
+            if (!tankNos.isEmpty()) {
+                if (dispenser.getTankNos() == null || dispenser.getTankNos().isEmpty()) {
+                    dispenser.setTankNos(StringUtils.join(tankNos, ","));
+                    return true;
+                } else {
+                    final String[] split = dispenser.getTankNos().split(",");
+                    final List<String> strings = Arrays.asList(split);
+                    Set<String> set = new HashSet<>(strings);
+                    final boolean equals = set.size() == tankNos.size() && set.containsAll(tankNos);
+                    if (equals) {
+                        return false;
+                    } else {
+                        dispenser.setTankNos(StringUtils.join(tankNos, ","));
+                        return true;
+                    }
+                }
+            } else {
+                if (dispenser.getTankNos() != null && dispenser.getTankNos().length() > 0) {
+                    dispenser.setTankNos(null);
+                    return true;
+                }
+                return false;
+            }
+        } else {
+            if (dispenser.getTankNos() != null && dispenser.getTankNos().length() > 0) {
+                dispenser.setTankNos(null);
+                return true;
+            }
+            return false;
+        }
+
+    }
+
+    @Override
+    public void processNozzleBaseData(List<Nozzle4Device> nozzle4DeviceList) {
+        if (nozzle4DeviceList == null || nozzle4DeviceList.isEmpty()) {
+            return;
+        }
+        for (Nozzle4Device nozzle : nozzle4DeviceList) {
+            final Nozzle4Device nozzleFromCache = getNozzle(nozzle.getNozzleNo());
+            if (nozzleFromCache == null) {
+                nozzle.setStatus(Status.ENABLE);
+                nozzle4DeviceDAO.insert(nozzle);
+            } else {
+                boolean changed = false;
+                //判断加油机关系是否发生变化
+                if (!nozzle.getDispenserNo().equals(nozzleFromCache.getDispenserNo())) {
+                    nozzleFromCache.setDispenserNo(nozzle.getDispenserNo());
+                    changed = true;
+                }
+                if (!nozzle.getOnlineStatus().equals(nozzleFromCache.getOnlineStatus())) {
+                    nozzleFromCache.setOnlineStatus(nozzle.getOnlineStatus());
+                    nozzleFromCache.setOnlineStatusChangeTime(nozzle.getOnlineStatusChangeTime());
+                    changed = true;
+                }
+                if (changed) {
+                    nozzle4DeviceDAO.updateById(nozzleFromCache);
+                }
+            }
+        }
+    }
+
+    @Override
+    public Integer getTankNo(Integer nozzleNo) {
+        final Nozzle4Device nozzle4Device = getNozzle(nozzleNo);
+        if (nozzle4Device != null && nozzle4Device.getTankNo() != null) {
+            return nozzle4Device.getTankNo();
+        }
+        return null;
+    }
+
+
+    /**
+     * 存储枪罐关系
+     */
+    public void saveTankRelNoz(List<Nozzle4Device> nozzle4Devices) {
+        QueryWrapper<NozTankRelationEntity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.isNull("end_time");
+        List<NozTankRelationEntity> dbLists = nozTankRelationService.list(queryWrapper);
+
+        Date now = new Date();
+        //第一次直接加载进数据库
+        if (dbLists.size() == 0) {
+            List<NozTankRelationEntity> result = new ArrayList<>();
+            for (Nozzle4Device tankRelNozzle : nozzle4Devices) {
+                NozTankRelationEntity nozTankRelationEntity = new NozTankRelationEntity();
+                nozTankRelationEntity.setNozzleCode(tankRelNozzle.getNozzleNo());
+                nozTankRelationEntity.setTankNo(tankRelNozzle.getTankNo());
+                nozTankRelationEntity.setStartTime(now);
+                result.add(nozTankRelationEntity);
+            }
+            nozTankRelationService.saveBatch(result);
+            updateNozzleOil();
+        } else {
+            //需要更新的
+            sameValueUpdateNozRelTank(nozzle4Devices, dbLists, now);
+            //需要插入的
+            needInsert(nozzle4Devices, dbLists, now);
+            updateNozzleOil();
+        }
+        balanceService.nozzleRelTankChanged(nozzle4Devices);
+    }
+
+    /**
+     * 更新所有油枪的油品
+     */
+    private void updateNozzleOil() {
+        final List<TankInfo> allTank = tankInfoService.getAllTank();
+        if (allTank != null && !allTank.isEmpty()) {
+            allTank.forEach(v -> {
+                tankInfoService.updateNozzleOil(v);
+            });
+        }
+    }
+
+    /**
+     * 需要新建的枪罐关联关系
+     *
+     * @param tankRelNozzles
+     * @param dbLists
+     * @param now
+     */
+    private void needInsert(List<Nozzle4Device> tankRelNozzles, List<NozTankRelationEntity> dbLists, Date now) {
+
+        //传过来的所有数据根据油枪编号去重
+        ArrayList<Nozzle4Device> newLists = tankRelNozzles.stream().collect(Collectors.collectingAndThen(
+                Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Nozzle4Device::getNozzleNo))), ArrayList::new));
+
+        //需要插入的油枪加油机关系
+        List<NozTankRelationEntity> insertResultList = new ArrayList<>();
+        List<Integer> newIntegerList = newLists.stream().map(Nozzle4Device::getNozzleNo).collect(Collectors.toList());
+        List<Integer> dbIntegerList = dbLists.stream().map(NozTankRelationEntity::getNozzleCode).collect(Collectors.toList());
+        //差集取需要插入的
+        List<Integer> insertLists = newIntegerList.stream().filter(x -> !dbIntegerList.contains(x)).collect(Collectors.toList());
+
+        for (Nozzle4Device newlist : newLists) {
+            insertLists.stream().filter(x -> (x).equals(newlist.getNozzleNo())).forEach(x -> {
+                NozTankRelationEntity nozRelDisEntity = new NozTankRelationEntity();
+                nozRelDisEntity.setNozzleCode(newlist.getNozzleNo());
+                nozRelDisEntity.setTankNo(newlist.getTankNo());
+                nozRelDisEntity.setStartTime(now);
+                insertResultList.add(nozRelDisEntity);
+            });
+        }
+        nozTankRelationService.saveBatch(insertResultList);
+    }
+
+    /**
+     * 需要更新的(枪罐关系)
+     */
+    private void sameValueUpdateNozRelTank(List<Nozzle4Device> nozzle4Devices, List<NozTankRelationEntity> dbLists, Date now) {
+        List<NozTankRelationEntity> updateResult = new ArrayList<>();
+        List<NozTankRelationEntity> insertResult = new ArrayList<>();
+        for (Nozzle4Device list : nozzle4Devices) {
+            dbLists.stream().filter(x -> (x.getNozzleCode()).equals(list.getNozzleNo()))
+                    .filter(x -> (x.getTankNo() == null) || !(x.getTankNo()).equals(list.getTankNo()))
+                    .forEach(x -> {
+                        //需要更新结束时间的数据
+                        NozTankRelationEntity nozTankRelationEntity = new NozTankRelationEntity();
+                        nozTankRelationEntity.setId(x.getId());
+                        nozTankRelationEntity.setEndTime(now);
+                        updateResult.add(nozTankRelationEntity);
+                        //需要新增的数据
+                        NozTankRelationEntity nozRelDisEntity1 = new NozTankRelationEntity();
+                        nozRelDisEntity1.setNozzleCode(list.getNozzleNo());
+                        nozRelDisEntity1.setTankNo(list.getTankNo());
+                        nozRelDisEntity1.setStartTime(now);
+                        insertResult.add(nozRelDisEntity1);
+                    });
+        }
+        //把修改过的数据结束时间赋值，然后生成一条新的数据，为新值
+        if (updateResult.size() != 0) {
+            nozTankRelationService.updateBatchById(updateResult);
+        }
+        if (insertResult.size() != 0) {
+            nozTankRelationService.saveBatch(insertResult);
+        }
+    }
+
+    /**
+     * 存储油枪加油机关系
+     */
+    public void saveNozRelDis(List<Dispenser4Device> dispenserLists) {
+        QueryWrapper queryWrapper = new QueryWrapper();
+        queryWrapper.isNull("end_time");
+        List<NozRelDisEntity> dbLists = nozRelDisService.list(queryWrapper);
+        Date now = new Date();
+        //第一次直接加载进数据库
+        if (dbLists.size() == 0) {
+            List<NozRelDisEntity> result = new ArrayList<>();
+            for (Dispenser4Device dispenserlist : dispenserLists) {
+                List<Nozzle4Device> nozLists = dispenserlist.getNozzle4Devices();
+                for (Nozzle4Device list : nozLists) {
+                    NozRelDisEntity nozRelDisEntity = new NozRelDisEntity();
+                    nozRelDisEntity.setNozzleCode(list.getNozzleNo());
+                    nozRelDisEntity.setDispenserNo(list.getDispenserNo());
+                    nozRelDisEntity.setStartTime(now);
+                    result.add(nozRelDisEntity);
+                }
+            }
+            nozRelDisService.saveBatch(result);
+        }
+        //数量有变化
+        else {
+            saveNozRelDis(dispenserLists, dbLists, now);
+            //需要插入的
+            needNozRelDisInsert(dispenserLists, dbLists, now);
+        }
+    }
+
+    /**
+     * 枪机关系保存
+     *
+     * @param dispenserLists
+     * @param dbLists
+     * @param now
+     */
+    private void needNozRelDisInsert(List<Dispenser4Device> dispenserLists, List<NozRelDisEntity> dbLists, Date now) {
+        List<Nozzle4Device> tempLists = new ArrayList<>();
+        for (Dispenser4Device dispenser : dispenserLists) {
+            List<Nozzle4Device> nozLists = dispenser.getNozzle4Devices();
+            //传过来的所有数据
+            tempLists.addAll(nozLists);
+        }
+        //传过来的所有数据根据油枪编号去重
+        ArrayList<Nozzle4Device> newLists = tempLists.stream().collect(
+                Collectors.collectingAndThen(
+                        Collectors.toCollection(() -> new TreeSet<>(
+                                Comparator.comparing(Nozzle4Device::getNozzleNo))), ArrayList::new));
+
+        //需要插入的油枪加油机关系
+        List<NozRelDisEntity> insertResultList = new ArrayList<>();
+        List<Integer> newIntegerList = newLists.stream().map(Nozzle4Device::getNozzleNo).collect(Collectors.toList());
+        List<Integer> dbIntegerList = dbLists.stream().map(NozRelDisEntity::getNozzleCode).collect(Collectors.toList());
+        //差集取需要插入的
+        List<Integer> insertLists = newIntegerList.stream().filter(x -> !dbIntegerList.contains(x)).collect(toList());
+        for (Nozzle4Device newlist : newLists) {
+            insertLists.stream().filter(x -> x.equals(newlist.getNozzleNo())).forEach(x -> {
+                NozRelDisEntity nozRelDisEntity = new NozRelDisEntity();
+                nozRelDisEntity.setNozzleCode(newlist.getNozzleNo());
+                nozRelDisEntity.setDispenserNo(newlist.getDispenserNo());
+                nozRelDisEntity.setStartTime(now);
+                insertResultList.add(nozRelDisEntity);
+            });
+        }
+        nozRelDisService.saveBatch(insertResultList);
+    }
+
+    /**
+     * 保存枪机关系
+     *
+     * @param dispenserLists
+     * @param dbLists
+     * @param now
+     */
+    private void saveNozRelDis(List<Dispenser4Device> dispenserLists, List<NozRelDisEntity> dbLists, Date now) {
+        //需要更新的
+        List<NozRelDisEntity> updateResult = new ArrayList<>();
+        List<NozRelDisEntity> insertResult = new ArrayList<>();
+        for (Dispenser4Device dispenserlist : dispenserLists) {
+            List<Nozzle4Device> nozLists = dispenserlist.getNozzle4Devices();
+            for (Nozzle4Device list : nozLists) {
+                dbLists.stream().filter(x -> x.getNozzleCode().equals(list.getNozzleNo()))
+                        .filter(x -> (x.getDispenserNo() == null) || (!x.getDispenserNo().equals(list.getDispenserNo())))
+                        .forEach(x -> {
+                            //需要更新结束时间的数据
+                            NozRelDisEntity nozRelDisEntity = new NozRelDisEntity();
+                            nozRelDisEntity.setId(x.getId());
+                            nozRelDisEntity.setEndTime(now);
+                            updateResult.add(nozRelDisEntity);
+                            //需要新增的数据
+                            NozRelDisEntity nozRelDisEntity1 = new NozRelDisEntity();
+                            nozRelDisEntity1.setNozzleCode(list.getNozzleNo());
+                            nozRelDisEntity1.setDispenserNo(list.getDispenserNo());
+                            nozRelDisEntity1.setStartTime(now);
+                            insertResult.add(nozRelDisEntity1);
+                        });
+            }
+        }
+        //把修改过的数据结束时间赋值，然后生成一条新的数据，为新值
+        if (updateResult.size() != 0) {
+            nozRelDisService.updateBatchById(updateResult);
+        }
+        if (insertResult.size() != 0) {
+            nozRelDisService.saveBatch(insertResult);
+        }
+    }
+
+    @Override
+    public Integer getNozzle(byte node, int fuelingPoint) {
+        QueryWrapper<Nozzle4Device> qw = new QueryWrapper<>();
+        qw.lambda().eq(Nozzle4Device::getIfsfFuelingPoint, fuelingPoint);
+        qw.lambda().eq(Nozzle4Device::getIfsfNode, node);
+        qw.last("LIMIT 1");
+        final Nozzle4Device nozzle4Device = nozzle4DeviceDAO.selectOne(qw);
+        if (nozzle4Device != null) {
+            return nozzle4Device.getNozzleNo();
+        }
+        return null;
+    }
+
+
+}

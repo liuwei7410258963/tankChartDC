@@ -1,0 +1,22 @@
+package com.oket.util;
+
+/**
+ * DeviationCalculator
+ *
+ * @author wujh
+ * @description 偏差计算，调用动态库运算
+ * @date 2020/07/17
+ */
+public class DeviationCalculator {
+	static{
+		//加载dll文件
+		System.load("");
+	}
+
+	/**
+	 *计算系统偏差
+	 * @param data
+	 * @return
+	 */
+	public native String calcDeviation(String data);
+}

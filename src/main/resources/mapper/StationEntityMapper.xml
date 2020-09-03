@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.oket.station.dao.StationDao">
+    <select id="selectStaionAddress" resultType="com.alibaba.fastjson.JSONObject">
+        SELECT * FROM bd_station s
+        LEFT JOIN address_gps gps ON s.`station_id`=gps.`station_id`
+        LEFT JOIN address_location loc ON s.`station_id`=loc.`station_id`
+        LEFT JOIN address_mail mail ON s.`station_id`=mail.`station_id`
+        LEFT JOIN address_url url ON s.`station_id`=url.`station_id`
+        where  s.station_id=1
+    </select>
+</mapper>

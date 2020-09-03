@@ -1,0 +1,133 @@
+package com.oket.oil.cache;
+
+import com.oket.oil.OilEntity;
+import com.oket.oil.dao.OilDAO;
+import com.oket.util.DoubleUtils;
+import com.oket.util.YmlUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * @description: 油品缓存数据
+ * @author: SunBiaoLong
+ * @create: 2019-12-10 14:44
+ **/
+@Component
+@Slf4j
+public class OilCacheManager {
+	private static final Map<String, OilEntity> OIL_ENTITY_MAP = new ConcurrentHashMap<>();
+	@Resource
+	private OilDAO oilDAO;
+	/**
+	 * double的精度
+	 */
+	private final static double DOUBLE_ACCURACY = 0.000001;
+	/**
+	 * 汽油膨胀率
+	 */
+	private final static double GASOLINE_EXPANSION_RATE = 0.00126;
+	/**
+	 * 存入油品数据
+	 *
+	 * @param oilCode   油品编号
+	 * @param oilEntity 油品实体
+	 */
+	public static void putOil(String oilCode, OilEntity oilEntity) {
+		OIL_ENTITY_MAP.put(oilCode, oilEntity);
+	}
+
+	/**
+	 * 获取油品数据
+	 *
+	 * @param oilCode 油品编号
+	 */
+	public static OilEntity getOil(String oilCode) {
+		return OIL_ENTITY_MAP.get(oilCode);
+	}
+
+	/**
+	 * 获取V20
+	 *
+	 * @param oilCode
+	 * @param volume
+	 * @return
+	 */
+	public static double getV20(String oilCode, double volume, double temperature) {
+		if (StringUtils.isNotBlank(oilCode)) {
+			final OilEntity oil = OilCacheManager.getOil(oilCode);
+			if (oil != null && oil.getOilExpansionRate() != 0.0) {
+				return DoubleUtils.round(volume * (1 - (temperature - 20) * oil.getOilExpansionRate()), 3);
+			}
+		}
+		return volume;
+	}
+
+	/**
+	 * 初始化缓存--从数据库获取
+	 */
+	@PostConstruct
+	public void init() {
+		try {
+			refresh();
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * 刷新缓存
+	 */
+	public void refresh() {
+		final List<OilEntity> oilEntities = oilDAO.selectList(null);
+		if (oilEntities != null && !oilEntities.isEmpty()) {
+			for (OilEntity oilEntity : oilEntities) {
+				getOilExpansionRate(oilEntity);
+				putOil(oilEntity.getCode(), oilEntity);
+			}
+		}
+	}
+
+	/**
+	 * 获取油品膨胀率
+	 *
+	 * @param oilEntity
+	 */
+	private void getOilExpansionRate(OilEntity oilEntity) {
+		double oilExpansionRate = getDouble(oilEntity.getCode());
+		//double类型不能用==判断，精度缺失
+		if (oilExpansionRate <= DOUBLE_ACCURACY) {
+			oilExpansionRate =
+					(oilEntity.getType() != null) ? getDouble(oilEntity.getType().name())
+							: getDouble("DEFAULT");
+		}
+		//double类型不能用==判断，精度缺失
+		if (oilExpansionRate <= DOUBLE_ACCURACY) {
+			oilEntity.setOilExpansionRate(oilExpansionRate);
+		} else {
+			log.error("读取配置文件失败");
+			oilEntity.setOilExpansionRate(GASOLINE_EXPANSION_RATE);
+		}
+	}
+
+	/**
+	 * 获取double
+	 *
+	 * @param code
+	 * @return
+	 */
+	private double getDouble(String code) {
+		try {
+			return YmlUtils.getDoubleProperty(code, "oil-expansion-rate.yml");
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+		}
+		return 0.0;
+	}
+}
